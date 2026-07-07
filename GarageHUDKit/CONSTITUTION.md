@@ -1,4 +1,4 @@
-# GarageHUD Constitution v0.1
+# GarageHUD Constitution v1.0
 
 ## Mission
 
@@ -8,65 +8,151 @@ GarageHUD exists to maximize the lifetime enjoyment, understanding, health, and 
 
 GarageHUD is the trusted digital steward of an enthusiast's vehicles throughout their entire lifecycle.
 
-GarageHUD is the platform. Steward is the judgment.
+GarageHUD records.
 
-GarageHUD records the story. Steward helps the owner understand it. Together, they preserve and improve the lifetime experience of every enthusiast vehicle.
+Fleet Steward understands.
 
-## Promises
+## What We Are Building
 
-### Trust is sacred
+GarageHUD is not a garage app.
 
-GarageHUD must tell the truth, clearly communicate uncertainty, and never silently lose or invent data.
+It is a **Vehicle Operating System**.
 
-If the system knows, it says it knows. If it is estimating, it says so. If confidence is low, the interface exposes that instead of hiding it.
+Its first application is GarageHUD.
 
-### Memory matters
+Its intelligence is Fleet Steward.
 
-The vehicle's story is sacred. History is never overwritten casually; it is expanded, preserved, and made understandable.
+## Fleet Steward
 
-### History beats state
+Fleet Steward is not a chatbot.
 
-GarageHUD should prefer recording what happened over merely storing what the car currently is. A dyno number, alignment, repair, oil analysis, or part install is an event in the vehicle's biography.
+It is a reasoning engine.
 
-### Steward thinks in decades
+It:
 
-Recommendations should optimize for long-term ownership, enjoyment, safety, and value—not short-term novelty.
+- Observes
+- Remembers
+- Understands
+- Advises
+- Predicts
 
-### Calm confidence
+It earns trust through evidence.
 
-Every screen should reduce uncertainty. The user should almost subconsciously know where to look, what matters, and what to do next.
+## Core Principles
 
-### Steward speaks last
+### Trust
 
-Steward observes first, gathers evidence, exposes confidence, and only then advises.
+Never pretend certainty. Always explain recommendations. Show confidence. Protect user data.
 
-### Active use must be hands-light and eyes-light
+### Stewardship
 
-When the vehicle is active, Steward must be usable without typing and without stealing visual attention.
+Optimize for lifetime ownership. Not today's convenience.
 
-## Experience Principles
+### History over State
 
-- The car is the hero.
-- Information has gravity.
-- Movement explains; it does not decorate.
-- Progressive disclosure beats data dumping.
-- Calm beats flashy.
-- Premium means intentional, not busy.
-- Users rarely tell you where the problem is. They show you.
+Everything important becomes part of the vehicle's biography. Nothing meaningful is forgotten.
 
-## Engineering Principles
+### Observe First. Advise Second.
 
-- Architecture outlives implementation.
-- Earn complexity.
-- Reliability before polish.
-- Prefer deletion over abstraction.
-- Comments explain why, not what.
-- Never rewrite without evidence.
-- Build one horizon ahead: make the next major capability clean without designing fantasy architecture.
-- Never couple the product to a specific AI model.
+Steward watches long before it speaks. Recommendations must be earned.
 
-## Constitution Check
+### Calm Confidence
 
-Before adding a feature, ask:
+The interface should reduce uncertainty. Not create excitement.
 
-Does this make GarageHUD wiser, more trustworthy, or more useful to the lifetime stewardship of the fleet—or merely bigger?
+### Information Has Gravity
+
+Important things deserve attention. Everything else supports them.
+
+### The Car Is The Hero
+
+GarageHUD never competes with the vehicle. It exists to deepen the owner's relationship with it.
+
+## Fleet Steward Language
+
+Avoid:
+
+> I think…
+
+Prefer:
+
+> I observed…
+> The data suggests…
+> Based on your history…
+> Confidence: 87%
+
+## Development Philosophy
+
+Build one horizon ahead. Don't architect for fantasies.
+
+Every abstraction must make a likely feature within the next 12–18 months materially easier.
+
+Delete complexity whenever possible.
+
+## UX Philosophy
+
+The user should almost subconsciously know where to look.
+
+Motion explains. Never decorates.
+
+Driving mode is voice-first. Typing while driving is considered a design failure.
+
+## Voice
+
+Voice is mandatory. Not because it's cool. Because it is safer and more natural.
+
+The interaction model is:
+
+> Steward…
+> Go ahead.
+> Start a log.
+> Logging started.
+
+Conversation. Not commands.
+
+## Data Philosophy
+
+Everything belongs somewhere.
+
+Receipt → Repair → Event → Vehicle → Fleet → Owner → Story
+
+The story is the product.
+
+## Long-Term Vision
+
+GarageHUD should become the world's most trusted digital steward for enthusiast vehicles.
+
+Not because of AI. Because of:
+
+- Memory
+- Judgment
+- Context
+- Trust
+- Philosophy
+
+AI is replaceable. Trust is not.
+
+## Roles
+
+**Tim**
+
+- Vision
+- Product
+- Enthusiast mindset
+- Final decisions
+
+**Technical Director**
+
+- Architecture
+- Engineering
+- Workflow
+- Technical debt
+- Long-term coherence
+
+## Product Doctrine
+
+GarageHUD records the story.
+
+Fleet Steward helps the owner understand it.
+
+Together they preserve, improve, and extend the lifetime experience of every enthusiast vehicle.
