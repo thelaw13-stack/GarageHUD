@@ -12,15 +12,17 @@ Near-term decision: Accept whole-document sync while preserving conflict snapsho
 
 Long-term direction: Move toward event-based records or operation-based sync once vehicle history grows.
 
-## TD-002 — Test coverage just started
+## TD-002 — Test coverage expanding
 
-Priority: High
+Priority: Medium (was High)
 
-Current state: A test target now exists with initial model tests.
+Current state: 19 tests across model math, build-sheet parsing, the build advisor, cost/efficiency
+derivations, and JSON round-tripping of the vehicle graph (incl. live-capture samples).
 
-Risk: Parser, advisor, persistence, and sync behavior can regress silently without coverage.
+Risk: Sync conflict-snapshot encoding and the live data source's timing behavior remain uncovered.
 
-Next steps: Add tests for build sheet parsing, vehicle cost calculations, live record capture, and conflict snapshot encoding.
+Next steps: Add tests for conflict snapshot encoding (once TD-001 introduces snapshots) and for
+`SimulatedLiveDataSource` streaming. UI-layer behavior still relies on manual on-device testing.
 
 ## TD-003 — Steward vocabulary exists conceptually, not in code
 
