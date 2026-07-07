@@ -95,24 +95,16 @@ struct VehicleDashboardView: View {
     }
 
     private var nextSteps: some View {
-        let suggestions = BuildAdvisor.suggestions(for: vehicle)
-        return HUDPanel(title: "Next Steps") {
-            if suggestions.isEmpty {
-                Text("No gaps detected and nothing on the wishlist — add wishlist parts on the Parts tab to see them here.")
-                    .font(HUDTheme.monoFont(12))
+        let observations = Steward.observe(vehicle)
+        return HUDPanel(title: "Steward") {
+            if observations.isEmpty {
+                Text("Steward is watching. Nothing stands out yet — log parts, a dyno pull, or a documented total and observations will appear here.")
+                    .font(HUDTheme.monoFont(11))
                     .foregroundStyle(HUDTheme.textSecondary)
             } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(suggestions) { suggestion in
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: suggestion.isWishlistItem ? "star.fill" : "exclamationmark.triangle.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(suggestion.isWishlistItem ? HUDTheme.amber : HUDTheme.danger)
-                                .padding(.top, 2)
-                            Text(suggestion.text)
-                                .font(HUDTheme.monoFont(11.5))
-                                .foregroundStyle(HUDTheme.textPrimary)
-                        }
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(observations) { observation in
+                        StewardObservationRow(observation)
                     }
                 }
             }

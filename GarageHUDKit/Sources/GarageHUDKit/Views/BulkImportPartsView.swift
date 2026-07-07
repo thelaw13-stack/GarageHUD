@@ -13,13 +13,21 @@ struct BulkImportPartsView: View {
     }
 
     @State private var pastedText = ""
-    @State private var fallbackCategory: PartCategory = .engine
+    @State private var fallbackCategory: PartCategory = .uncategorized
     @State private var rows: [ReviewRow] = []
     @State private var detectedInvestmentText: String?
-    @State private var includeInvestmentNote = true
+    @State private var setDocumentedTotal = true
+    @State private var keepFullSheetAsNote = true
 
     private var includedCount: Int {
         rows.filter(\.included).count
+    }
+
+    /// Pulls a plain number out of a detected money string like "$19,161.34".
+    private var detectedInvestmentAmount: Double? {
+        guard let text = detectedInvestmentText else { return nil }
+        let cleaned = text.filter { $0.isNumber || $0 == "." }
+        return Double(cleaned)
     }
 
     var body: some View {
@@ -29,14 +37,18 @@ struct BulkImportPartsView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Import \(includedCount) Parts") { commitImport() }
-                            .disabled(includedCount == 0)
+                        Button(importTitle) { commitImport() }
+                            .disabled(!canImport)
                     }
                 }
         }
         .onChange(of: pastedText) { _, newValue in reparse(newValue) }
         .onChange(of: fallbackCategory) { _, _ in reparse(pastedText) }
-        .frame(minWidth: 820, minHeight: 580)
+        #if os(macOS)
+        // Resizable and roomy — a build sheet is a lot of text to read while reviewing.
+        .frame(minWidth: 720, idealWidth: 1100, maxWidth: .infinity,
+               minHeight: 560, idealHeight: 820, maxHeight: .infinity)
+        #endif
     }
 
     @ViewBuilder
@@ -67,15 +79,30 @@ struct BulkImportPartsView: View {
                 .font(HUDTheme.monoFont(10))
                 .foregroundStyle(HUDTheme.textSecondary)
             TextEditor(text: $pastedText)
-                .font(.system(size: 12, design: .monospaced))
-                .frame(minHeight: 320)
+                .font(.system(size: 13, design: .monospaced))
+                .frame(minHeight: 420)
+                .frame(maxHeight: .infinity)
                 .border(HUDTheme.cyan.opacity(0.3))
-            Picker("Fallback category", selection: $fallbackCategory) {
+
+            Toggle(isOn: $keepFullSheetAsNote) {
+                Text("Keep the full pasted sheet as a note (nothing is lost)")
+                    .font(HUDTheme.monoFont(10))
+            }
+            .hudCheckboxStyle()
+
+            if detectedInvestmentText != nil {
+                Toggle(isOn: $setDocumentedTotal) {
+                    Text("Set documented total investment — \(detectedInvestmentText ?? "")")
+                        .font(HUDTheme.monoFont(10))
+                        .foregroundStyle(HUDTheme.green)
+                }
+                .hudCheckboxStyle()
+            }
+
+            Picker("Unknown lines →", selection: $fallbackCategory) {
                 ForEach(PartCategory.allCases) { Text($0.rawValue).tag($0) }
             }
-            Text("Used when a line's category can't be guessed at all.")
-                .font(HUDTheme.monoFont(9))
-                .foregroundStyle(HUDTheme.textSecondary)
+            .font(HUDTheme.monoFont(10))
         }
         .padding()
     }
@@ -92,14 +119,6 @@ struct BulkImportPartsView: View {
                     Button("All") { setAllIncluded(true) }.buttonStyle(.plain).font(HUDTheme.monoFont(10)).foregroundStyle(HUDTheme.cyan)
                     Button("None") { setAllIncluded(false) }.buttonStyle(.plain).font(HUDTheme.monoFont(10)).foregroundStyle(HUDTheme.textSecondary)
                 }
-            }
-
-            if let investment = detectedInvestmentText {
-                Toggle(isOn: $includeInvestmentNote) {
-                    Text("Add note: Total Investment — \(investment)")
-                        .font(HUDTheme.monoFont(11))
-                }
-                .hudCheckboxStyle()
             }
 
             if rows.isEmpty {
@@ -157,13 +176,31 @@ struct BulkImportPartsView: View {
         for index in rows.indices { rows[index].included = included }
     }
 
+    private var hasSheetText: Bool {
+        !pastedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var canImport: Bool {
+        includedCount > 0
+            || (keepFullSheetAsNote && hasSheetText)
+            || (setDocumentedTotal && detectedInvestmentAmount != nil)
+    }
+
+    private var importTitle: String {
+        includedCount > 0 ? "Import \(includedCount) Parts" : "Import"
+    }
+
     private func commitImport() {
         for row in rows where row.included {
-            let part = Part(name: row.name, category: row.category, status: .installed, notes: row.notes)
-            vehicle.parts.append(part)
+            vehicle.parts.append(Part(name: row.name, category: row.category, status: .installed, notes: row.notes))
         }
-        if includeInvestmentNote, let investment = detectedInvestmentText {
-            vehicle.notes.append(Note(title: "Total Investment", body: investment))
+        // Route the money to the real field, not a loose note.
+        if setDocumentedTotal, let amount = detectedInvestmentAmount {
+            vehicle.documentedTotalInvestment = amount
+        }
+        // Preserve the full pasted sheet verbatim — never silently lose what the owner gave us.
+        if keepFullSheetAsNote, hasSheetText {
+            vehicle.notes.append(Note(title: "Imported build sheet", body: pastedText))
         }
         dismiss()
     }

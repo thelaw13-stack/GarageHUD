@@ -9,3 +9,6 @@ __MACOSX/
 
 # stray nested repo, handled during cleanup
 Car Hud 3/
+
+# review screenshots
+_review_*.png

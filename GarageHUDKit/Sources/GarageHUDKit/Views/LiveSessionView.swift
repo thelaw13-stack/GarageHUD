@@ -24,6 +24,18 @@ struct LiveSessionView: View {
                 .frame(maxWidth: .infinity)
             }
 
+            // Steward reasons over the (currently estimated) live frame in real time.
+            if let latest, isRunning {
+                let live = Steward.observe(live: latest, for: vehicle)
+                if !live.isEmpty {
+                    HUDPanel(title: "Steward — Live") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            ForEach(live) { StewardObservationRow($0) }
+                        }
+                    }
+                }
+            }
+
             HStack(spacing: 12) {
                 Button(isRunning ? "Stop Session" : "Start Session") {
                     isRunning ? stop() : start()
