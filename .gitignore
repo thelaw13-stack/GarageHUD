@@ -6,3 +6,6 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 __MACOSX/
+
+# stray nested repo, handled during cleanup
+Car Hud 3/

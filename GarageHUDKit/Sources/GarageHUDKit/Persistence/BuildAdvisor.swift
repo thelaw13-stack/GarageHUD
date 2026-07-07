@@ -3,11 +3,11 @@ import Foundation
 /// Rule-based "what's next" suggestions from installed-part category gaps plus the
 /// wishlist. Not a real recommendation engine — just enough pattern matching to
 /// surface common supporting-mod gaps and turn the wishlist into concrete next steps.
-enum BuildAdvisor {
-    struct Suggestion: Identifiable {
-        let id = UUID()
-        let text: String
-        let isWishlistItem: Bool
+public enum BuildAdvisor {
+    public struct Suggestion: Identifiable {
+        public let id = UUID()
+        public let text: String
+        public let isWishlistItem: Bool
     }
 
     static func suggestions(for vehicle: Vehicle) -> [Suggestion] {
