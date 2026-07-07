@@ -1,0 +1,31 @@
+{
+  "identifier" : "GHUD-STOREKIT-CONFIG",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "6F2A5F9C-0001-0001-0001-000000000001",
+      "localizations" : [
+        {
+          "description" : "Expand your garage from 4 to 8 vehicles. One-time purchase.",
+          "displayName" : "8-Bay Garage",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.vanlaw.GarageHUD.eightbays",
+      "referenceName" : "8-Bay Garage",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "GarageHUD",
+    "_developerTeamID" : "2UPMH3JQDX",
+    "_failTransactionsEnabled" : false
+  },
+  "subscriptionGroups" : [],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

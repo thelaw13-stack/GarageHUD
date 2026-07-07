@@ -1,0 +1,139 @@
+import Foundation
+import CloudKit
+
+/// CloudKit-backed sync for the whole garage. Strategy: the entire vehicle graph is
+/// stored as one JSON blob in a single "Garage" record (last-writer-wins by timestamp),
+/// and each photo file is a separate "Photo" record so images transfer once and are
+/// reused. This keeps the merge model dead simple for a single-user, few-device setup.
+@MainActor
+public final class CloudSyncManager {
+    public static let containerID = "iCloud.com.vanlaw.GarageHUD"
+
+    private let container: CKContainer
+    private var db: CKDatabase { container.privateCloudDatabase }
+    private let garageRecordID = CKRecord.ID(recordName: "garage-main")
+
+    private let garageRecordType = "Garage"
+    private let photoRecordType = "Photo"
+
+    public init() {
+        container = CKContainer(identifier: Self.containerID)
+    }
+
+    public enum SyncError: Error { case noAccount }
+
+    public func accountAvailable() async -> Bool {
+        (try? await container.accountStatus()) == .available
+    }
+
+    // MARK: Pull
+
+    public struct RemoteGarage {
+        public let vehicles: [Vehicle]
+        public let updatedAt: Date
+    }
+
+    /// Fetches the cloud garage record if one exists. Returns nil when there's no cloud
+    /// record yet or the fetch fails; the caller compares `updatedAt` to decide whether
+    /// to apply it.
+    public func pull() async -> RemoteGarage? {
+        do {
+            let record = try await db.record(for: garageRecordID)
+            guard let updatedAt = record["updatedAt"] as? Date,
+                  let asset = record["payload"] as? CKAsset,
+                  let url = asset.fileURL,
+                  let data = try? Data(contentsOf: url) else { return nil }
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            guard let vehicles = try? decoder.decode([Vehicle].self, from: data) else { return nil }
+            return RemoteGarage(vehicles: vehicles, updatedAt: updatedAt)
+        } catch let error as CKError where error.code == .unknownItem {
+            return nil // no cloud record yet
+        } catch {
+            return nil
+        }
+    }
+
+    // MARK: Push
+
+    /// Writes the garage JSON to the cloud with the given timestamp. Fetch-then-modify so
+    /// we don't clobber the server change tag; on a conflict we still win (LWW by design).
+    @discardableResult
+    public func push(vehicles: [Vehicle], updatedAt: Date) async -> Bool {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(vehicles) else { return false }
+
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        guard (try? data.write(to: tmp)) != nil else { return false }
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
+        let record: CKRecord
+        if let existing = try? await db.record(for: garageRecordID) {
+            record = existing
+        } else {
+            record = CKRecord(recordType: garageRecordType, recordID: garageRecordID)
+        }
+        record["payload"] = CKAsset(fileURL: tmp)
+        record["updatedAt"] = updatedAt as NSDate
+
+        do {
+            _ = try await db.save(record)
+            return true
+        } catch let error as CKError where error.code == .serverRecordChanged {
+            // Someone else wrote concurrently — overwrite with the server's record object
+            // carrying our newer payload (LWW).
+            if let server = error.serverRecord {
+                server["payload"] = CKAsset(fileURL: tmp)
+                server["updatedAt"] = updatedAt as NSDate
+                _ = try? await db.save(server)
+                return true
+            }
+            return false
+        } catch {
+            return false
+        }
+    }
+
+    /// Deletes the garage record and all photo records from the cloud (full reset).
+    public func wipeAll() async {
+        _ = try? await db.deleteRecord(withID: garageRecordID)
+        let query = CKQuery(recordType: photoRecordType, predicate: NSPredicate(value: true))
+        if let result = try? await db.records(matching: query) {
+            for (recordID, _) in result.matchResults {
+                _ = try? await db.deleteRecord(withID: recordID)
+            }
+        }
+    }
+
+    // MARK: Photos
+
+    private func photoRecordID(_ filename: String) -> CKRecord.ID {
+        CKRecord.ID(recordName: "photo-" + filename)
+    }
+
+    /// Uploads any local photo files not yet in the cloud. Best-effort; failures are skipped.
+    public func uploadPhotos(filenames: [String]) async {
+        for filename in filenames {
+            let recID = photoRecordID(filename)
+            if (try? await db.record(for: recID)) != nil { continue } // already uploaded
+            let localURL = ImageStore.imagesDirectory.appendingPathComponent(filename)
+            guard FileManager.default.fileExists(atPath: localURL.path) else { continue }
+            let record = CKRecord(recordType: photoRecordType, recordID: recID)
+            record["image"] = CKAsset(fileURL: localURL)
+            record["filename"] = filename as NSString
+            _ = try? await db.save(record)
+        }
+    }
+
+    /// Downloads any referenced photos missing from the local image store.
+    public func downloadPhotos(filenames: [String]) async {
+        for filename in filenames where !ImageStore.exists(filename: filename) {
+            guard let record = try? await db.record(for: photoRecordID(filename)),
+                  let asset = record["image"] as? CKAsset,
+                  let url = asset.fileURL,
+                  let data = try? Data(contentsOf: url) else { continue }
+            ImageStore.writeRaw(filename: filename, data: data)
+        }
+    }
+}
