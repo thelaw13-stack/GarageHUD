@@ -11,8 +11,9 @@ struct GarageOverviewView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: HUDTheme.space4) {
                 header
+                fleetHealth
                 fleetSteward
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 280), spacing: 16)], spacing: 16) {
                     ForEach(1...maxSlots, id: \.self) { slot in
@@ -38,6 +39,58 @@ struct GarageOverviewView: View {
         .background(HUDTheme.background)
         .sheet(isPresented: $showingBriefing) {
             StewardBriefingView(vehicles: store.vehicles)
+        }
+    }
+
+    /// Fleet health summary — the answer to "how is my garage today?" at a glance (brief §6).
+    private var fleetHealth: some View {
+        let vehicles = store.vehicles
+        let observations = vehicles.flatMap { Steward.observe($0) } + Steward.observeFleet(vehicles)
+        let advisories = observations.filter { $0.tone == .advisory }.count
+        let cautions = observations.filter { $0.tone == .caution }.count
+        let attention = advisories + cautions
+
+        let status: (dot: Color, headline: String, sub: String)
+        if vehicles.isEmpty {
+            status = (HUDTheme.textTertiary, "No vehicles yet", "Add a car to begin its record.")
+        } else if attention == 0 {
+            status = (HUDTheme.green, "All clear", "Nothing needs your attention right now.")
+        } else {
+            let color = advisories > 0 ? HUDTheme.danger : HUDTheme.amber
+            status = (color, "\(attention) item\(attention == 1 ? "" : "s") need attention",
+                      "Across \(vehicles.count) vehicle\(vehicles.count == 1 ? "" : "s").")
+        }
+
+        return HUDPanel(title: "Fleet Health") {
+            VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                HStack(alignment: .top, spacing: HUDTheme.space3) {
+                    Circle().fill(status.dot).frame(width: 10, height: 10)
+                        .padding(.top, 6)
+                    VStack(alignment: .leading, spacing: HUDTheme.space1) {
+                        Text(status.headline)
+                            .font(HUDTheme.section())
+                            .foregroundStyle(HUDTheme.textPrimary)
+                        Text(status.sub)
+                            .font(HUDTheme.label())
+                            .foregroundStyle(HUDTheme.textSecondary)
+                    }
+                }
+                if !vehicles.isEmpty {
+                    Divider().overlay(HUDTheme.hairline)
+                    HStack(spacing: HUDTheme.space5) {
+                        healthStat("\(vehicles.count)", "VEHICLES")
+                        healthStat(vehicles.reduce(0) { $0 + $1.totalInvested }.formatted(.currency(code: "USD").precision(.fractionLength(0))), "INVESTED", HUDTheme.green)
+                        healthStat("\(attention)", "TO REVIEW", attention > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
+                    }
+                }
+            }
+        }
+    }
+
+    private func healthStat(_ value: String, _ label: String, _ color: Color = HUDTheme.textPrimary) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value).font(HUDTheme.body(.semibold)).foregroundStyle(color)
+            Text(label).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary).tracking(1)
         }
     }
 
