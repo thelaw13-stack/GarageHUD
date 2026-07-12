@@ -63,6 +63,8 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private var pidCursor = 0
     private var consecutivePollTimeouts = 0
     private let maxPollTimeouts = OBDPID.allCases.count + 2
+    private var reconnectAttempts = 0
+    private let maxReconnectAttempts = 5
 
     // In-flight command tracking — exactly one at a time, prompt-gated.
     private var buffer = ""
@@ -79,6 +81,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
 
     public func start() {
         stopped = false
+        reconnectAttempts = 0
         resetMeasurements()
         connectionState = .scanning
         central = CBCentralManager(delegate: self, queue: .main) // confine callbacks to main
@@ -131,6 +134,9 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
             buffer.removeSubrange(..<prompt.upperBound)
             if !line.isEmpty { handleCompletedReply(line) }
         }
+        // Guard against a device that streams without ever sending a prompt: never let an
+        // un-terminated buffer grow without bound.
+        if buffer.utf8.count > 4096 { buffer.removeAll(keepingCapacity: true) }
     }
 
     private func handleCompletedReply(_ line: String) {
@@ -202,6 +208,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private func startPolling() {
         pidCursor = 0
         consecutivePollTimeouts = 0
+        reconnectAttempts = 0   // a clean link resets the give-up counter
         connectionState = .polling
         pollCurrent()
     }
@@ -238,9 +245,18 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
 
     private func scheduleReconnect() {
         guard !stopped else { return }
+        // Bounded retries with linear backoff. Without this, a wrong/incompatible adapter
+        // (e.g. one that fails the ELM327 identity check) would loop forever: reconnect →
+        // rediscover the same device → fail → reconnect… draining the battery silently.
+        reconnectAttempts += 1
+        guard reconnectAttempts <= maxReconnectAttempts else {
+            connectionState = .disconnected   // give up; the frame stream still reflects it
+            return
+        }
         connectionState = .reconnecting
         if let peripheral, let central { central.cancelPeripheralConnection(peripheral) }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+        let delay = min(2.0 * Double(reconnectAttempts), 10.0)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self, !self.stopped, self.central?.state == .poweredOn else { return }
             self.resetMeasurements()
             self.connectionState = .scanning
