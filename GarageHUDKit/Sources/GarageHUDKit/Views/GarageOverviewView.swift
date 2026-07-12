@@ -56,10 +56,9 @@ struct GarageOverviewView: View {
     private var header: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("GARAGE OVERVIEW")
-                    .font(HUDTheme.monoFont(20, weight: .bold))
-                    .foregroundStyle(HUDTheme.cyan)
-                    .hudGlow(HUDTheme.cyan, radius: 6)
+                Text("GARAGE")
+                    .font(HUDTheme.title())
+                    .foregroundStyle(HUDTheme.textPrimary)
                 Text("\(store.vehicles.count) of \(maxSlots) bays occupied")
                     .font(HUDTheme.monoFont(12))
                     .foregroundStyle(HUDTheme.textSecondary)
@@ -93,7 +92,7 @@ private struct UpgradeBayCard: View {
         }
         .frame(maxWidth: .infinity, minHeight: 120)
         .background(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: HUDTheme.cornerRadius)
                 .strokeBorder(HUDTheme.amber.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [5]))
         )
     }
@@ -107,14 +106,14 @@ private struct VehicleOverviewCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(vehicle.displayName.uppercased())
                     .font(HUDTheme.monoFont(15, weight: .bold))
-                    .foregroundStyle(HUDTheme.cyan)
+                    .foregroundStyle(HUDTheme.textPrimary)
                 Text(vehicle.subtitle)
                     .font(HUDTheme.monoFont(10))
                     .foregroundStyle(HUDTheme.textSecondary)
             }
             HStack(spacing: 18) {
-                miniStat(vehicle.currentHorsepowerEstimate.map { "\(Int($0))" } ?? "—", "HP", HUDTheme.danger)
-                miniStat("\(Int(vehicle.buildCompletionPercent))%", "BUILD", HUDTheme.cyan)
+                miniStat(vehicle.currentHorsepowerEstimate.map { "\(Int($0))" } ?? "—", "HP", HUDTheme.textPrimary)
+                miniStat("\(Int(vehicle.buildCompletionPercent))%", "BUILD", HUDTheme.textPrimary)
                 miniStat(vehicle.totalInvested.formatted(.currency(code: "USD")), "INVESTED", HUDTheme.green)
             }
             HStack {
@@ -129,9 +128,8 @@ private struct VehicleOverviewCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 10).fill(HUDTheme.panelBackground))
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(HUDTheme.cyan.opacity(0.3), lineWidth: 1))
-        .hudGlow(HUDTheme.cyan.opacity(0.1), radius: 6)
+        .background(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.panelBackground))
+        .overlay(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).strokeBorder(HUDTheme.hairline, lineWidth: 1))
     }
 
     private func miniStat(_ value: String, _ label: String, _ color: Color) -> some View {
@@ -156,7 +154,7 @@ private struct EmptyBayCard: View {
         }
         .frame(maxWidth: .infinity, minHeight: 120)
         .background(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: HUDTheme.cornerRadius)
                 .strokeBorder(HUDTheme.cyan.opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [5]))
         )
     }

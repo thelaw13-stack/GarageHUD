@@ -1,51 +1,67 @@
 import SwiftUI
 
-/// Renders one Fleet Steward observation the way the Constitution demands: the statement
-/// leads, the evidence sits right under it, and confidence is shown explicitly — never a
-/// bare recommendation, never implied certainty.
+/// Renders one Fleet Steward observation the way the design brief asks: intelligence, not a
+/// dashboard widget. The observation leads in plain language; evidence and a trust-calibrated
+/// confidence label sit beneath it in restrained metadata. Severity is a single thin accent
+/// bar — no glowing icons, no competing color.
 public struct StewardObservationRow: View {
     private let observation: StewardObservation
     public init(_ observation: StewardObservation) { self.observation = observation }
 
     public var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 12))
-                .foregroundStyle(accent)
-                .padding(.top, 2)
+        HStack(alignment: .top, spacing: HUDTheme.space3) {
+            // Severity as a quiet vertical accent; routine info stays neutral.
+            RoundedRectangle(cornerRadius: 1)
+                .fill(accent)
+                .frame(width: 2)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: HUDTheme.space2) {
                 Text(observation.statement)
-                    .font(HUDTheme.monoFont(12, weight: .medium))
+                    .font(HUDTheme.body(.medium))
                     .foregroundStyle(HUDTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text(observation.evidence)
-                    .font(HUDTheme.monoFont(10))
-                    .foregroundStyle(HUDTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 8) {
-                    Text(observation.confidence.label)
-                        .font(HUDTheme.monoFont(9, weight: .semibold))
-                        .foregroundStyle(accent)
-                        .tracking(0.5)
-                    if let tag = provenanceTag {
-                        Text(tag.text)
-                            .font(HUDTheme.monoFont(8, weight: .semibold))
-                            .foregroundStyle(tag.color)
-                            .padding(.horizontal, 5).padding(.vertical, 1)
-                            .overlay(Capsule().strokeBorder(tag.color.opacity(0.5), lineWidth: 1))
-                    }
-                }
-                .padding(.top, 1)
+                metaRow("Evidence", observation.evidence)
+                confidenceRow
             }
-            Spacer(minLength: 0)
+        }
+        .padding(.vertical, HUDTheme.space1)
+    }
+
+    private func metaRow(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label.uppercased())
+                .font(HUDTheme.label(.semibold))
+                .foregroundStyle(HUDTheme.textTertiary)
+                .tracking(1)
+            Text(value)
+                .font(HUDTheme.label())
+                .foregroundStyle(HUDTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    /// Live frames wear their honesty on their sleeve: estimated (simulated) reads muted,
-    /// measured (real adapter) reads in the confident cyan. Recorded/derived carry no tag.
+    private var confidenceRow: some View {
+        HStack(spacing: HUDTheme.space2) {
+            Text("CONFIDENCE")
+                .font(HUDTheme.label(.semibold))
+                .foregroundStyle(HUDTheme.textTertiary)
+                .tracking(1)
+            Text(observation.confidence.label)
+                .font(HUDTheme.label(.semibold))
+                .foregroundStyle(confidenceColor)
+            if let tag = provenanceTag {
+                Text(tag.text)
+                    .font(HUDTheme.monoFont(8, weight: .semibold))
+                    .foregroundStyle(tag.color)
+                    .padding(.horizontal, 5).padding(.vertical, 1)
+                    .overlay(Capsule().strokeBorder(tag.color.opacity(0.4), lineWidth: 1))
+            }
+        }
+    }
+
+    /// Live frames wear their honesty on their sleeve: estimated (simulated) muted, measured
+    /// (real adapter) in confident cyan. Recorded/derived carry no tag.
     private var provenanceTag: (text: String, color: Color)? {
         switch observation.provenance {
         case .estimatedLive: return ("ESTIMATED", HUDTheme.textSecondary)
@@ -54,19 +70,20 @@ public struct StewardObservationRow: View {
         }
     }
 
-    private var icon: String {
+    /// Only escalate color for things that actually need attention (brief: color = meaning).
+    private var accent: Color {
         switch observation.tone {
-        case .advisory: "exclamationmark.triangle.fill"
-        case .caution: "eye.trianglebadge.exclamationmark"
-        case .informational: "sparkle.magnifyingglass"
+        case .advisory: return HUDTheme.danger
+        case .caution: return HUDTheme.amber
+        case .informational: return HUDTheme.hairline
         }
     }
 
-    private var accent: Color {
-        switch observation.tone {
-        case .advisory: HUDTheme.danger
-        case .caution: HUDTheme.amber
-        case .informational: HUDTheme.cyan
+    private var confidenceColor: Color {
+        switch observation.confidence {
+        case .confirmed, .strong: return HUDTheme.textPrimary
+        case .moderate: return HUDTheme.textSecondary
+        case .weak, .insufficient: return HUDTheme.amber
         }
     }
 }

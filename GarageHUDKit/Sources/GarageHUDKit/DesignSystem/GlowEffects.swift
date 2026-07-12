@@ -4,10 +4,10 @@ public struct GlowModifier: ViewModifier {
     var color: Color
     var radius: CGFloat
 
+    // Restrained: a single soft shadow. Reserve any glow for active controls, live states, or
+    // truly important alerts — never as ambient decoration.
     public func body(content: Content) -> some View {
-        content
-            .shadow(color: color.opacity(0.8), radius: radius)
-            .shadow(color: color.opacity(0.5), radius: radius * 2)
+        content.shadow(color: color.opacity(0.45), radius: radius)
     }
 }
 

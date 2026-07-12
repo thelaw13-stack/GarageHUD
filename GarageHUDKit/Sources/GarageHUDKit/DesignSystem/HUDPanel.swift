@@ -10,25 +10,28 @@ public struct HUDPanel<Content: View>: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: HUDTheme.space3) {
             if let title {
+                // Section header: restrained, not a glowing accent. Hierarchy comes from
+                // weight and the faint tint, not brightness.
                 Text(title.uppercased())
-                    .font(HUDTheme.monoFont(11, weight: .semibold))
-                    .foregroundStyle(HUDTheme.cyan)
-                    .tracking(2)
+                    .font(HUDTheme.label(.semibold))
+                    .foregroundStyle(HUDTheme.textSecondary)
+                    .tracking(1.5)
             }
             content
         }
         .padding(HUDTheme.panelPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: HUDTheme.cornerRadius)
                 .fill(HUDTheme.panelBackground)
         )
+        // A single hairline for containment — no bright border, no ambient glow.
         .overlay(
             RoundedRectangle(cornerRadius: HUDTheme.cornerRadius)
-                .strokeBorder(HUDTheme.cyan.opacity(0.35), lineWidth: 1)
+                .strokeBorder(HUDTheme.hairline, lineWidth: 1)
         )
-        .hudGlow(HUDTheme.cyan.opacity(0.15), radius: 8)
     }
 }
 
@@ -54,18 +57,18 @@ public struct HUDButtonStyle: ButtonStyle {
 
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(HUDTheme.monoFont(12, weight: .semibold))
+            .font(HUDTheme.body(.semibold))
             .foregroundStyle(color)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .padding(.horizontal, HUDTheme.space3)
+            .padding(.vertical, HUDTheme.space2)
             .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(color.opacity(configuration.isPressed ? 0.25 : 0.12))
+                RoundedRectangle(cornerRadius: HUDTheme.space2)
+                    .fill(color.opacity(configuration.isPressed ? 0.22 : 0.10))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(color.opacity(0.6), lineWidth: 1)
+                RoundedRectangle(cornerRadius: HUDTheme.space2)
+                    .strokeBorder(color.opacity(configuration.isPressed ? 0.7 : 0.45), lineWidth: 1)
             )
-            .hudGlow(color.opacity(configuration.isPressed ? 0.5 : 0.2), radius: 4)
+            .animation(.easeInOut(duration: 0.18), value: configuration.isPressed)
     }
 }

@@ -13,14 +13,14 @@ public enum ConfidenceBand: Int, Sendable, Equatable, CaseIterable, Comparable {
 
     public static func < (l: ConfidenceBand, r: ConfidenceBand) -> Bool { l.rawValue < r.rawValue }
 
-    /// Short label for the HUD chip.
+    /// Trust-calibrated label shown to the owner — descriptive, never a fabricated percentage.
     public var label: String {
         switch self {
-        case .insufficient: return "INSUFFICIENT DATA"
-        case .weak: return "WEAK"
-        case .moderate: return "MODERATE"
-        case .strong: return "STRONG"
-        case .confirmed: return "CONFIRMED"
+        case .insufficient: return "Insufficient Data"
+        case .weak: return "Needs Verification"
+        case .moderate: return "Moderate Evidence"
+        case .strong: return "Strong Evidence"
+        case .confirmed: return "Confirmed"
         }
     }
 
