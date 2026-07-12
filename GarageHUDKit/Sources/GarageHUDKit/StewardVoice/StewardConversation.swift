@@ -87,8 +87,9 @@ public enum StewardConversation {
         case .efficiency:
             if let costPerHp = vehicle.costPerHorsepowerGained, let gained = vehicle.horsepowerGainedOverStock {
                 return StewardReply(
-                    text: "Roughly \(dollars(costPerHp)) per wheel-hp gained over stock "
-                        + "— about \(Int(gained)) whp for \(dollars(vehicle.totalInvested)). Approximate: wheel figure against a \(vehicle.factoryPowerBasis.describes) rating.",
+                    text: "Roughly \(dollars(costPerHp)) per wheel-hp gained "
+                        + "— about \(Int(gained)) whp over an estimated stock wheel baseline, for \(dollars(vehicle.totalInvested)). "
+                        + "A wheel-to-wheel estimate using typical \(vehicle.drivetrain.label) driveline loss, not dyno-corrected.",
                     confidence: .moderate)
             }
             return StewardReply(text: "I need a factory baseline, a dyno pull, and a documented total before I can size that up.")

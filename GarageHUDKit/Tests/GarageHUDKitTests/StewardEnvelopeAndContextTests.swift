@@ -48,15 +48,50 @@ final class StewardEnvelopeAndContextTests: XCTestCase {
         XCTAssertTrue(Steward.observe(frame: frame, for: v).contains { $0.ruleID == "live.coolantCritical" })
     }
 
-    func testFactoryPowerBasisIsCrankAndSurfacedInEfficiency() {
+    func testFactoryPowerBasisIsCrankAndEfficiencyIsWheelNormalized() {
         var v = Vehicle(make: "T", model: "C", year: 2020, garageSlot: 1)
         XCTAssertEqual(v.factoryPowerBasis, .factoryCrank)
         v.factoryHorsepower = 200
         v.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 320)]
         v.documentedTotalInvestment = 12_000
         let cost = Steward.observe(v).first { $0.ruleID == "efficiency.costPerHp" }
-        XCTAssertTrue(cost!.evidence.localizedCaseInsensitiveContains("crank"))
+        XCTAssertTrue(cost!.evidence.localizedCaseInsensitiveContains("wheel"))
         XCTAssertTrue(cost!.evidence.localizedCaseInsensitiveContains("not dyno-corrected"))
+    }
+
+    // MARK: Crank -> wheel normalization
+
+    func testGainNormalizesCrankBaselineToWheel() {
+        var v = Vehicle(make: "T", model: "C", year: 2020, garageSlot: 1)
+        v.factoryHorsepower = 200           // crank
+        v.drivetrain = .rwd                 // 15% typical loss → ~170 whp stock baseline
+        v.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 320)]
+        XCTAssertEqual(v.estimatedStockWheelHP ?? 0, 170, accuracy: 0.001)
+        XCTAssertEqual(v.horsepowerGainedOverStock ?? 0, 150, accuracy: 0.001)  // 320 - 170
+        XCTAssertFalse(v.stockWheelBaselineIsAssumed)                            // drivetrain known
+    }
+
+    func testUnknownDrivetrainUsesAssumedLossAndFlagsIt() {
+        var v = Vehicle(make: "T", model: "C", year: 2020, garageSlot: 1)
+        v.factoryHorsepower = 200
+        v.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 320)]
+        XCTAssertTrue(v.stockWheelBaselineIsAssumed)
+        XCTAssertEqual(v.estimatedStockWheelHP ?? 0, 170, accuracy: 0.001)       // 15% assumed
+    }
+
+    func testWheelBasisFactoryNeedsNoNormalization() {
+        var v = Vehicle(make: "T", model: "C", year: 2020, garageSlot: 1)
+        v.factoryHorsepower = 180
+        v.factoryPowerBasis = .measuredWheel   // already at the wheels
+        v.drivetrain = .awd
+        XCTAssertEqual(v.estimatedStockWheelHP ?? 0, 180, accuracy: 0.001)       // unchanged
+        XCTAssertFalse(v.stockWheelBaselineIsAssumed)
+    }
+
+    func testNoGainWithoutAWheelDyno() {
+        var v = Vehicle(make: "T", model: "C", year: 2020, garageSlot: 1)
+        v.factoryHorsepower = 200            // factory only, no wheel dyno
+        XCTAssertNil(v.horsepowerGainedOverStock)
     }
 
     func testInjectedClockMakesFreshnessDeterministic() {

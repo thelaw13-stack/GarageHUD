@@ -21,6 +21,10 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// what a manufacturer rating almost always is — and why comparing it to a wheel-dyno
     /// number is only ever an approximation.
     public var factoryPowerBasis: PowerBasis = .factoryCrank
+    /// Drivetrain layout, used to normalize a factory crank rating to a wheel-equivalent
+    /// baseline when computing power gained. Defaults to `.unknown` (a conservative assumed
+    /// loss, flagged as such).
+    public var drivetrain: Drivetrain = .unknown
     /// Categories the owner has explicitly confirmed remain factory/stock (no upgrade). This
     /// is the only thing that lets Steward say a system is *confirmed absent* rather than
     /// merely undocumented.
@@ -126,17 +130,36 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         return dates.max()
     }
 
-    /// Wheel/crank horsepower gained over the factory rating, from the latest dyno pull.
-    /// Comparing a dyno'd WHP figure against a crank-rated factory number is approximate —
-    /// this is a build-tracking estimate, not a lab-grade before/after measurement.
+    /// A wheel-equivalent estimate of the *stock* output, so a measured wheel dyno can be
+    /// compared against it apples-to-apples. If the factory figure is already a wheel number,
+    /// it's used as-is; otherwise it's brought down from crank by the drivetrain's typical
+    /// loss. Nil without a factory figure.
+    public var estimatedStockWheelHP: Double? {
+        guard let factory = factoryHorsepower else { return nil }
+        if factoryPowerBasis == .measuredWheel { return factory }
+        return factory * (1 - drivetrain.typicalLossFraction)
+    }
+
+    /// True when the stock-wheel baseline rests on an *assumed* drivetrain loss (drivetrain
+    /// unspecified), so the reasoning can say so.
+    public var stockWheelBaselineIsAssumed: Bool {
+        factoryPowerBasis != .measuredWheel && drivetrain == .unknown
+    }
+
+    /// Measured wheel horsepower gained over the estimated stock *wheel* baseline. Requires an
+    /// actual wheel dyno — you can't measure a wheel gain without one. Still an estimate,
+    /// because the baseline is derived, but now wheel-to-wheel rather than wheel-to-crank.
     public var horsepowerGainedOverStock: Double? {
-        guard let current = currentHorsepowerEstimate, let factory = factoryHorsepower else { return nil }
-        let gained = current - factory
+        guard let dyno = performanceRecords
+                .filter({ $0.type == .dyno && $0.wheelHorsepower != nil })
+                .sorted(by: { $0.date > $1.date }).first?.wheelHorsepower,
+              let baseline = estimatedStockWheelHP else { return nil }
+        let gained = dyno - baseline
         return gained > 0 ? gained : nil
     }
 
-    /// What each horsepower gained over stock has cost so far — a rough efficiency read on
-    /// the money spent, not a precise dyno-corrected figure.
+    /// What each wheel-hp gained has cost so far — an efficiency estimate, not a dyno-corrected
+    /// figure, but now normalized to a wheel-to-wheel comparison.
     public var costPerHorsepowerGained: Double? {
         guard let gained = horsepowerGainedOverStock, gained > 0, totalInvested > 0 else { return nil }
         return totalInvested / gained

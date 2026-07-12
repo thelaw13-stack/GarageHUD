@@ -107,11 +107,15 @@ public enum Steward {
         // 5. Cost-to-power — an approximation, and labeled as one. Comparing a measured wheel
         //    figure against a factory *crank* rating is not dyno-corrected truth.
         if let costPerHp = vehicle.costPerHorsepowerGained,
-           let gained = vehicle.horsepowerGainedOverStock {
+           let gained = vehicle.horsepowerGainedOverStock,
+           let baseline = vehicle.estimatedStockWheelHP {
+            let lossNote = vehicle.stockWheelBaselineIsAssumed
+                ? "assuming ~\(Int(Drivetrain.unknown.typicalLossFraction * 100))% driveline loss"
+                : "~\(Int(vehicle.drivetrain.typicalLossFraction * 100))% \(vehicle.drivetrain.label) driveline loss"
             out.append(StewardObservation(
                 ruleID: "efficiency.costPerHp", subjectID: vid,
                 statement: "I observed your approximate cost-to-power efficiency.",
-                evidence: "~\(dollars(costPerHp)) per wheel-hp gained — comparing a measured wheel figure against the \(vehicle.factoryPowerBasis.describes) rating (~\(Int(gained)) whp, \(dollars(vehicle.totalInvested)) invested). Not dyno-corrected.",
+                evidence: "~\(dollars(costPerHp)) per wheel-hp gained (~\(Int(gained)) whp over an estimated \(Int(baseline)) whp stock baseline, \(dollars(vehicle.totalInvested)) invested). Wheel-to-wheel estimate, \(lossNote); not dyno-corrected.",
                 confidence: .moderate, tone: .informational, provenance: .derived))
         }
 

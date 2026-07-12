@@ -10,13 +10,14 @@ final class VehicleEfficiencyTests: XCTestCase {
         XCTAssertEqual(vehicle.powerToWeight ?? 0, 10, accuracy: 0.001) // 3000 / 300
     }
 
-    func testHorsepowerGainedAndCostPerHorsepower() {
+    func testHorsepowerGainedAndCostPerHorsepowerAreWheelNormalized() {
         var vehicle = Vehicle(make: "X", model: "Y", year: 2020, garageSlot: 1, factoryHorsepower: 200)
+        vehicle.drivetrain = .rwd    // 15% loss → 170 whp estimated stock baseline
         vehicle.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 350)]
         vehicle.documentedTotalInvestment = 15_000
 
-        XCTAssertEqual(vehicle.horsepowerGainedOverStock, 150)          // 350 - 200
-        XCTAssertEqual(vehicle.costPerHorsepowerGained ?? 0, 100, accuracy: 0.001) // 15000 / 150
+        XCTAssertEqual(vehicle.horsepowerGainedOverStock ?? 0, 180, accuracy: 0.001)          // 350 - 170
+        XCTAssertEqual(vehicle.costPerHorsepowerGained ?? 0, 83.333, accuracy: 0.01)          // 15000 / 180
     }
 
     func testCostPerInstalledPartIgnoresWishlist() {
@@ -32,8 +33,9 @@ final class VehicleEfficiencyTests: XCTestCase {
 
     func testNonPositiveGainYieldsNilEfficiency() {
         var vehicle = Vehicle(make: "X", model: "Y", year: 2020, garageSlot: 1, factoryHorsepower: 400)
-        // Wheel HP below the crank-rated factory number → no meaningful "gain".
-        vehicle.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 380)]
+        // Estimated stock wheel baseline ≈ 340 (15% assumed). A 320 whp pull is below it →
+        // no meaningful gain.
+        vehicle.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 320)]
         vehicle.documentedTotalInvestment = 5_000
         XCTAssertNil(vehicle.horsepowerGainedOverStock)
         XCTAssertNil(vehicle.costPerHorsepowerGained)

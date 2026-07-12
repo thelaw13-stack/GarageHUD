@@ -61,7 +61,8 @@ final class StewardTests: XCTestCase {
         let cost = Steward.observe(v).first { $0.ruleID == "efficiency.costPerHp" }
         XCTAssertNotNil(cost)
         XCTAssertEqual(cost!.confidence, .moderate)         // approximate, not 97%
-        XCTAssertTrue(cost!.evidence.localizedCaseInsensitiveContains("factory crank"))
+        XCTAssertTrue(cost!.evidence.localizedCaseInsensitiveContains("wheel"))
+        XCTAssertTrue(cost!.evidence.localizedCaseInsensitiveContains("not dyno-corrected"))
         XCTAssertEqual(cost!.provenance, .derived)
     }
 

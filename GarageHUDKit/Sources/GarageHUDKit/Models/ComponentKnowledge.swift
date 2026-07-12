@@ -29,6 +29,31 @@ public enum PowerBasis: String, Sendable, Codable, Equatable, Hashable {
     }
 }
 
+/// Drivetrain layout, used to estimate drivetrain loss so a factory *crank* rating can be
+/// brought to a *wheel*-equivalent baseline — the normalization that lets cost-per-hp compare
+/// wheel-to-wheel instead of wheel-to-crank. The fractions are typical rule-of-thumb losses,
+/// not measured for a specific car, so any result stays explicitly an estimate.
+public enum Drivetrain: String, Sendable, Codable, Equatable, Hashable {
+    case fwd, rwd, awd, unknown
+
+    /// Typical driveline loss as a fraction of crank power. `unknown` uses a conservative
+    /// middle assumption so an estimate is still possible, flagged as assumed.
+    public var typicalLossFraction: Double {
+        switch self {
+        case .fwd: return 0.10
+        case .rwd: return 0.15
+        case .awd: return 0.20
+        case .unknown: return 0.15
+        }
+    }
+
+    public var label: String {
+        switch self {
+        case .fwd: return "FWD"; case .rwd: return "RWD"; case .awd: return "AWD"; case .unknown: return "drivetrain"
+        }
+    }
+}
+
 public extension Vehicle {
     /// What we know about a given subsystem, honestly. An empty record yields `.unknown`
     /// (so a freshly created or barely-imported vehicle is never warned at), a logged install
