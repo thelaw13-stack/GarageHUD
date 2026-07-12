@@ -105,6 +105,19 @@ public enum Steward {
             }
         }
 
+        // 4b. Data honesty — Steward reasons from the timeline, and the timeline only sees
+        //     *dated* parts. When a real share of installed parts have no install date, say
+        //     so plainly: dating them sharpens every sequence read above. Low-key, informational.
+        let installedParts = vehicle.parts.filter { $0.status == .installed }
+        let undated = installedParts.filter { $0.installDate == nil }
+        if installedParts.count >= 5, undated.count >= 3,
+           Double(undated.count) / Double(installedParts.count) >= 0.4 {
+            out.append(StewardObservation(
+                statement: "Based on your history, dating a few more parts would sharpen what I can tell you.",
+                evidence: "\(undated.count) of \(installedParts.count) installed parts have no install date — the timeline, and my read on sequence, only see dated ones.",
+                confidence: 92, tone: .informational, provenance: .derived))
+        }
+
         // 5. A near-certain derived fact: what each gained horsepower has cost.
         if let costPerHp = vehicle.costPerHorsepowerGained,
            let gained = vehicle.horsepowerGainedOverStock {
