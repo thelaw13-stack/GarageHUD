@@ -61,6 +61,39 @@ public enum Steward {
             }
         }
 
+        // 3c. Stale tune — the recorded power figure predates the current hardware. If a
+        //     powertrain part went on *after* the last dyno, that dyno no longer describes
+        //     the car. Only fires when there's actually a dyno to be stale.
+        if let dyno = vehicle.latestDynoDate,
+           let (part, hwDate) = vehicle.latestInstall(inAny: [.forcedInduction, .fueling, .engine, .exhaust]),
+           hwDate > dyno {
+            let days = Calendar.current.dateComponents([.day], from: dyno, to: hwDate).day ?? 0
+            if days >= 7 {
+                out.append(StewardObservation(
+                    statement: "Based on your history, your last dyno predates your current hardware.",
+                    evidence: "\(part.name) went on \(Self.short(hwDate)), \(days) days after your latest pull (\(Self.short(dyno))) — the recorded figure may not reflect the car now.",
+                    confidence: 80, tone: .caution, provenance: .derived))
+            }
+        }
+
+        // 3d. Plateau — parts went on between the last two pulls but the dyno barely moved.
+        //     A stewarded read on diminishing returns, straight off the timeline.
+        let ranked = vehicle.performanceRecords
+            .filter { $0.type == .dyno && $0.wheelHorsepower != nil }
+            .sorted { $0.date > $1.date }
+        if ranked.count >= 2,
+           let latest = ranked.first?.wheelHorsepower, let latestDate = ranked.first?.date,
+           let prior = ranked.dropFirst().first?.wheelHorsepower, let priorDate = ranked.dropFirst().first?.date {
+            let changed = vehicle.installedParts(after: priorDate, upTo: latestDate)
+            let gain = latest - prior
+            if !changed.isEmpty && gain <= max(3, prior * 0.02) {
+                out.append(StewardObservation(
+                    statement: "Based on your history, recent changes haven't shown up on the dyno.",
+                    evidence: "\(changed.count) part\(changed.count == 1 ? "" : "s") added since your \(Self.short(priorDate)) pull, but the latest reads \(Int(latest)) whp vs \(Int(prior)) — \(gain <= 0 ? "no gain" : "+\(Int(gain)) whp").",
+                    confidence: 75, tone: .caution, provenance: .derived))
+            }
+        }
+
         // 4. Stewardship thinks in decades — surface when the biography goes quiet.
         if let last = vehicle.lastActivityDate {
             let days = Calendar.current.dateComponents([.day], from: last, to: .now).day ?? 0

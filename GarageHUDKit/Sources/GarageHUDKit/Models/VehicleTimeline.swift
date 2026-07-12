@@ -82,4 +82,30 @@ public extension Vehicle {
             .compactMap { $0.installDate }
             .min()
     }
+
+    /// The date of the most recent dyno pull that carries a horsepower figure, if any.
+    var latestDynoDate: Date? {
+        performanceRecords
+            .filter { $0.type == .dyno && $0.wheelHorsepower != nil }
+            .map(\.date)
+            .max()
+    }
+
+    /// The newest dated, still-present install among the given categories — the part and its
+    /// date. Lets the Steward ask "did the hardware change after we last measured?"
+    func latestInstall(inAny categories: Set<PartCategory>) -> (part: Part, date: Date)? {
+        parts
+            .filter { categories.contains($0.category) && $0.status != .removed }
+            .compactMap { part in part.installDate.map { (part, $0) } }
+            .max { $0.1 < $1.1 }
+    }
+
+    /// Still-present parts whose install date falls in `(after, upTo]` — i.e. what changed
+    /// between two dated moments (typically two dyno pulls).
+    func installedParts(after: Date, upTo: Date) -> [Part] {
+        parts.filter { part in
+            guard part.status != .removed, let d = part.installDate else { return false }
+            return d > after && d <= upTo
+        }
+    }
 }
