@@ -38,6 +38,9 @@ public final class GarageStore: ObservableObject {
     private let cloud: CloudSyncManager?
     private var isApplyingRemote = false
     private var initialSyncPending: Bool
+    /// True when this launch loaded the bundled seed into an empty garage; lets initial sync
+    /// prefer that fresh real data over an empty/stripped cloud record.
+    private var didSeedThisLaunch = false
     private var pushTask: Task<Void, Never>?
     private let appliedKey = "GHUD.appliedCloudUpdatedAt"
     private var appliedCloudUpdatedAt: Date? {
@@ -61,8 +64,13 @@ public final class GarageStore: ObservableObject {
         isLoading = true
         load()
         isLoading = false
-        if vehicles.isEmpty {
-            if !seedFromBundle() {
+        // Seed when there's no *real* data yet — empty, or only stripped shells left behind by a
+        // stale cloud record. Once the seed's parts/records are present, this won't fire again.
+        let hasRealData = vehicles.contains { !$0.parts.isEmpty || !$0.performanceRecords.isEmpty }
+        if !hasRealData {
+            if seedFromBundle() {
+                didSeedThisLaunch = true
+            } else if vehicles.isEmpty {
                 seedDefaults()
             }
         }
@@ -92,13 +100,25 @@ public final class GarageStore: ObservableObject {
         }
         syncStatus = .syncing
         if let remote = await cloud.pull() {
-            if appliedCloudUpdatedAt == nil || remote.updatedAt > appliedCloudUpdatedAt! {
-                applyRemote(remote.vehicles)
-                appliedCloudUpdatedAt = remote.updatedAt
-                await cloud.downloadPhotos(filenames: allPhotoFilenames(remote.vehicles))
-                objectWillChange.send()
+            let remoteHasRealData = remote.vehicles.contains { !$0.parts.isEmpty || !$0.performanceRecords.isEmpty }
+            if didSeedThisLaunch && !remoteHasRealData {
+                // We just seeded real data locally and the cloud only holds an empty/stripped
+                // record — make the seed authoritative instead of letting stale cloud clobber it.
+                initialSyncPending = false
+                let stamp = Date()
+                if await cloud.push(vehicles: vehicles, updatedAt: stamp) {
+                    appliedCloudUpdatedAt = stamp
+                    await cloud.uploadPhotos(filenames: allPhotoFilenames(vehicles))
+                }
+            } else {
+                if appliedCloudUpdatedAt == nil || remote.updatedAt > appliedCloudUpdatedAt! {
+                    applyRemote(remote.vehicles)
+                    appliedCloudUpdatedAt = remote.updatedAt
+                    await cloud.downloadPhotos(filenames: allPhotoFilenames(remote.vehicles))
+                    objectWillChange.send()
+                }
+                initialSyncPending = false
             }
-            initialSyncPending = false
         } else {
             // No cloud record yet — this device seeds the cloud.
             initialSyncPending = false
