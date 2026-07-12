@@ -14,6 +14,14 @@ struct LiveSessionView: View {
     @State private var streamTask: Task<Void, Never>?
 
     var body: some View {
+        ScrollView {
+            content
+        }
+        .background(HUDTheme.background)
+        .onDisappear { stop() }
+    }
+
+    private var content: some View {
         VStack(spacing: 24) {
             statusIndicator
 
@@ -66,12 +74,9 @@ struct LiveSessionView: View {
                 .foregroundStyle(HUDTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
-
-            Spacer()
         }
         .padding(24)
-        .background(HUDTheme.background)
-        .onDisappear { stop() }
+        .frame(maxWidth: .infinity)
     }
 
     /// A gauge that dims when its own value isn't fresh, so a frozen needle can't be mistaken
