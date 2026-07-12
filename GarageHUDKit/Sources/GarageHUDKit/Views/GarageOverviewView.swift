@@ -7,6 +7,7 @@ struct GarageOverviewView: View {
     var canUpgrade: Bool
     var onAddVehicle: (Int) -> Void
     var onUpgrade: () -> Void
+    @State private var showingBriefing = false
 
     var body: some View {
         ScrollView {
@@ -35,6 +36,9 @@ struct GarageOverviewView: View {
             .padding(24)
         }
         .background(HUDTheme.background)
+        .sheet(isPresented: $showingBriefing) {
+            StewardBriefingView(vehicles: store.vehicles)
+        }
     }
 
     @ViewBuilder
@@ -50,14 +54,29 @@ struct GarageOverviewView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("GARAGE OVERVIEW")
-                .font(HUDTheme.monoFont(20, weight: .bold))
-                .foregroundStyle(HUDTheme.cyan)
-                .hudGlow(HUDTheme.cyan, radius: 6)
-            Text("\(store.vehicles.count) of \(maxSlots) bays occupied")
-                .font(HUDTheme.monoFont(12))
-                .foregroundStyle(HUDTheme.textSecondary)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("GARAGE OVERVIEW")
+                    .font(HUDTheme.monoFont(20, weight: .bold))
+                    .foregroundStyle(HUDTheme.cyan)
+                    .hudGlow(HUDTheme.cyan, radius: 6)
+                Text("\(store.vehicles.count) of \(maxSlots) bays occupied")
+                    .font(HUDTheme.monoFont(12))
+                    .foregroundStyle(HUDTheme.textSecondary)
+            }
+            Spacer()
+            if !store.vehicles.isEmpty {
+                Button { showingBriefing = true } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "text.bubble")
+                        Text("BRIEF ME").font(HUDTheme.monoFont(10, weight: .semibold)).tracking(1)
+                    }
+                    .foregroundStyle(HUDTheme.cyan)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .overlay(Capsule().strokeBorder(HUDTheme.cyan.opacity(0.4), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 }
