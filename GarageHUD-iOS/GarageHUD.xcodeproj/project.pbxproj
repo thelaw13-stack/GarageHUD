@@ -188,6 +188,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Add photos of your build to parts and timeline events.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Talk to Steward hands-free about your build.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Steward listens to your questions and answers out loud.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -222,6 +224,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Add photos of your build to parts and timeline events.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Talk to Steward hands-free about your build.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Steward listens to your questions and answers out loud.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

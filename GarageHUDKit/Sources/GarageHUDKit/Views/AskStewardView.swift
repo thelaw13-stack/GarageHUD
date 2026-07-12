@@ -1,8 +1,12 @@
 import SwiftUI
+#if canImport(Speech)
+import Speech
+#endif
 
-/// The text-first conversational surface. Speaks in Steward's evidence-first voice and
-/// shows confidence when an answer rests on a derived figure. Voice capture wraps this
-/// later — the answers are already computed here.
+/// The conversational surface. Type or talk: both routes run through the same
+/// `StewardConversation` core, so the answer — and its confidence — is identical whether
+/// it's read or spoken. Voice capture and TTS live in `StewardVoiceSession`; this view only
+/// drives it and shows the exchange.
 struct AskStewardView: View {
     let vehicle: Vehicle
     @Environment(\.dismiss) private var dismiss
@@ -10,6 +14,17 @@ struct AskStewardView: View {
     @State private var input = ""
     @State private var question = ""
     @State private var reply: StewardReply?
+
+    #if canImport(Speech)
+    @StateObject private var voice: StewardVoiceSession
+    #endif
+
+    init(vehicle: Vehicle) {
+        self.vehicle = vehicle
+        #if canImport(Speech)
+        _voice = StateObject(wrappedValue: StewardVoiceSession(vehicle: vehicle))
+        #endif
+    }
 
     private let quickAsks = [
         "What should I watch?",
@@ -33,7 +48,19 @@ struct AskStewardView: View {
         #if os(macOS)
         .frame(minWidth: 480, minHeight: 560)
         #endif
-        .onAppear { if reply == nil { reply = StewardReply(text: "Go ahead — ask about power, spend, efficiency, or what to watch.") } }
+        .onAppear {
+            if reply == nil { reply = StewardReply(text: "Go ahead — ask about power, spend, efficiency, or what to watch. Tap the mic to talk.") }
+            #if canImport(Speech)
+            voice.requestAuthorization()
+            voice.onExchange = { q, r in
+                question = q
+                withAnimation(.easeOut(duration: 0.15)) { reply = r }
+            }
+            #endif
+        }
+        #if canImport(Speech)
+        .onDisappear { voice.stop(); voice.stopSpeaking() }
+        #endif
     }
 
     private var header: some View {
@@ -46,6 +73,13 @@ struct AskStewardView: View {
                     .tracking(1.5)
             }
             Spacer()
+            #if canImport(Speech)
+            if voice.isSpeaking {
+                Label("speaking", systemImage: "speaker.wave.2.fill")
+                    .font(HUDTheme.monoFont(9, weight: .semibold))
+                    .foregroundStyle(HUDTheme.cyan)
+            }
+            #endif
             Button { dismiss() } label: {
                 Image(systemName: "xmark.circle.fill").foregroundStyle(HUDTheme.textSecondary)
             }
@@ -95,10 +129,13 @@ struct AskStewardView: View {
 
     private var inputBar: some View {
         HStack(spacing: 8) {
+            #if canImport(Speech)
+            micButton
+            #endif
             Text("Steward…")
                 .font(HUDTheme.monoFont(11, weight: .semibold))
                 .foregroundStyle(HUDTheme.cyan)
-            TextField("ask a question", text: $input)
+            TextField(micPlaceholder, text: $input)
                 .textFieldStyle(.plain)
                 .font(HUDTheme.monoFont(13))
                 .onSubmit { ask(input) }
@@ -113,13 +150,36 @@ struct AskStewardView: View {
         .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(HUDTheme.cyan.opacity(0.3), lineWidth: 1))
     }
 
+    private var micPlaceholder: String {
+        #if canImport(Speech)
+        if voice.isListening { return voice.partialTranscript.isEmpty ? "listening…" : voice.partialTranscript }
+        #endif
+        return "ask a question"
+    }
+
+    #if canImport(Speech)
+    @ViewBuilder
+    private var micButton: some View {
+        Button { voice.toggle() } label: {
+            Image(systemName: voice.isListening ? "waveform.circle.fill" : "mic.circle")
+                .font(.system(size: 20))
+                .foregroundStyle(voice.isListening ? HUDTheme.amber : HUDTheme.cyan)
+                .symbolEffect(.pulse, isActive: voice.isListening)
+        }
+        .buttonStyle(.plain)
+        .disabled(voice.authorization == .denied || voice.authorization == .unavailable)
+    }
+    #endif
+
     private func ask(_ text: String) {
         let q = text.trimmingCharacters(in: .whitespaces)
         guard !q.isEmpty else { return }
         question = q
-        withAnimation(.easeOut(duration: 0.15)) {
-            reply = StewardConversation.reply(to: q, vehicle: vehicle)
-        }
+        let answer = StewardConversation.reply(to: q, vehicle: vehicle)
+        withAnimation(.easeOut(duration: 0.15)) { reply = answer }
         input = ""
+        #if canImport(Speech)
+        voice.speak(answer.text)
+        #endif
     }
 }
