@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct VehicleDashboardView: View {
-    var vehicle: Vehicle
+    @Binding var vehicle: Vehicle
     @State private var showingAsk = false
 
     var body: some View {
@@ -108,7 +108,10 @@ struct VehicleDashboardView: View {
                         .foregroundStyle(HUDTheme.textSecondary)
                 } else {
                     ForEach(observations) { observation in
-                        StewardObservationRow(observation)
+                        VStack(alignment: .leading, spacing: 8) {
+                            StewardObservationRow(observation)
+                            resolveAction(for: observation)
+                        }
                     }
                 }
 
@@ -127,6 +130,32 @@ struct VehicleDashboardView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    /// Close the loop where the owner actually sees it: an undocumented gap can be resolved
+    /// inline — either the factory system is confirmed stock (→ a firm caution) or it's on the
+    /// car and just needs logging. No trip to the Specs tab required.
+    @ViewBuilder
+    private func resolveAction(for observation: StewardObservation) -> some View {
+        if let category = gapCategory(observation), vehicle.knowledge(of: category) == .undocumented {
+            Button {
+                vehicle.confirmedStockSystems.insert(category)
+            } label: {
+                Label("Confirm \(category.rawValue.lowercased()) is factory-stock", systemImage: "checkmark.seal")
+                    .font(HUDTheme.monoFont(9, weight: .semibold))
+                    .foregroundStyle(HUDTheme.amber)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .overlay(Capsule().strokeBorder(HUDTheme.amber.opacity(0.4), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .padding(.leading, 22)
+        }
+    }
+
+    /// The part category a `gap.*` observation is about, if the record leaves it undocumented.
+    private func gapCategory(_ observation: StewardObservation) -> PartCategory? {
+        guard observation.ruleID.hasPrefix("gap.") else { return nil }
+        return PartCategory(rawValue: String(observation.ruleID.dropFirst("gap.".count)))
     }
 
     private var recentActivity: some View {
