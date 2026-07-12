@@ -179,19 +179,49 @@ public enum Steward {
             }
         }
 
-        // Boost only where it means something: a boost envelope exists (forced induction) and
-        // the throttle is actually open. Off-throttle or NA → no claim.
-        if let boostCaution = env.boostCautionPsi,
-           let boost = frame.fresh(\.boostPsi, now: now), boost.value >= boostCaution,
-           let throttle = frame.fresh(\.throttlePercent, now: now), throttle.value >= 50 {
+        // Boost rules require an open throttle; off-throttle or NA → no claim.
+        let boostFresh = frame.fresh(\.boostPsi, now: now)
+        let throttleFresh = frame.fresh(\.throttlePercent, now: now)
+        if let boost = boostFresh, let throttle = throttleFresh, throttle.value >= 50 {
             let measured = boost.source == .obdAdapter
             let word = measured ? "Measured" : "Estimated"
-            out.append(StewardObservation(
-                ruleID: "live.boost", subjectID: vid,
-                statement: "I observed boost near the top of this car's expected range.",
-                evidence: "\(word) \(String(format: "%.1f", boost.value)) psi at \(Int(throttle.value))% throttle (caution from \(String(format: "%.0f", boostCaution)) psi).",
-                confidence: measured ? .moderate : .weak, tone: .informational,
-                provenance: measured ? .measuredLive : .estimatedLive))
+            let prov: StewardObservation.Provenance = measured ? .measuredLive : .estimatedLive
+            let psi = String(format: "%.1f", boost.value)
+
+            // 1. A hard ceiling the owner set — over-boost is the most serious live boost event.
+            if let ceiling = env.maxSustainedBoostPsi, boost.value > ceiling {
+                out.append(StewardObservation(
+                    ruleID: "live.boostCeiling", subjectID: vid,
+                    statement: "The data suggests boost is above your set ceiling.",
+                    evidence: "\(word) \(psi) psi at \(Int(throttle.value))% throttle, over your \(String(format: "%.1f", ceiling)) psi ceiling.",
+                    confidence: measured ? .strong : .weak, tone: .advisory, provenance: prov))
+            }
+
+            // 2. RPM-banded tune targets, if the owner defined a profile — supersede the generic
+            //    caution because they describe what *this tune* should make at this RPM.
+            if let rpm = frame.fresh(\.rpm, now: now),
+               let band = env.expectedBoostByRPM.first(where: { $0.contains(rpm: rpm.value) }) {
+                if boost.value > band.expectedHighPsi {
+                    out.append(StewardObservation(
+                        ruleID: "live.boostOverTarget", subjectID: vid,
+                        statement: "I observed boost above target for this RPM.",
+                        evidence: "\(word) \(psi) psi at \(Int(rpm.value)) rpm; tune target tops out at \(String(format: "%.1f", band.expectedHighPsi)) psi here.",
+                        confidence: measured ? .moderate : .weak, tone: .caution, provenance: prov))
+                } else if boost.value < band.expectedLowPsi {
+                    out.append(StewardObservation(
+                        ruleID: "live.boostUnderTarget", subjectID: vid,
+                        statement: "I observed boost below target for this RPM.",
+                        evidence: "\(word) \(psi) psi at \(Int(rpm.value)) rpm; tune target starts at \(String(format: "%.1f", band.expectedLowPsi)) psi here — could be a leak, wastegate, or just spool.",
+                        confidence: measured ? .moderate : .weak, tone: .informational, provenance: prov))
+                }
+            } else if let boostCaution = env.boostCautionPsi, boost.value >= boostCaution {
+                // 3. No tune profile: the single generic caution.
+                out.append(StewardObservation(
+                    ruleID: "live.boost", subjectID: vid,
+                    statement: "I observed boost near the top of this car's expected range.",
+                    evidence: "\(word) \(psi) psi at \(Int(throttle.value))% throttle (caution from \(String(format: "%.0f", boostCaution)) psi).",
+                    confidence: measured ? .moderate : .weak, tone: .informational, provenance: prov))
+            }
         }
 
         return out

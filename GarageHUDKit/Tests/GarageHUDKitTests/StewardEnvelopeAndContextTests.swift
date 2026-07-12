@@ -40,6 +40,51 @@ final class StewardEnvelopeAndContextTests: XCTestCase {
         XCTAssertTrue(pulling.contains { $0.ruleID == "live.boost" })
     }
 
+    private func frame(rpm: Double, boost: Double, throttle: Double) -> LiveTelemetryFrame {
+        LiveTelemetryFrame(
+            rpm: TimedMeasurement(rpm, source: .obdAdapter),
+            boostPsi: TimedMeasurement(boost, source: .obdAdapter),
+            throttlePercent: TimedMeasurement(throttle, source: .obdAdapter),
+            connectionState: .polling)
+    }
+
+    private func tunedCar() -> Vehicle {
+        var v = boostedCar()
+        v.operatingEnvelopeOverride = OperatingEnvelope(
+            boostCautionPsi: 18,
+            maxSustainedBoostPsi: 22,
+            expectedBoostByRPM: [
+                BoostBand(rpmLow: 3000, rpmHigh: 5000, expectedLowPsi: 14, expectedHighPsi: 18),
+                BoostBand(rpmLow: 5001, rpmHigh: 7000, expectedLowPsi: 16, expectedHighPsi: 20)
+            ])
+        return v
+    }
+
+    func testOverCeilingIsAdvisory() {
+        let obs = Steward.observe(frame: frame(rpm: 6000, boost: 24, throttle: 100), for: tunedCar())
+        let ceiling = obs.first { $0.ruleID == "live.boostCeiling" }
+        XCTAssertNotNil(ceiling)
+        XCTAssertEqual(ceiling?.tone, .advisory)
+    }
+
+    func testBoostAboveBandTargetIsCaution() {
+        // 21 psi at 4000 rpm — band tops at 18, but under the 22 ceiling.
+        let obs = Steward.observe(frame: frame(rpm: 4000, boost: 21, throttle: 100), for: tunedCar())
+        XCTAssertTrue(obs.contains { $0.ruleID == "live.boostOverTarget" && $0.tone == .caution })
+        XCTAssertFalse(obs.contains { $0.ruleID == "live.boostCeiling" })
+    }
+
+    func testBoostBelowBandTargetIsInformational() {
+        let obs = Steward.observe(frame: frame(rpm: 4000, boost: 9, throttle: 100), for: tunedCar())
+        XCTAssertTrue(obs.contains { $0.ruleID == "live.boostUnderTarget" && $0.tone == .informational })
+    }
+
+    func testTuneProfileSupersedesGenericBoostCaution() {
+        // In-band and on target → no generic "live.boost" caution should fire.
+        let obs = Steward.observe(frame: frame(rpm: 4000, boost: 16, throttle: 100), for: tunedCar())
+        XCTAssertTrue(obs.filter { $0.ruleID.hasPrefix("live.boost") }.isEmpty)
+    }
+
     func testCoolantUsesVehicleEnvelopeThresholds() {
         var v = boostedCar()
         v.operatingEnvelopeOverride = OperatingEnvelope(coolantCautionF: 200, coolantCriticalF: 220, boostCautionPsi: 18)
