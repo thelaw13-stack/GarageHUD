@@ -2,6 +2,7 @@ import SwiftUI
 
 struct VehicleDashboardView: View {
     var vehicle: Vehicle
+    @State private var showingAsk = false
 
     var body: some View {
         ScrollView {
@@ -15,6 +16,9 @@ struct VehicleDashboardView: View {
             .padding(24)
         }
         .background(HUDTheme.background)
+        .sheet(isPresented: $showingAsk) {
+            AskStewardView(vehicle: vehicle)
+        }
     }
 
     private var header: some View {
@@ -97,16 +101,30 @@ struct VehicleDashboardView: View {
     private var nextSteps: some View {
         let observations = Steward.observe(vehicle)
         return HUDPanel(title: "Steward") {
-            if observations.isEmpty {
-                Text("Steward is watching. Nothing stands out yet — log parts, a dyno pull, or a documented total and observations will appear here.")
-                    .font(HUDTheme.monoFont(11))
-                    .foregroundStyle(HUDTheme.textSecondary)
-            } else {
-                VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 14) {
+                if observations.isEmpty {
+                    Text("Steward is watching. Nothing stands out yet — log parts, a dyno pull, or a documented total and observations will appear here.")
+                        .font(HUDTheme.monoFont(11))
+                        .foregroundStyle(HUDTheme.textSecondary)
+                } else {
                     ForEach(observations) { observation in
                         StewardObservationRow(observation)
                     }
                 }
+
+                Button { showingAsk = true } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "waveform")
+                        Text("ASK STEWARD")
+                            .font(HUDTheme.monoFont(11, weight: .semibold))
+                            .tracking(1.5)
+                    }
+                    .foregroundStyle(HUDTheme.cyan)
+                    .padding(.horizontal, 14).padding(.vertical, 9)
+                    .frame(maxWidth: .infinity)
+                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(HUDTheme.cyan.opacity(0.4), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
             }
         }
     }
