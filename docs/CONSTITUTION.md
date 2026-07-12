@@ -79,7 +79,13 @@ Prefer:
 > I observed…
 > The data suggests…
 > Based on your history…
-> Confidence: 87%
+> Evidence: strong
+
+Confidence is shown as an **evidence band** (`CONFIRMED / STRONG / MODERATE / WEAK /
+INSUFFICIENT`), derived from evidence completeness — never a fabricated percentage. Earlier
+drafts of this document used numeric confidence (e.g. "Confidence: 87%"); that was superseded
+because a hand-authored percentage implies a statistical rigor the system does not have. See
+[ADR-0003](adr/ADR-0003-evidence-bands.md).
 
 ## Development Philosophy
 
