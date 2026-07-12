@@ -29,16 +29,24 @@ public struct ELM327Handshake: Equatable, Sendable {
     public let resetCommand: String
     public let configCommands: [String]
     public let maxAttempts: Int
+    /// When true, the `ATZ` reply must look like an ELM327 (its version banner contains
+    /// `identityToken`) — otherwise the device is rejected as not an ELM327-compatible adapter.
+    public let verifyIdentity: Bool
+    public let identityToken: String
 
     public private(set) var step: Step
     public private(set) var attempts: Int
 
     public init(resetCommand: String = "ATZ",
                 configCommands: [String] = ["ATE0", "ATL0", "ATH0", "ATSP0"],
-                maxAttempts: Int = 3) {
+                maxAttempts: Int = 3,
+                verifyIdentity: Bool = true,
+                identityToken: String = "ELM") {
         self.resetCommand = resetCommand
         self.configCommands = configCommands
         self.maxAttempts = maxAttempts
+        self.verifyIdentity = verifyIdentity
+        self.identityToken = identityToken
         self.step = .reset
         self.attempts = 0
     }
@@ -67,7 +75,14 @@ public struct ELM327Handshake: Equatable, Sendable {
     public mutating func handle(_ event: Event) -> Action {
         switch event {
         case .reply(let line):
-            return Self.isError(line) ? retryOrFail() : advance()
+            if Self.isError(line) { return retryOrFail() }
+            // The reset reply must identify an ELM327. A device that answers cleanly but isn't
+            // one is rejected outright — retrying can't change what it is.
+            if case .reset = step, verifyIdentity,
+               !line.uppercased().contains(identityToken.uppercased()) {
+                return .failed
+            }
+            return advance()
         case .timeout:
             return retryOrFail()
         }

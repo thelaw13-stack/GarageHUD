@@ -2,20 +2,19 @@
 
 ## TD-004 — OBD adapter pairing & hardware validation
 
-Priority: High
+Priority: High → partially addressed
 
-Current state: The BLE `OBDLiveDataSource` runs a response-driven `ELM327Handshake`, pairs
-write+notify characteristics from the same service, and reconnects on drop. Decoding and the
-handshake state machine are unit-tested.
+Done: `ELM327Handshake` verifies ELM327 identity on the `ATZ` banner (rejects non-ELM devices);
+`OBDLiveDataSource` pairs write+notify from the *same* service, connects only to a known
+peripheral when `knownPeripheralID` is set, and assembles a persistable `OBDAdapterProfile`
+(peripheral UUID, service/char UUIDs, write mode, name, last-connected) on successful bring-up.
+Identity verification and the profile model are unit-tested.
 
-Risk: Auto-connect trusts service-UUID discovery — there is no validated adapter *profile*, no
-user device selection, and no ELM327 identity verification, so it could connect to the wrong
-device/characteristic pair. The transport is also unproven against physical hardware.
-
-Next steps: Add a persisted adapter profile (peripheral UUID, service/char UUIDs, write mode,
-name, last-connected), require user selection during pairing, auto-reconnect only to a validated
-device, and verify ELM327 identity on `ATZ`. Then add real-adapter integration, ISO-TP/multi-ECU,
-disconnect/reconnect, and recorded serial-transcript replay tests. See ADR-0004.
+Remaining: a **pairing UI** (present discovered candidates, let the owner pick, persist the
+returned profile, and load `knownPeripheralID` on next launch) — plumbing exists but is not yet
+surfaced. And the hardware-dependent tests: real-adapter integration, ISO-TP/multi-ECU headers,
+and live disconnect/reconnect against a device. See ADR-0004. Synthetic serial-transcript replay
+is done (`OBDTranscriptReplayTests`).
 
 ## TD-005 — No schema versioning in persisted JSON
 

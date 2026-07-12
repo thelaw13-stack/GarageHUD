@@ -136,4 +136,28 @@ final class ELM327HandshakeTests: XCTestCase {
         XCTAssertEqual(h.handle(.reply("OK")), .send("ATSP0")) // recovers, counter resets
         XCTAssertEqual(h.handle(.timeout), .send("ATSP0"))     // 1 miss on ATSP0 (not 2)
     }
+
+    /// Identity verification: a device that answers ATZ cleanly but isn't an ELM327 is rejected
+    /// outright — the guard against pairing to the wrong adapter.
+    func testRejectsNonELM327Device() {
+        var h = ELM327Handshake()
+        XCTAssertEqual(h.handle(.reply("OBDII v1.0")), .failed)
+    }
+
+    func testIdentityCheckCanBeDisabled() {
+        var h = ELM327Handshake(configCommands: [], verifyIdentity: false)
+        XCTAssertEqual(h.handle(.reply("WHATEVER")), .ready)
+    }
+}
+
+final class OBDAdapterProfileTests: XCTestCase {
+    func testProfileCodableRoundTrip() throws {
+        let p = OBDAdapterProfile(
+            peripheralID: UUID(), name: "OBDLink LX", serviceUUID: "FFF0",
+            writeCharUUID: "FFF2", notifyCharUUID: "FFF1",
+            writeWithoutResponse: true, lastConnected: Date(timeIntervalSince1970: 1_700_000_000))
+        let data = try JSONEncoder().encode(p)
+        let back = try JSONDecoder().decode(OBDAdapterProfile.self, from: data)
+        XCTAssertEqual(p, back)
+    }
 }

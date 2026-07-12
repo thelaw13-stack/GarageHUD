@@ -40,7 +40,23 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private var peripheral: CBPeripheral?
     private var writeChar: CBCharacteristic?
     private var notifyChar: CBCharacteristic?
+    private var pairedServiceUUID: String?
     private let serviceUUIDs: [CBUUID] = [CBUUID(string: "FFF0"), CBUUID(string: "FFE0")]
+
+    /// When set, only this peripheral will be connected — reconnection to a *validated* device
+    /// rather than the first serial adapter that advertises. Pass a profile's `peripheralID`.
+    public var knownPeripheralID: UUID?
+    /// The validated profile assembled once bring-up succeeds. The app persists this so future
+    /// sessions can set `knownPeripheralID` and skip blind discovery.
+    public private(set) var discoveredProfile: OBDAdapterProfile?
+
+    public init(knownPeripheralID: UUID? = nil) {
+        self.knownPeripheralID = knownPeripheralID
+        var captured: AsyncStream<LiveTelemetryFrame>.Continuation!
+        self.frames = AsyncStream { captured = $0 }
+        self.continuation = captured
+        super.init()
+    }
 
     private var handshake = ELM327Handshake()
     private let pids = OBDPID.allCases
@@ -56,13 +72,6 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
 
     // Per-metric measurements, each stamped when its reply actually arrives.
     private var rpm, speedMph, coolant, boost, throttle: TimedMeasurement<Double>?
-
-    public override init() {
-        var captured: AsyncStream<LiveTelemetryFrame>.Continuation!
-        self.frames = AsyncStream { captured = $0 }
-        self.continuation = captured
-        super.init()
-    }
 
     deinit { continuation.finish() }
 
@@ -168,11 +177,26 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
             connectionState = (handshake.step == .reset) ? .resetting : .configuring
             transmit(command, timeout: 1.5)
         case .ready:
+            captureProfile()      // bring-up (incl. ELM327 identity check) succeeded
             connectionState = .ready
             startPolling()
         case .failed:
             degrade()
         }
+    }
+
+    /// Once bring-up succeeds, record exactly what we connected to so the app can persist it
+    /// and reconnect only to this validated device next time.
+    private func captureProfile() {
+        guard let peripheral, let writeChar, let notifyChar, let service = pairedServiceUUID else { return }
+        discoveredProfile = OBDAdapterProfile(
+            peripheralID: peripheral.identifier,
+            name: peripheral.name ?? "OBD-II Adapter",
+            serviceUUID: service,
+            writeCharUUID: writeChar.uuid.uuidString,
+            notifyCharUUID: notifyChar.uuid.uuidString,
+            writeWithoutResponse: writeChar.properties.contains(.writeWithoutResponse),
+            lastConnected: Date())
     }
 
     private func startPolling() {
@@ -246,6 +270,9 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
 
     public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
                                advertisementData: [String: Any], rssi RSSI: NSNumber) {
+        // Connect only to the validated device when we know which one we want; otherwise this
+        // is a fresh pairing and we take the first advertising a serial service.
+        if let known = knownPeripheralID, peripheral.identifier != known { return }
         central.stopScan()
         self.peripheral = peripheral
         peripheral.delegate = self
@@ -267,20 +294,18 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-        for char in service.characteristics ?? [] {
-            if char.properties.contains(.notify) {
-                notifyChar = char
-                peripheral.setNotifyValue(true, for: char)
-            }
-            if char.properties.contains(.writeWithoutResponse) || char.properties.contains(.write) {
-                writeChar = char
-            }
-        }
-        // Begin bring-up only once, and only when we can both write and hear back.
-        if writeChar != nil, notifyChar != nil,
-           connectionState == .discoveringCharacteristics {
-            beginHandshake()
-        }
+        guard connectionState == .discoveringCharacteristics else { return }
+        // Pair write + notify from the SAME service — never mix characteristics across services,
+        // which could pick an unrelated pair on a multi-service adapter.
+        let chars = service.characteristics ?? []
+        guard let notify = chars.first(where: { $0.properties.contains(.notify) }),
+              let write = chars.first(where: { $0.properties.contains(.writeWithoutResponse) || $0.properties.contains(.write) })
+        else { return } // this service isn't the serial one; wait for another's callback
+        notifyChar = notify
+        writeChar = write
+        pairedServiceUUID = service.uuid.uuidString
+        peripheral.setNotifyValue(true, for: notify)
+        beginHandshake()
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
