@@ -45,6 +45,22 @@ public enum Steward {
                 confidence: 70, tone: .caution, provenance: .recorded))
         }
 
+        // 3b. Sequence hazard — reads the *timeline*, not just the present set. If boost
+        //     went on before the fueling caught up, that's a window worth naming even if
+        //     fueling is on the car now. Only fires when both installs are actually dated.
+        if hasForcedInduction,
+           let fiDate = vehicle.earliestInstall(in: .forcedInduction),
+           let fuelDate = vehicle.earliestInstall(in: .fueling),
+           fiDate < fuelDate {
+            let days = Calendar.current.dateComponents([.day], from: fiDate, to: fuelDate).day ?? 0
+            if days >= 14 {
+                out.append(StewardObservation(
+                    statement: "Based on your history, forced induction ran ahead of the fueling for a stretch.",
+                    evidence: "Boost was installed \(Self.short(fiDate)); fueling support followed \(days) days later (\(Self.short(fuelDate))).",
+                    confidence: 72, tone: .caution, provenance: .derived))
+            }
+        }
+
         // 4. Stewardship thinks in decades — surface when the biography goes quiet.
         if let last = vehicle.lastActivityDate {
             let days = Calendar.current.dateComponents([.day], from: last, to: .now).day ?? 0
