@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package-tests:
+    name: Package tests (swift test)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show toolchain
+        run: swift --version
+      - name: Build
+        working-directory: GarageHUDKit
+        run: swift build
+      - name: Test
+        working-directory: GarageHUDKit
+        run: swift test
+
+  ios-build:
+    name: iOS app build (simulator)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build app for iOS Simulator
+        run: |
+          xcodebuild \
+            -project GarageHUD-iOS/GarageHUD.xcodeproj \
+            -scheme GarageHUD \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            build

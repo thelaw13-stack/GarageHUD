@@ -29,15 +29,19 @@ Risk: A non-additive schema change would fail silently and read an empty garage.
 Next steps: Add a `schemaVersion`, a versioned decode/transform path, and a non-silent failure
 mode. See [PERSISTENCE.md](PERSISTENCE.md). Until then, additive-only changes are mandatory.
 
-## TD-006 — No CI / strict concurrency
+## TD-006 — CI / strict concurrency — RESOLVED
 
-Priority: Medium
+Priority: Medium — done
 
-Current state: Tests and the app build are run manually. The package targets Swift 5.10 with
-default (minimal) concurrency checking.
+Resolution: `.github/workflows/ci.yml` runs package `swift build`/`swift test` and an
+iOS-simulator app build on every push/PR. The package compiles under
+`-strict-concurrency=complete` with **zero** warnings; the two genuinely main-thread-confined
+spots were annotated honestly (`OBDLiveDataSource` is `@unchecked Sendable` with a documented
+confinement invariant + explicit `.main` CB queue; `ImageStore.thumbCache` is
+`nonisolated(unsafe)` since `NSCache` is internally thread-safe).
 
-Next steps: A GitHub Actions workflow (package `swift test` + iOS-simulator build), then enable
-stricter concurrency checking and resolve any resulting warnings.
+Remaining: migrating to the Swift 6 language mode outright (vs. complete checking in 5.10) can
+follow once the app target also builds clean; not blocking.
 
 ## TD-001 — Whole-document CloudKit sync
 

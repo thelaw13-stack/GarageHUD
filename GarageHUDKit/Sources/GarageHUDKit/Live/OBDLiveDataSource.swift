@@ -22,7 +22,13 @@ import CoreBluetooth
 ///
 /// EXPERIMENTAL: the decoding math and handshake logic are unit-tested, but this BLE transport
 /// has not yet been exercised against physical hardware.
-public final class OBDLiveDataSource: NSObject, LiveDataSource {
+/// Thread-confinement invariant: every method and all mutable state are confined to the main
+/// run loop. `start()`/`stop()` are called from the UI (main); the `CBCentralManager` is created
+/// with the main queue so all delegate callbacks arrive on main; the timeout/reconnect timers
+/// dispatch to `DispatchQueue.main`. Because that confinement is real but invisible to the
+/// compiler, this is `@unchecked Sendable` rather than actor-isolated (a CoreBluetooth delegate
+/// can't be `@MainActor` — its callbacks are nonisolated protocol requirements).
+public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Sendable {
 
     public let frames: AsyncStream<LiveTelemetryFrame>
     private let continuation: AsyncStream<LiveTelemetryFrame>.Continuation
@@ -66,7 +72,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource {
         stopped = false
         resetMeasurements()
         connectionState = .scanning
-        central = CBCentralManager(delegate: self, queue: nil)
+        central = CBCentralManager(delegate: self, queue: .main) // confine callbacks to main
     }
 
     public func stop() {

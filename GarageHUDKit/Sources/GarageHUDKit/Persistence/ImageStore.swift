@@ -16,7 +16,9 @@ public typealias PlatformImage = UIImage
 public enum ImageStore {
     // Decoding thumbnail Data → image on every SwiftUI re-render is what made editors with
     // photo strips feel sluggish. Cache decoded thumbnails by photo id (NSCache is thread-safe).
-    private static let thumbCache = NSCache<NSString, PlatformImage>()
+    // NSCache is internally thread-safe, so this shared cache is safe to touch from any
+    // thread; the checker can't see that, hence nonisolated(unsafe).
+    nonisolated(unsafe) private static let thumbCache = NSCache<NSString, PlatformImage>()
 
     public static func thumbnailImage(for photo: Photo) -> PlatformImage? {
         let key = photo.id.uuidString as NSString

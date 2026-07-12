@@ -15,7 +15,10 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "GarageHUDKit"
+            name: "GarageHUDKit",
+            swiftSettings: [
+                .unsafeFlags(["-strict-concurrency=complete"])
+            ]
         ),
         .testTarget(
             name: "GarageHUDKitTests",

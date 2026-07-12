@@ -1,5 +1,7 @@
 # GarageHUD
 
+[![CI](https://github.com/thelaw13-stack/GarageHUD/actions/workflows/ci.yml/badge.svg)](https://github.com/thelaw13-stack/GarageHUD/actions/workflows/ci.yml)
+
 A "Jarvis HUD"-styled car-inventory and telemetry app for **macOS + iPhone**, tracking an
 enthusiast's fleet — parts, build history, dyno results, photos, and live OBD-II telemetry —
 with **CloudKit sync** across devices. Its intelligence layer is **Fleet Steward**, a reasoning
@@ -39,9 +41,13 @@ sources directly and adds entitlements, Info.plist usage strings, and app icon.
 **Package (logic + reasoning), from `GarageHUDKit/`:**
 
 ```sh
-swift build
-swift test        # 81 tests: reasoning rules, telemetry decoding, handshake, briefing, lifecycle
+swift build       # compiles clean under -strict-concurrency=complete
+swift test        # 86 tests: reasoning rules, telemetry decoding, handshake + transcript replay,
+                  # briefing, stream lifecycle, envelope/knowledge honesty, injected-clock determinism
 ```
+
+CI (`.github/workflows/ci.yml`) runs the package tests and an iOS-simulator app build on every
+push and PR.
 
 **The app (macOS or iOS simulator):**
 
@@ -100,5 +106,4 @@ paths that require real hardware are honestly not:
   but have not been exercised against a real microphone / adapter. The pure logic they wrap
   (conversation, PID decoding, handshake state machine, freshness) *is* tested.
 - **Adapter pairing** — validated adapter profile, user selection, and ELM327 identity
-  verification remain outstanding (see TECH_DEBT).
-- **CI** and **strict concurrency** are not yet enabled.
+  verification remain outstanding (see TECH_DEBT TD-004).
