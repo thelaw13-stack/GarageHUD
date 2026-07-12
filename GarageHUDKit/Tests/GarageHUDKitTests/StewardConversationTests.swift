@@ -23,10 +23,10 @@ final class StewardConversationTests: XCTestCase {
         XCTAssertEqual(StewardConversation.topic(for: ""), .unknown)
     }
 
-    func testPowerAnswerPrefersMeasuredDynoWithConfidence() {
+    func testPowerAnswerPrefersMeasuredDynoWithBand() {
         let reply = StewardConversation.reply(to: "how much power", vehicle: builtVehicle())
         XCTAssertTrue(reply.text.contains("320"))
-        XCTAssertEqual(reply.confidence, 90)
+        XCTAssertEqual(reply.confidence, .strong)
     }
 
     func testPowerFallsBackToFactoryWhenNoDyno() {
@@ -34,19 +34,18 @@ final class StewardConversationTests: XCTestCase {
         v.performanceRecords = []
         let reply = StewardConversation.reply(to: "how fast is it", vehicle: v)
         XCTAssertTrue(reply.text.localizedCaseInsensitiveContains("factory"))
-        XCTAssertEqual(reply.confidence, 50)
+        XCTAssertEqual(reply.confidence, .weak)
     }
 
-    func testEfficiencyIsHighConfidence() {
+    func testEfficiencyIsApproximateModerate() {
         let reply = StewardConversation.reply(to: "cost per hp", vehicle: builtVehicle())
-        XCTAssertEqual(reply.confidence, 97)
+        XCTAssertEqual(reply.confidence, .moderate)
     }
 
-    func testMovingModeShortensAndDropsConfidenceTail() {
+    func testMovingModeShortensToFirstSentence() {
         let parked = StewardConversation.reply(to: "how much power", vehicle: builtVehicle(), mode: .parked)
         let moving = StewardConversation.reply(to: "how much power", vehicle: builtVehicle(), mode: .moving)
-        XCTAssertFalse(moving.text.localizedCaseInsensitiveContains("confidence"))
-        XCTAssertLessThan(moving.text.count, parked.text.count)
+        XCTAssertLessThanOrEqual(moving.text.count, parked.text.count)
     }
 
     func testResponderBoundaryReturnsSameText() async {

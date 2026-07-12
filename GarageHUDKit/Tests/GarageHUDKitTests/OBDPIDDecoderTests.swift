@@ -62,16 +62,78 @@ final class OBDPIDDecoderTests: XCTestCase {
     }
 }
 
-/// The measured/estimated distinction must actually change what Steward claims.
+/// The honesty guarantee: "measured" reflects the *value's* own source and freshness, never
+/// the transport. A stale or missing value yields no observation; an adapter value yields a
+/// measured one only while it's fresh.
 final class LiveProvenanceTests: XCTestCase {
     private func vehicle() -> Vehicle { Vehicle(make: "T", model: "C", year: 2020, garageSlot: 1) }
 
-    func testMeasuredRaisesProvenanceAndConfidence() {
-        let hot = LiveMetrics(rpm: 6000, speedMph: 80, coolantTempF: 240, boostPsi: 12, throttlePercent: 100)
-        let estimated = Steward.observe(live: hot, for: vehicle(), measured: false).first { $0.tone == .advisory }
-        let measured = Steward.observe(live: hot, for: vehicle(), measured: true).first { $0.tone == .advisory }
-        XCTAssertEqual(estimated?.provenance, .estimatedLive)
-        XCTAssertEqual(measured?.provenance, .measuredLive)
-        XCTAssertGreaterThan(measured?.confidence ?? 0, estimated?.confidence ?? 0)
+    private func frame(coolant: Double, source: MeasurementSource, age: TimeInterval) -> LiveTelemetryFrame {
+        LiveTelemetryFrame(
+            coolantTempF: TimedMeasurement(coolant, source: source, at: Date().addingTimeInterval(-age)),
+            connectionState: .polling)
+    }
+
+    func testMeasuredValueRaisesProvenanceAndConfidence() {
+        let est = Steward.observe(frame: frame(coolant: 240, source: .simulated, age: 0), for: vehicle()).first { $0.tone == .advisory }
+        let meas = Steward.observe(frame: frame(coolant: 240, source: .obdAdapter, age: 0), for: vehicle()).first { $0.tone == .advisory }
+        XCTAssertEqual(est?.provenance, .estimatedLive)
+        XCTAssertEqual(meas?.provenance, .measuredLive)
+        XCTAssertGreaterThan(meas?.confidence ?? .insufficient, est?.confidence ?? .insufficient)
+    }
+
+    func testStaleValueProducesNoObservation() {
+        // A hot coolant reading that's older than the freshness window must not be reported.
+        let stale = frame(coolant: 240, source: .obdAdapter, age: LiveFreshness.window + 1)
+        XCTAssertTrue(Steward.observe(frame: stale, for: vehicle()).isEmpty)
+    }
+
+    func testMissingMetricProducesNoObservation() {
+        // Default/absent values never fabricate an observation.
+        let empty = LiveTelemetryFrame(connectionState: .polling)
+        XCTAssertTrue(Steward.observe(frame: empty, for: vehicle()).isEmpty)
+    }
+
+    func testFreshnessBoundary() {
+        let m = TimedMeasurement(100.0, source: .obdAdapter, at: Date().addingTimeInterval(-(LiveFreshness.window - 0.1)))
+        XCTAssertTrue(m.isFresh(within: LiveFreshness.window))
+        let old = TimedMeasurement(100.0, source: .obdAdapter, at: Date().addingTimeInterval(-(LiveFreshness.window + 0.1)))
+        XCTAssertFalse(old.isFresh(within: LiveFreshness.window))
+    }
+}
+
+/// The ELM327 bring-up must be a real command-response sequence: one command at a time,
+/// advancing only on a valid reply, retrying on error/timeout, and failing after the cap.
+final class ELM327HandshakeTests: XCTestCase {
+
+    func testHappyPathWalksResetThenConfigThenReady() {
+        var h = ELM327Handshake(configCommands: ["ATE0", "ATSP0"])
+        XCTAssertEqual(h.openingCommand, "ATZ")
+        XCTAssertEqual(h.handle(.reply("ELM327 v1.5")), .send("ATE0"))
+        XCTAssertEqual(h.handle(.reply("OK")), .send("ATSP0"))
+        XCTAssertEqual(h.handle(.reply("OK")), .ready)
+    }
+
+    func testErrorRepliesRetryThenFailAtCap() {
+        var h = ELM327Handshake(configCommands: ["ATE0"], maxAttempts: 3)
+        _ = h.handle(.reply("ELM327 v1.5"))          // now on ATE0
+        XCTAssertEqual(h.handle(.reply("?")), .send("ATE0"))   // attempt 1 → retry
+        XCTAssertEqual(h.handle(.reply("?")), .send("ATE0"))   // attempt 2 → retry
+        XCTAssertEqual(h.handle(.reply("?")), .failed)         // attempt 3 → give up
+    }
+
+    func testTimeoutRetriesThenSucceeds() {
+        var h = ELM327Handshake(configCommands: ["ATE0"])
+        _ = h.handle(.reply("ELM327 v1.5"))
+        XCTAssertEqual(h.handle(.timeout), .send("ATE0"))      // retry the same command
+        XCTAssertEqual(h.handle(.reply("OK")), .ready)         // then it answers
+    }
+
+    func testSuccessfulReplyResetsAttemptCounter() {
+        var h = ELM327Handshake(configCommands: ["ATE0", "ATSP0"], maxAttempts: 2)
+        _ = h.handle(.reply("ELM327"))                         // → ATE0
+        XCTAssertEqual(h.handle(.timeout), .send("ATE0"))      // 1 miss on ATE0
+        XCTAssertEqual(h.handle(.reply("OK")), .send("ATSP0")) // recovers, counter resets
+        XCTAssertEqual(h.handle(.timeout), .send("ATSP0"))     // 1 miss on ATSP0 (not 2)
     }
 }

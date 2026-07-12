@@ -52,15 +52,24 @@ final class StewardFleetTests: XCTestCase {
         XCTAssertFalse(Steward.observeFleet([a, b]).contains { $0.statement.localizedCaseInsensitiveContains("fallen behind") })
     }
 
-    func testSharedGapAcrossCars() {
-        func boostedNoFuel(_ name: String, _ slot: Int) -> Vehicle {
+    /// A shared gap aggregates only when it's *confirmed absent* on multiple cars — a mere
+    /// undocumented omission on both must NOT become a confident fleet-wide warning.
+    func testSharedGapFiresOnlyWhenConfirmedAbsent() {
+        func boosted(_ name: String, _ slot: Int, confirmStock: Bool) -> Vehicle {
             var v = car(name, slot: slot)
             v.parts = [Part(name: "Turbo", category: .forcedInduction, status: .installed)]
+            if confirmStock { v.confirmedStockSystems = [.fueling] }
             return v
         }
-        let fleet = [boostedNoFuel("S2K", 1), boostedNoFuel("Fozzy", 2)]
-        let shared = Steward.observeFleet(fleet).first { $0.statement.localizedCaseInsensitiveContains("fueling is a gap across") }
+        // Both merely undocumented → no fleet-level shared gap.
+        let undocumented = [boosted("S2K", 1, confirmStock: false), boosted("Fozzy", 2, confirmStock: false)]
+        XCTAssertFalse(Steward.observeFleet(undocumented).contains { $0.ruleID.hasPrefix("fleet.sharedGap") })
+
+        // Both confirmed stock fueling → a real, strong shared gap.
+        let confirmed = [boosted("S2K", 1, confirmStock: true), boosted("Fozzy", 2, confirmStock: true)]
+        let shared = Steward.observeFleet(confirmed).first { $0.ruleID == "fleet.sharedGap.Fueling" }
         XCTAssertNotNil(shared)
         XCTAssertEqual(shared?.tone, .caution)
+        XCTAssertEqual(shared?.confidence, .strong)
     }
 }

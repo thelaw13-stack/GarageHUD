@@ -2,165 +2,192 @@ import Foundation
 
 /// Fleet Steward — the reasoning layer. GarageHUD owns memory; Steward interprets it.
 ///
-/// Steward never owns truth and never manufactures urgency. It reads recorded data,
-/// emits `StewardObservation`s that carry their own evidence and a confidence level,
-/// and orders them so the most decision-relevant surfaces first. Language is
-/// evidence-first ("I observed… / The data suggests… / Based on your history…").
+/// Steward never owns truth and never manufactures urgency. It reads recorded data, emits
+/// `StewardObservation`s that carry their own evidence and an honest evidence *band*, and
+/// orders them deterministically so the most decision-relevant surfaces first. It distinguishes
+/// what is *recorded* from what is merely *not recorded*: an undocumented subsystem is never
+/// reported as a missing one. Every rule is a pure function of (model, `StewardContext`).
 public enum Steward {
 
     // MARK: - Garage observations (reasoned over recorded memory)
 
-    /// The current watch-set. Five rules chosen for a strong signal-to-noise ratio:
-    /// two are near-certain derived facts (efficiency, freshness); three are
-    /// well-understood build-integrity gaps whose confidence is stated honestly.
-    public static func observe(_ vehicle: Vehicle) -> [StewardObservation] {
+    public static func observe(_ vehicle: Vehicle, context: StewardContext = .live) -> [StewardObservation] {
         var out: [StewardObservation] = []
-        let installed = Set(vehicle.parts.filter { $0.status == .installed }.map(\.category))
-        let hasForcedInduction = installed.contains(.forcedInduction)
+        let vid = vehicle.id
+        let hasForcedInduction = vehicle.knowledge(of: .forcedInduction) == .confirmedPresent
 
-        // 1. Fueling must keep up with forced induction.
-        if hasForcedInduction && !installed.contains(.fueling) {
-            out.append(StewardObservation(
-                statement: "The data suggests fueling may not keep up with your forced-induction setup.",
-                evidence: "Forced induction is installed, but no fuel-system parts (pump, injectors, rail) are logged.",
-                confidence: 88, tone: .caution, provenance: .recorded))
-        }
-
-        // 2. Added airflow makes heat, and heat is where reliability goes to die.
-        if hasForcedInduction && !installed.contains(.cooling) {
-            out.append(StewardObservation(
-                statement: "The data suggests heat management could be a gap.",
-                evidence: "Forced induction is installed; no cooling parts (radiator, oil cooler, intercooler) are logged.",
-                confidence: 76, tone: .caution, provenance: .recorded))
+        // 1–2. Fueling and cooling should keep up with forced induction — phrased by what we
+        //       actually know, never conflating "not logged" with "not installed".
+        if hasForcedInduction {
+            if let o = supportGap(vehicle, support: .fueling, subsystem: "fuel system",
+                                  trigger: "Forced induction is installed.") { out.append(o) }
+            if let o = supportGap(vehicle, support: .cooling, subsystem: "cooling",
+                                  trigger: "Forced induction is installed.") { out.append(o) }
         }
 
         // 3. Braking should keep pace with power and grip.
         let powerUp = (vehicle.horsepowerGainedOverStock ?? 0) >= 40
-        if (installed.contains(.suspension) || powerUp) && !installed.contains(.brakes) {
-            out.append(StewardObservation(
-                statement: "The data suggests braking hasn't kept pace with the rest of the build.",
-                evidence: installed.contains(.suspension)
-                    ? "Suspension is upgraded, but no brake parts are logged."
-                    : "Power is up meaningfully over stock, but no brake parts are logged.",
-                confidence: 70, tone: .caution, provenance: .recorded))
+        if vehicle.knowledge(of: .suspension) == .confirmedPresent || powerUp {
+            let trigger = vehicle.knowledge(of: .suspension) == .confirmedPresent
+                ? "Suspension is upgraded." : "Power is up meaningfully over stock."
+            if let o = supportGap(vehicle, support: .brakes, subsystem: "brakes", trigger: trigger) { out.append(o) }
         }
 
-        // 3b. Sequence hazard — reads the *timeline*, not just the present set. If boost
-        //     went on before the fueling caught up, that's a window worth naming even if
-        //     fueling is on the car now. Only fires when both installs are actually dated.
+        // 3b. Sequence hazard — boost dated before fueling support.
         if hasForcedInduction,
            let fiDate = vehicle.earliestInstall(in: .forcedInduction),
            let fuelDate = vehicle.earliestInstall(in: .fueling),
            fiDate < fuelDate {
-            let days = Calendar.current.dateComponents([.day], from: fiDate, to: fuelDate).day ?? 0
+            let days = context.days(from: fiDate, to: fuelDate)
             if days >= 14 {
                 out.append(StewardObservation(
+                    ruleID: "sequence.fiAheadOfFueling", subjectID: vid,
                     statement: "Based on your history, forced induction ran ahead of the fueling for a stretch.",
-                    evidence: "Boost was installed \(Self.short(fiDate)); fueling support followed \(days) days later (\(Self.short(fuelDate))).",
-                    confidence: 72, tone: .caution, provenance: .derived))
+                    evidence: "Boost was installed \(short(fiDate)); fueling support followed \(days) days later (\(short(fuelDate))).",
+                    confidence: .moderate, tone: .caution, provenance: .derived))
             }
         }
 
-        // 3c. Stale tune — the recorded power figure predates the current hardware. If a
-        //     powertrain part went on *after* the last dyno, that dyno no longer describes
-        //     the car. Only fires when there's actually a dyno to be stale.
+        // 3c. Stale tune — a powertrain part installed after the last dyno. A recorded fact.
         if let dyno = vehicle.latestDynoDate,
            let (part, hwDate) = vehicle.latestInstall(inAny: [.forcedInduction, .fueling, .engine, .exhaust]),
            hwDate > dyno {
-            let days = Calendar.current.dateComponents([.day], from: dyno, to: hwDate).day ?? 0
+            let days = context.days(from: dyno, to: hwDate)
             if days >= 7 {
                 out.append(StewardObservation(
+                    ruleID: "tune.stale", subjectID: vid,
                     statement: "Based on your history, your last dyno predates your current hardware.",
-                    evidence: "\(part.name) went on \(Self.short(hwDate)), \(days) days after your latest pull (\(Self.short(dyno))) — the recorded figure may not reflect the car now.",
-                    confidence: 80, tone: .caution, provenance: .derived))
+                    evidence: "\(part.name) went on \(short(hwDate)), \(days) days after your latest pull (\(short(dyno))) — the recorded figure may not reflect the car now.",
+                    confidence: .strong, tone: .caution, provenance: .derived))
             }
         }
 
-        // 3d. Plateau — parts went on between the last two pulls but the dyno barely moved.
-        //     A stewarded read on diminishing returns, straight off the timeline.
-        let ranked = vehicle.performanceRecords
+        // 3d. Plateau — parts added between the last two pulls but the dyno barely moved.
+        let dynos = vehicle.performanceRecords
             .filter { $0.type == .dyno && $0.wheelHorsepower != nil }
             .sorted { $0.date > $1.date }
-        if ranked.count >= 2,
-           let latest = ranked.first?.wheelHorsepower, let latestDate = ranked.first?.date,
-           let prior = ranked.dropFirst().first?.wheelHorsepower, let priorDate = ranked.dropFirst().first?.date {
+        if dynos.count >= 2,
+           let latest = dynos.first?.wheelHorsepower, let latestDate = dynos.first?.date,
+           let prior = dynos.dropFirst().first?.wheelHorsepower, let priorDate = dynos.dropFirst().first?.date {
             let changed = vehicle.installedParts(after: priorDate, upTo: latestDate)
             let gain = latest - prior
             if !changed.isEmpty && gain <= max(3, prior * 0.02) {
                 out.append(StewardObservation(
+                    ruleID: "dyno.plateau", subjectID: vid,
                     statement: "Based on your history, recent changes haven't shown up on the dyno.",
-                    evidence: "\(changed.count) part\(changed.count == 1 ? "" : "s") added since your \(Self.short(priorDate)) pull, but the latest reads \(Int(latest)) whp vs \(Int(prior)) — \(gain <= 0 ? "no gain" : "+\(Int(gain)) whp").",
-                    confidence: 75, tone: .caution, provenance: .derived))
+                    evidence: "\(changed.count) part\(changed.count == 1 ? "" : "s") added since your \(short(priorDate)) pull, but the latest reads \(Int(latest)) whp vs \(Int(prior)) — \(gain <= 0 ? "no gain" : "+\(Int(gain)) whp").",
+                    confidence: .moderate, tone: .caution, provenance: .derived))
             }
         }
 
-        // 4. Stewardship thinks in decades — surface when the biography goes quiet.
+        // 4. Surface when the biography goes quiet — the elapsed time is a confirmed fact.
         if let last = vehicle.lastActivityDate {
-            let days = Calendar.current.dateComponents([.day], from: last, to: .now).day ?? 0
+            let days = context.days(from: last, to: context.now)
             if days >= 90 {
                 out.append(StewardObservation(
+                    ruleID: "build.quiet", subjectID: vid,
                     statement: "Based on your history, this build has been quiet for a while.",
-                    evidence: "Last logged activity was \(days) days ago (\(Self.short(last))).",
-                    confidence: 95, tone: days >= 240 ? .advisory : .informational, provenance: .derived))
+                    evidence: "Last logged activity was \(days) days ago (\(short(last))).",
+                    confidence: .confirmed, tone: days >= 240 ? .advisory : .informational, provenance: .derived))
             }
         }
 
-        // 4b. Data honesty — Steward reasons from the timeline, and the timeline only sees
-        //     *dated* parts. When a real share of installed parts have no install date, say
-        //     so plainly: dating them sharpens every sequence read above. Low-key, informational.
+        // 4b. Data honesty — undated installed parts weaken every sequence read above.
         let installedParts = vehicle.parts.filter { $0.status == .installed }
         let undated = installedParts.filter { $0.installDate == nil }
         if installedParts.count >= 5, undated.count >= 3,
            Double(undated.count) / Double(installedParts.count) >= 0.4 {
             out.append(StewardObservation(
+                ruleID: "data.undatedParts", subjectID: vid,
                 statement: "Based on your history, dating a few more parts would sharpen what I can tell you.",
                 evidence: "\(undated.count) of \(installedParts.count) installed parts have no install date — the timeline, and my read on sequence, only see dated ones.",
-                confidence: 92, tone: .informational, provenance: .derived))
+                confidence: .confirmed, tone: .informational, provenance: .derived))
         }
 
-        // 5. A near-certain derived fact: what each gained horsepower has cost.
+        // 5. Cost-to-power — an approximation, and labeled as one. Comparing a measured wheel
+        //    figure against a factory *crank* rating is not dyno-corrected truth.
         if let costPerHp = vehicle.costPerHorsepowerGained,
            let gained = vehicle.horsepowerGainedOverStock {
             out.append(StewardObservation(
-                statement: "I observed your cost-to-power efficiency.",
-                evidence: "\(Self.dollars(costPerHp)) per wheel-hp gained "
-                    + "(\(Int(gained)) whp over stock, \(Self.dollars(vehicle.totalInvested)) invested).",
-                confidence: 97, tone: .informational, provenance: .derived))
+                ruleID: "efficiency.costPerHp", subjectID: vid,
+                statement: "I observed your approximate cost-to-power efficiency.",
+                evidence: "~\(dollars(costPerHp)) per wheel-hp gained — comparing a measured wheel figure against the \(vehicle.factoryPowerBasis.describes) rating (~\(Int(gained)) whp, \(dollars(vehicle.totalInvested)) invested). Not dyno-corrected.",
+                confidence: .moderate, tone: .informational, provenance: .derived))
         }
 
-        return out.sorted { rank($0) > rank($1) }
+        return out.sorted(by: ordered)
     }
 
-    // MARK: - Live observations (estimated telemetry hook)
+    /// Builds a support-gap observation honestly from what we *know* about the subsystem.
+    static func supportGap(_ vehicle: Vehicle, support: PartCategory,
+                           subsystem: String, trigger: String) -> StewardObservation? {
+        let ruleID = "gap.\(support.rawValue)"
+        switch vehicle.knowledge(of: support) {
+        case .confirmedPresent, .unknown:
+            return nil
+        case .confirmedAbsent:
+            return StewardObservation(
+                ruleID: ruleID, subjectID: vehicle.id,
+                statement: "No upgraded \(subsystem) is recorded, and the factory system is confirmed in place.",
+                evidence: "\(trigger) The factory \(subsystem) was marked as retained — worth weighing against the added load.",
+                confidence: .strong, tone: .caution, provenance: .recorded)
+        case .undocumented:
+            let strong = vehicle.isWellDocumented
+            return StewardObservation(
+                ruleID: ruleID, subjectID: vehicle.id,
+                statement: "\(capitalizedFirst(subsystem)) support hasn't been documented.",
+                evidence: "\(trigger) No \(subsystem) parts are logged — this may be a real gap, or just an incomplete record.",
+                confidence: strong ? .moderate : .weak,
+                tone: strong ? .caution : .informational, provenance: .derived)
+        }
+    }
 
-    /// Reasoning over a live telemetry frame. `measured` says whether the frame came from a
-    /// real OBD-II adapter (`OBDLiveDataSource`) or the simulator. When it's measured, the
-    /// same rules stand but the provenance rises to `.measuredLive` and confidence lifts —
-    /// the reasoning never changed, only the honesty of its inputs did.
-    public static func observe(live metrics: LiveMetrics, for vehicle: Vehicle,
-                               measured: Bool = false) -> [StewardObservation] {
+    // MARK: - Live observations
+
+    /// Reasoning over a live telemetry frame, against the vehicle's own `OperatingEnvelope`.
+    /// Each rule reads only the *fresh* measurement for its metric — stale or missing produces
+    /// nothing. Boost is judged only when it's a meaningful signal for this car (forced
+    /// induction) and only under throttle, so an off-throttle spike or an NA car never trips
+    /// it. A value decoded from the adapter this instant is `.measuredLive` and grades higher.
+    public static func observe(frame: LiveTelemetryFrame, for vehicle: Vehicle,
+                               context: StewardContext = .live) -> [StewardObservation] {
         var out: [StewardObservation] = []
-        let provenance: StewardObservation.Provenance = measured ? .measuredLive : .estimatedLive
-        let lift = measured ? 25 : 0          // measured data earns more certainty
-        let word = measured ? "Measured" : "Estimated"
+        let vid = vehicle.id
+        let env = vehicle.operatingEnvelope
+        let now = context.now
 
-        if metrics.coolantTempF >= 235 {
-            out.append(StewardObservation(
-                statement: "The data suggests coolant is running hot.",
-                evidence: "\(word) coolant \(Int(metrics.coolantTempF))°F under load.",
-                confidence: 66 + lift, tone: .advisory, provenance: provenance))
-        } else if metrics.coolantTempF >= 215 {
-            out.append(StewardObservation(
-                statement: "I observed coolant climbing toward the upper range.",
-                evidence: "\(word) coolant \(Int(metrics.coolantTempF))°F.",
-                confidence: 60 + lift, tone: .caution, provenance: provenance))
+        if let coolant = frame.fresh(\.coolantTempF, now: now) {
+            let measured = coolant.source == .obdAdapter
+            let word = measured ? "Measured" : "Estimated"
+            let prov: StewardObservation.Provenance = measured ? .measuredLive : .estimatedLive
+            if coolant.value >= env.coolantCriticalF {
+                out.append(StewardObservation(
+                    ruleID: "live.coolantCritical", subjectID: vid,
+                    statement: "The data suggests coolant is running hot.",
+                    evidence: "\(word) coolant \(Int(coolant.value))°F, at/above this car's \(Int(env.coolantCriticalF))°F limit.",
+                    confidence: measured ? .strong : .weak, tone: .advisory, provenance: prov))
+            } else if coolant.value >= env.coolantCautionF {
+                out.append(StewardObservation(
+                    ruleID: "live.coolantCaution", subjectID: vid,
+                    statement: "I observed coolant climbing toward the upper range.",
+                    evidence: "\(word) coolant \(Int(coolant.value))°F (caution from \(Int(env.coolantCautionF))°F).",
+                    confidence: measured ? .moderate : .weak, tone: .caution, provenance: prov))
+            }
         }
 
-        if metrics.boostPsi >= 18 {
+        // Boost only where it means something: a boost envelope exists (forced induction) and
+        // the throttle is actually open. Off-throttle or NA → no claim.
+        if let boostCaution = env.boostCautionPsi,
+           let boost = frame.fresh(\.boostPsi, now: now), boost.value >= boostCaution,
+           let throttle = frame.fresh(\.throttlePercent, now: now), throttle.value >= 50 {
+            let measured = boost.source == .obdAdapter
+            let word = measured ? "Measured" : "Estimated"
             out.append(StewardObservation(
-                statement: "I observed boost near the top of a typical street range.",
-                evidence: "\(word) \(String(format: "%.1f", metrics.boostPsi)) psi.",
-                confidence: 58 + lift, tone: .informational, provenance: provenance))
+                ruleID: "live.boost", subjectID: vid,
+                statement: "I observed boost near the top of this car's expected range.",
+                evidence: "\(word) \(String(format: "%.1f", boost.value)) psi at \(Int(throttle.value))% throttle (caution from \(String(format: "%.0f", boostCaution)) psi).",
+                confidence: measured ? .moderate : .weak, tone: .informational,
+                provenance: measured ? .measuredLive : .estimatedLive))
         }
 
         return out
@@ -168,21 +195,34 @@ public enum Steward {
 
     // MARK: - Ordering + formatting
 
-    private static func rank(_ o: StewardObservation) -> Int {
+    /// Deterministic total order: severity, then evidence band, then subject, then rule. No
+    /// ties are left to chance, so a briefing never reshuffles between identical rebuilds.
+    static func ordered(_ a: StewardObservation, _ b: StewardObservation) -> Bool {
+        if rank(a) != rank(b) { return rank(a) > rank(b) }
+        if a.subjectID?.uuidString != b.subjectID?.uuidString {
+            return (a.subjectID?.uuidString ?? "") < (b.subjectID?.uuidString ?? "")
+        }
+        return a.ruleID < b.ruleID
+    }
+
+    static func rank(_ o: StewardObservation) -> Int {
         let toneWeight: Int
         switch o.tone {
         case .advisory: toneWeight = 200
         case .caution: toneWeight = 100
         case .informational: toneWeight = 0
         }
-        return toneWeight + o.confidence
+        return toneWeight + o.confidence.rawValue
     }
 
-    private static func short(_ date: Date) -> String {
+    static func short(_ date: Date) -> String {
         let f = DateFormatter(); f.dateStyle = .medium; return f.string(from: date)
     }
-    private static func dollars(_ value: Double) -> String {
-        value.formatted(.currency(code: "USD"))
+    static func dollars(_ value: Double) -> String { value.formatted(.currency(code: "USD")) }
+
+    private static func capitalizedFirst(_ text: String) -> String {
+        guard let first = text.first else { return text }
+        return first.uppercased() + text.dropFirst()
     }
 
     // MARK: - Thin interpretation wrappers (retained)

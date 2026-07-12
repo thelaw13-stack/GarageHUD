@@ -17,6 +17,17 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     public var factoryHorsepower: Double?
     public var factoryTorque: Double?
     public var factoryWeightLbs: Double?
+    /// The measurement basis of `factoryHorsepower`. Defaults to `.factoryCrank`, which is
+    /// what a manufacturer rating almost always is — and why comparing it to a wheel-dyno
+    /// number is only ever an approximation.
+    public var factoryPowerBasis: PowerBasis = .factoryCrank
+    /// Categories the owner has explicitly confirmed remain factory/stock (no upgrade). This
+    /// is the only thing that lets Steward say a system is *confirmed absent* rather than
+    /// merely undocumented.
+    public var confirmedStockSystems: Set<PartCategory> = []
+    /// A per-vehicle override of the live operating limits. When nil, a default envelope is
+    /// derived from the record (see `OperatingEnvelope.default(for:)`).
+    public var operatingEnvelopeOverride: OperatingEnvelope?
     /// A known total-spend figure (e.g. from a build sheet's lump-sum total) that overrides
     /// the sum of itemized part costs when set — most real build sheets give one total, not
     /// per-part pricing, so summing `Part.cost` alone would just read as $0.

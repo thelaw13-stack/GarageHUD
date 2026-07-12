@@ -25,36 +25,42 @@ public struct LiveMetrics: Codable, Hashable, Sendable {
     }
 }
 
-/// Swap in a CoreBluetooth-backed ELM327 implementation later; views only depend on this protocol.
+/// A source of live telemetry frames. Each metric in a frame carries its own timestamp and
+/// source (see `LiveTelemetryFrame`), so consumers judge freshness rather than trusting the
+/// transport wholesale.
+///
+/// **Lifecycle (reusable):** `stop()` halts transport and polling but leaves the frame stream
+/// open, so the same source can be `start()`ed again (view reappears, app resumes, adapter
+/// reconnects) and existing subscribers keep receiving. The stream is finished exactly once,
+/// in `deinit`. Views may also create a fresh source per session; both are safe.
 public protocol LiveDataSource: AnyObject {
-    var metricsStream: AsyncStream<LiveMetrics> { get }
+    var frames: AsyncStream<LiveTelemetryFrame> { get }
+    var connectionState: OBDConnectionState { get }
     func start()
     func stop()
 }
 
-/// Generates plausible wandering values so the Live Session HUD is demoable before real OBD-II hardware is wired in.
+/// Generates plausible wandering values so the Live HUD is demoable before real OBD-II
+/// hardware is connected. Every value it emits is tagged `.simulated` and freshly timestamped
+/// — honest about being invented, never mistaken for measured.
 public final class SimulatedLiveDataSource: LiveDataSource {
-    public let metricsStream: AsyncStream<LiveMetrics>
-    private let continuation: AsyncStream<LiveMetrics>.Continuation
+    public let frames: AsyncStream<LiveTelemetryFrame>
+    private let continuation: AsyncStream<LiveTelemetryFrame>.Continuation
     private var task: Task<Void, Never>?
+    public private(set) var connectionState: OBDConnectionState = .disconnected
 
     public init() {
-        var capturedContinuation: AsyncStream<LiveMetrics>.Continuation!
-        self.metricsStream = AsyncStream { continuation in
-            capturedContinuation = continuation
-        }
-        self.continuation = capturedContinuation
+        var captured: AsyncStream<LiveTelemetryFrame>.Continuation!
+        self.frames = AsyncStream { captured = $0 }
+        self.continuation = captured
     }
 
     public func start() {
         task?.cancel()
+        connectionState = .polling
         let continuation = continuation
         task = Task {
-            var rpm = 900.0
-            var speed = 0.0
-            var boost = 0.0
-            var throttle = 0.0
-            var coolant = 175.0
+            var rpm = 900.0, speed = 0.0, boost = 0.0, throttle = 0.0, coolant = 175.0
             while !Task.isCancelled {
                 throttle = (throttle + Double.random(in: -18...22)).clamped(to: 0...100)
                 rpm = (rpm + Double.random(in: -300...900) + throttle * 4).clamped(to: 800...7200)
@@ -62,26 +68,25 @@ public final class SimulatedLiveDataSource: LiveDataSource {
                 boost = (boost + Double.random(in: -2...3) + (throttle > 70 ? 1.5 : -1)).clamped(to: -6...20)
                 coolant = (coolant + Double.random(in: -1...1)).clamped(to: 160...225)
 
-                continuation.yield(
-                    LiveMetrics(
-                        rpm: rpm,
-                        speedMph: speed,
-                        coolantTempF: coolant,
-                        boostPsi: boost,
-                        throttlePercent: throttle
-                    )
-                )
+                let now = Date()
+                func m(_ v: Double) -> TimedMeasurement<Double> { TimedMeasurement(v, source: .simulated, at: now) }
+                continuation.yield(LiveTelemetryFrame(
+                    rpm: m(rpm), speedMph: m(speed), coolantTempF: m(coolant),
+                    boostPsi: m(boost), throttlePercent: m(throttle),
+                    connectionState: .polling, capturedAt: now))
                 try? await Task.sleep(nanoseconds: 200_000_000)
             }
         }
     }
 
-    /// Finishes the underlying AsyncStream for good; create a new instance to start another session.
+    /// Stops producing but keeps the stream open so the source can be restarted.
     public func stop() {
         task?.cancel()
         task = nil
-        continuation.finish()
+        connectionState = .disconnected
     }
+
+    deinit { continuation.finish() }
 }
 
 private extension Comparable {

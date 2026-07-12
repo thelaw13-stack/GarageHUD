@@ -101,7 +101,7 @@ struct AskStewardView: View {
                     .foregroundStyle(HUDTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 if let confidence = reply?.confidence {
-                    Text("CONFIDENCE \(confidence)%")
+                    Text(confidence.label)
                         .font(HUDTheme.monoFont(9, weight: .semibold))
                         .foregroundStyle(HUDTheme.cyan)
                         .tracking(0.5)

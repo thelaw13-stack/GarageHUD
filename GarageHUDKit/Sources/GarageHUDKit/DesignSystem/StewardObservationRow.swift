@@ -26,7 +26,7 @@ public struct StewardObservationRow: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: 8) {
-                    Text("CONFIDENCE \(observation.confidence)%")
+                    Text(observation.confidence.label)
                         .font(HUDTheme.monoFont(9, weight: .semibold))
                         .foregroundStyle(accent)
                         .tracking(0.5)

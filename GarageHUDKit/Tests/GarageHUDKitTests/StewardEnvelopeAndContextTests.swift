@@ -1,0 +1,77 @@
+import XCTest
+@testable import GarageHUDKit
+
+/// Live reasoning must respect each car's own operating envelope — generic thresholds create
+/// false alarms and false reassurance. And the reasoning must be a pure function of an
+/// injected clock, not wall-time.
+final class StewardEnvelopeAndContextTests: XCTestCase {
+
+    private func boostedCar() -> Vehicle {
+        var v = Vehicle(make: "T", model: "Turbo", year: 2020, garageSlot: 1)
+        v.parts = [Part(name: "Turbo", category: .forcedInduction, status: .installed)]
+        return v
+    }
+
+    private func naCar() -> Vehicle {
+        var v = Vehicle(make: "T", model: "NA", year: 2020, garageSlot: 1)
+        v.parts = [Part(name: "Header", category: .exhaust, status: .installed)]
+        return v
+    }
+
+    private func boostFrame(psi: Double, throttle: Double) -> LiveTelemetryFrame {
+        LiveTelemetryFrame(
+            boostPsi: TimedMeasurement(psi, source: .obdAdapter),
+            throttlePercent: TimedMeasurement(throttle, source: .obdAdapter),
+            connectionState: .polling)
+    }
+
+    func testBoostIrrelevantOnNaturallyAspiratedCar() {
+        // 20 psi is nonsense on an NA car — its envelope has no boost signal, so: silence.
+        let obs = Steward.observe(frame: boostFrame(psi: 20, throttle: 100), for: naCar())
+        XCTAssertTrue(obs.filter { $0.ruleID == "live.boost" }.isEmpty)
+    }
+
+    func testBoostOnlyFlaggedUnderThrottle() {
+        // High boost value but closed throttle → likely noise/sensor, no claim.
+        let coasting = Steward.observe(frame: boostFrame(psi: 20, throttle: 5), for: boostedCar())
+        XCTAssertTrue(coasting.filter { $0.ruleID == "live.boost" }.isEmpty)
+        // Same boost under throttle → a real observation.
+        let pulling = Steward.observe(frame: boostFrame(psi: 20, throttle: 90), for: boostedCar())
+        XCTAssertTrue(pulling.contains { $0.ruleID == "live.boost" })
+    }
+
+    func testCoolantUsesVehicleEnvelopeThresholds() {
+        var v = boostedCar()
+        v.operatingEnvelopeOverride = OperatingEnvelope(coolantCautionF: 200, coolantCriticalF: 220, boostCautionPsi: 18)
+        let frame = LiveTelemetryFrame(coolantTempF: TimedMeasurement(225, source: .obdAdapter), connectionState: .polling)
+        // 225 is below the default 235 but above this car's custom 220 → critical/advisory.
+        XCTAssertTrue(Steward.observe(frame: frame, for: v).contains { $0.ruleID == "live.coolantCritical" })
+    }
+
+    func testFactoryPowerBasisIsCrankAndSurfacedInEfficiency() {
+        var v = Vehicle(make: "T", model: "C", year: 2020, garageSlot: 1)
+        XCTAssertEqual(v.factoryPowerBasis, .factoryCrank)
+        v.factoryHorsepower = 200
+        v.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 320)]
+        v.documentedTotalInvestment = 12_000
+        let cost = Steward.observe(v).first { $0.ruleID == "efficiency.costPerHp" }
+        XCTAssertTrue(cost!.evidence.localizedCaseInsensitiveContains("crank"))
+        XCTAssertTrue(cost!.evidence.localizedCaseInsensitiveContains("not dyno-corrected"))
+    }
+
+    func testInjectedClockMakesFreshnessDeterministic() {
+        // A fixed context: "quiet build" depends on context.now, not wall-clock.
+        let fixedNow = Date(timeIntervalSince1970: 1_700_000_000)
+        var v = Vehicle(make: "T", model: "C", year: 2020, garageSlot: 1)
+        let hundredDaysBefore = fixedNow.addingTimeInterval(-100 * 86_400)
+        v.buildEvents = [BuildEvent(date: hundredDaysBefore, title: "last")]
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let ctx = StewardContext(now: fixedNow, calendar: utc)
+        let first = Steward.observe(v, context: ctx).first { $0.ruleID == "build.quiet" }
+        let second = Steward.observe(v, context: ctx).first { $0.ruleID == "build.quiet" }
+        XCTAssertNotNil(first)
+        XCTAssertTrue(first!.evidence.contains("100 days ago"))     // exact and stable under a fixed clock
+        XCTAssertEqual(first!.evidence, second!.evidence)           // same input → same output
+    }
+}

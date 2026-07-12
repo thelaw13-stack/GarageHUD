@@ -7,21 +7,26 @@ import Speech
 /// and, on demand, spoken aloud. Same reasoning core as everywhere; this is just the rollup.
 struct StewardBriefingView: View {
     let vehicles: [Vehicle]
+    /// The safety context. The briefing drops non-advisory noise while `.moving`; callers pass
+    /// the live session's mode. (Motion is not inferred here — that needs an explicit,
+    /// hysteresis-guarded policy, which is out of this view's scope.)
+    let drivingMode: DrivingMode
     @Environment(\.dismiss) private var dismiss
 
     #if canImport(Speech)
     @StateObject private var voice: StewardVoiceSession
     #endif
 
-    init(vehicles: [Vehicle]) {
+    init(vehicles: [Vehicle], drivingMode: DrivingMode = .parked) {
         self.vehicles = vehicles
+        self.drivingMode = drivingMode
         #if canImport(Speech)
-        // Any vehicle will do as the voice session's context; the briefing script is prebuilt.
-        _voice = StateObject(wrappedValue: StewardVoiceSession(vehicle: vehicles.first ?? Vehicle(make: "", model: "", year: 0, garageSlot: 0)))
+        // Fleet-level session: no fabricated vehicle — it only speaks the prebuilt script.
+        _voice = StateObject(wrappedValue: StewardVoiceSession(vehicle: nil))
         #endif
     }
 
-    private var briefing: StewardBriefing { StewardBriefingBuilder.build(for: vehicles) }
+    private var briefing: StewardBriefing { StewardBriefingBuilder.build(for: vehicles, mode: drivingMode) }
 
     var body: some View {
         let brief = briefing

@@ -25,9 +25,10 @@ public final class StewardVoiceSession: NSObject, ObservableObject {
         case undetermined, authorized, denied, unavailable
     }
 
-    /// The vehicle Steward answers about, and the current context. Both are mutable so a
-    /// view can keep them in sync with the app.
-    public var vehicle: Vehicle
+    /// The vehicle Steward answers about, or nil for a fleet-level session that only *speaks*
+    /// a prebuilt script (e.g. the garage briefing) and never needs a single-car context.
+    /// Both are mutable so a view can keep them in sync with the app.
+    public var vehicle: Vehicle?
     public var mode: DrivingMode
 
     /// Fired on the main actor after a final utterance is recognized and answered, so the
@@ -40,7 +41,7 @@ public final class StewardVoiceSession: NSObject, ObservableObject {
     private var task: SFSpeechRecognitionTask?
     private let synthesizer = AVSpeechSynthesizer()
 
-    public init(vehicle: Vehicle, mode: DrivingMode = .parked) {
+    public init(vehicle: Vehicle?, mode: DrivingMode = .parked) {
         self.vehicle = vehicle
         self.mode = mode
         super.init()
@@ -131,6 +132,9 @@ public final class StewardVoiceSession: NSObject, ObservableObject {
         let trimmed = utterance.trimmingCharacters(in: .whitespacesAndNewlines)
         stop()
         guard !trimmed.isEmpty else { return }
+        // A fleet-level session (no single-car context) doesn't field free-form questions —
+        // it only speaks prebuilt scripts like the briefing.
+        guard let vehicle else { return }
         let reply = StewardConversation.reply(to: trimmed, vehicle: vehicle, mode: mode)
         onExchange?(trimmed, reply)
         speak(reply.text)

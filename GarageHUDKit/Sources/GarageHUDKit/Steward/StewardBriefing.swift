@@ -1,11 +1,18 @@
 import Foundation
+#if canImport(NaturalLanguage)
+import NaturalLanguage
+#endif
 
 /// One line of a briefing — an observation plus which car it belongs to (nil = fleet-level).
+/// Identity is the observation's deterministic id, so an identical briefing rebuilds to
+/// identical items and SwiftUI doesn't churn the diff.
 public struct StewardBriefingItem: Identifiable, Equatable, Sendable {
-    public let id = UUID()
     public let vehicleName: String?
     public let observation: StewardObservation
-    public static func == (l: StewardBriefingItem, r: StewardBriefingItem) -> Bool { l.id == r.id }
+    public var id: String { observation.id }
+    public static func == (l: StewardBriefingItem, r: StewardBriefingItem) -> Bool {
+        l.observation.id == r.observation.id
+    }
 }
 
 /// A ready-to-read (or ready-to-speak) rollup of what most deserves the owner's attention
@@ -22,16 +29,17 @@ public struct StewardBriefing: Equatable, Sendable {
 /// the script stays terse.
 public enum StewardBriefingBuilder {
 
-    public static func build(for vehicles: [Vehicle], mode: DrivingMode = .parked, limit: Int = 5) -> StewardBriefing {
+    public static func build(for vehicles: [Vehicle], mode: DrivingMode = .parked,
+                             limit: Int = 5, context: StewardContext = .live) -> StewardBriefing {
         var pool: [StewardBriefingItem] = []
 
         // Fleet-level first — these are the cross-car insights nothing else surfaces.
-        for obs in Steward.observeFleet(vehicles) {
+        for obs in Steward.observeFleet(vehicles, context: context) {
             pool.append(StewardBriefingItem(vehicleName: nil, observation: obs))
         }
         // Each car contributes its top two observations; ranking below sorts the whole pool.
         for vehicle in vehicles {
-            for obs in Steward.observe(vehicle).prefix(2) {
+            for obs in Steward.observe(vehicle, context: context).prefix(2) {
                 pool.append(StewardBriefingItem(vehicleName: vehicle.displayName, observation: obs))
             }
         }
@@ -41,7 +49,12 @@ public enum StewardBriefingBuilder {
             pool = pool.filter { $0.observation.tone == .advisory }
         }
 
-        let ranked = pool.sorted { rank($0.observation) > rank($1.observation) }
+        // Deterministic order with explicit tie-breakers (matches Steward.ordered).
+        let ranked = pool.sorted { a, b in
+            if rank(a.observation) != rank(b.observation) { return rank(a.observation) > rank(b.observation) }
+            if (a.vehicleName ?? "") != (b.vehicleName ?? "") { return (a.vehicleName ?? "") < (b.vehicleName ?? "") }
+            return a.observation.ruleID < b.observation.ruleID
+        }
         let items = Array(ranked.prefix(limit))
 
         return StewardBriefing(
@@ -75,7 +88,7 @@ public enum StewardBriefingBuilder {
             if mode == .moving {
                 lines.append(body)
             } else {
-                lines.append("\(body) Confidence \(item.observation.confidence) percent.")
+                lines.append("\(body) \(capitalizedFirst(item.observation.confidence.spokenPhrase)).")
             }
         }
         return lines.joined(separator: " ")
@@ -85,18 +98,37 @@ public enum StewardBriefingBuilder {
 
     private static func rank(_ o: StewardObservation) -> Int {
         switch o.tone {
-        case .advisory: return 200 + o.confidence
-        case .caution: return 100 + o.confidence
-        case .informational: return o.confidence
+        case .advisory: return 200 + o.confidence.rawValue
+        case .caution: return 100 + o.confidence.rawValue
+        case .informational: return o.confidence.rawValue
         }
     }
 
-    private static func firstSentence(_ text: String) -> String {
-        (text.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: true).first.map { String($0) + "." }) ?? text
+    /// First sentence via proper sentence segmentation — so "12.5 psi", abbreviations, and
+    /// model names with punctuation don't get chopped mid-number the way a naive split on "."
+    /// would. Falls back to the whole string if segmentation yields nothing.
+    static func firstSentence(_ text: String) -> String {
+        #if canImport(NaturalLanguage)
+        let tokenizer = NLTokenizer(unit: .sentence)
+        tokenizer.string = text
+        var first: String?
+        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
+            first = String(text[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+            return false // stop after the first sentence
+        }
+        return first ?? text
+        #else
+        return text
+        #endif
     }
 
     private static func lowercasingFirst(_ text: String) -> String {
         guard let first = text.first else { return text }
         return first.lowercased() + text.dropFirst()
+    }
+
+    private static func capitalizedFirst(_ text: String) -> String {
+        guard let first = text.first else { return text }
+        return first.uppercased() + text.dropFirst()
     }
 }

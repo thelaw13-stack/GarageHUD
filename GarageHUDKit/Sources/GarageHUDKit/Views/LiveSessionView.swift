@@ -3,18 +3,15 @@ import SwiftUI
 struct LiveSessionView: View {
     @Binding var vehicle: Vehicle
 
-    /// Where the frame comes from — a real adapter earns "measured" provenance; the
-    /// simulator stays honestly "estimated".
     private enum Feed: String, CaseIterable, Identifiable { case simulated = "Simulated", adapter = "OBD-II Adapter"; var id: String { rawValue } }
     @State private var feed: Feed = .simulated
 
     @State private var source: LiveDataSource?
     @State private var isRunning = false
-    @State private var latest: LiveMetrics?
+    @State private var frame: LiveTelemetryFrame?
+    @State private var displayed: LiveMetrics?        // carried-over needle positions
     @State private var captured: [LiveMetrics] = []
     @State private var streamTask: Task<Void, Never>?
-
-    private var isMeasured: Bool { feed == .adapter }
 
     var body: some View {
         VStack(spacing: 24) {
@@ -29,18 +26,18 @@ struct LiveSessionView: View {
 
             HUDPanel(title: "Live Telemetry") {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 130))], spacing: 20) {
-                    CircularGauge(value: latest?.rpm ?? 0, maxValue: 7500, label: "RPM", color: HUDTheme.cyan)
-                    CircularGauge(value: latest?.speedMph ?? 0, maxValue: 160, label: "Speed", unit: "MPH", color: HUDTheme.cyan)
-                    CircularGauge(value: latest?.boostPsi ?? 0, maxValue: 25, label: "Boost", unit: "PSI", color: HUDTheme.amber)
-                    CircularGauge(value: latest?.throttlePercent ?? 0, maxValue: 100, label: "Throttle", unit: "%", color: HUDTheme.cyan)
-                    CircularGauge(value: latest?.coolantTempF ?? 0, maxValue: 260, label: "Coolant", unit: "°F", color: HUDTheme.amber)
+                    gauge(\.rpm, displayed?.rpm ?? 0, max: 7500, "RPM", unit: "", HUDTheme.cyan)
+                    gauge(\.speedMph, displayed?.speedMph ?? 0, max: 160, "Speed", unit: "MPH", HUDTheme.cyan)
+                    gauge(\.boostPsi, displayed?.boostPsi ?? 0, max: 25, "Boost", unit: "PSI", HUDTheme.amber)
+                    gauge(\.throttlePercent, displayed?.throttlePercent ?? 0, max: 100, "Throttle", unit: "%", HUDTheme.cyan)
+                    gauge(\.coolantTempF, displayed?.coolantTempF ?? 0, max: 260, "Coolant", unit: "°F", HUDTheme.amber)
                 }
                 .frame(maxWidth: .infinity)
             }
 
-            // Steward reasons over the live frame in real time — measured or estimated.
-            if let latest, isRunning {
-                let live = Steward.observe(live: latest, for: vehicle, measured: isMeasured)
+            // Steward reasons only over the *fresh* values in the current frame.
+            if let frame, isRunning {
+                let live = Steward.observe(frame: frame, for: vehicle)
                 if !live.isEmpty {
                     HUDPanel(title: "Steward — Live") {
                         VStack(alignment: .leading, spacing: 12) {
@@ -62,9 +59,9 @@ struct LiveSessionView: View {
                 }
             }
 
-            Text(isMeasured
-                 ? "Reading a Bluetooth ELM327 adapter. Steward tags these frames MEASURED."
-                 : "Simulated feed — plausible wandering values, tagged ESTIMATED. Switch to OBD-II Adapter for real data.")
+            Text(feed == .adapter
+                 ? "Reading a Bluetooth ELM327 adapter (experimental). Only values decoded live are tagged MEASURED; anything that stops responding drops out rather than freezing."
+                 : "Simulated feed — plausible wandering values, always tagged ESTIMATED.")
                 .font(HUDTheme.monoFont(10))
                 .foregroundStyle(HUDTheme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -77,11 +74,20 @@ struct LiveSessionView: View {
         .onDisappear { stop() }
     }
 
+    /// A gauge that dims when its own value isn't fresh, so a frozen needle can't be mistaken
+    /// for a live one.
+    private func gauge(_ metric: KeyPath<LiveTelemetryFrame, TimedMeasurement<Double>?>,
+                       _ value: Double, max: Double, _ label: String, unit: String, _ color: Color) -> some View {
+        let fresh = frame?.fresh(metric) != nil
+        return CircularGauge(value: value, maxValue: max, label: label, unit: unit, color: color)
+            .opacity(isRunning && !fresh ? 0.35 : 1)
+    }
+
     private var statusIndicator: some View {
         HStack(spacing: 8) {
             if isRunning {
-                Circle().fill(HUDTheme.amber).frame(width: 8, height: 8).hudGlow(HUDTheme.amber, radius: 3)
-                Text("LIVE SESSION ACTIVE").foregroundStyle(HUDTheme.amber)
+                Circle().fill(statusColor).frame(width: 8, height: 8).hudGlow(statusColor, radius: 3)
+                Text(statusText).foregroundStyle(statusColor)
             } else {
                 Circle().fill(HUDTheme.textSecondary).frame(width: 8, height: 8)
                 Text("SESSION IDLE").foregroundStyle(HUDTheme.textSecondary)
@@ -91,16 +97,38 @@ struct LiveSessionView: View {
         .tracking(1.5)
     }
 
+    private var statusText: String {
+        switch frame?.connectionState ?? .polling {
+        case .polling: return feed == .adapter ? "LINKED · MEASURING" : "LIVE SESSION ACTIVE"
+        case .degraded, .reconnecting: return "SIGNAL DEGRADED"
+        case .disconnected: return "DISCONNECTED"
+        default: return "CONNECTING…"
+        }
+    }
+
+    private var statusColor: Color {
+        switch frame?.connectionState ?? .polling {
+        case .polling: return HUDTheme.amber
+        case .degraded, .reconnecting, .disconnected: return HUDTheme.danger
+        default: return HUDTheme.textSecondary
+        }
+    }
+
     private func start() {
         captured = []
+        displayed = nil
+        frame = nil
         let newSource: LiveDataSource = makeSource()
         source = newSource
         newSource.start()
         isRunning = true
         streamTask = Task {
-            for await metrics in newSource.metricsStream {
-                latest = metrics
-                captured.append(metrics)
+            for await incoming in newSource.frames {
+                frame = incoming
+                let snapshot = incoming.displaySnapshot(carryingOver: displayed)
+                displayed = snapshot
+                // Only bank a sample when the frame actually carries fresh data.
+                if incoming.hasAnyFresh() { captured.append(snapshot) }
             }
         }
     }
@@ -122,7 +150,7 @@ struct LiveSessionView: View {
     private func saveRecord() {
         let record = PerformanceRecord(
             type: .boostLog,
-            notes: "Captured live session (\(captured.count) samples)",
+            notes: "Captured live session (\(captured.count) samples, \(feed.rawValue))",
             isFromLiveSession: true,
             capturedPoints: captured
         )

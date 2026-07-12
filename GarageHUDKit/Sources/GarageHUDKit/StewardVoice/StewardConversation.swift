@@ -15,12 +15,12 @@ public enum StewardTopic: Equatable, Sendable {
     case unknown
 }
 
-/// A Steward answer: evidence-first text plus, when the answer rests on a specific
-/// derived figure, the confidence behind it.
+/// A Steward answer: evidence-first text plus, when the answer rests on evidence of a known
+/// strength, the band behind it — never a fabricated percentage.
 public struct StewardReply: Equatable, Sendable {
     public let text: String
-    public let confidence: Int?
-    public init(text: String, confidence: Int? = nil) {
+    public let confidence: ConfidenceBand?
+    public init(text: String, confidence: ConfidenceBand? = nil) {
         self.text = text
         self.confidence = confidence
     }
@@ -66,13 +66,13 @@ public enum StewardConversation {
             if let dyno = vehicle.performanceRecords.filter({ $0.type == .dyno && $0.wheelHorsepower != nil })
                 .sorted(by: { $0.date > $1.date }).first, let hp = dyno.wheelHorsepower {
                 return StewardReply(
-                    text: "I observed \(Int(hp)) wheel-hp — measured on the dyno \(short(dyno.date)). "
-                        + "Confidence 90%.", confidence: 90)
+                    text: "I observed \(Int(hp)) wheel-hp — measured on the dyno \(short(dyno.date)).",
+                    confidence: .strong)
             }
             if let factory = vehicle.factoryHorsepower {
                 return StewardReply(
-                    text: "The factory rating is \(Int(factory)) hp. No dyno is logged yet, so treat that as an estimate.",
-                    confidence: 50)
+                    text: "The factory rating is \(Int(factory)) hp (\(vehicle.factoryPowerBasis.describes)). No dyno is logged yet, so treat that as an estimate.",
+                    confidence: .weak)
             }
             return StewardReply(text: "No horsepower is on record yet — log a dyno pull and I can speak to it.")
 
@@ -87,16 +87,16 @@ public enum StewardConversation {
         case .efficiency:
             if let costPerHp = vehicle.costPerHorsepowerGained, let gained = vehicle.horsepowerGainedOverStock {
                 return StewardReply(
-                    text: "About \(dollars(costPerHp)) per wheel-hp gained over stock "
-                        + "— \(Int(gained)) whp for \(dollars(vehicle.totalInvested)). Confidence 97%.",
-                    confidence: 97)
+                    text: "Roughly \(dollars(costPerHp)) per wheel-hp gained over stock "
+                        + "— about \(Int(gained)) whp for \(dollars(vehicle.totalInvested)). Approximate: wheel figure against a \(vehicle.factoryPowerBasis.describes) rating.",
+                    confidence: .moderate)
             }
             return StewardReply(text: "I need a factory baseline, a dyno pull, and a documented total before I can size that up.")
 
         case .observations:
             let obs = Steward.observe(vehicle)
             guard !obs.isEmpty else { return StewardReply(text: "Nothing stands out right now.") }
-            let lead = obs.prefix(2).map { "\($0.statement) (confidence \($0.confidence)%)" }.joined(separator: " ")
+            let lead = obs.prefix(2).map { "\($0.statement) (\($0.confidence.spokenPhrase))" }.joined(separator: " ")
             let count = obs.count == 1 ? "One thing stands out." : "\(obs.count) things stand out."
             return StewardReply(text: "\(count) \(lead)", confidence: obs.first?.confidence)
 
@@ -121,15 +121,10 @@ public enum StewardConversation {
     // MARK: Driving-mode shaping (the safety-critical piece per ARCHITECTURE)
 
     /// While the vehicle is moving, answers must get shorter and stop demanding attention:
-    /// first sentence only, no confidence tail. Everywhere else, the full answer stands.
+    /// first sentence only. Everywhere else, the full answer stands.
     static func shape(_ text: String, mode: DrivingMode) -> String {
         guard mode == .moving else { return text }
-        let firstSentence = text.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: true).first
-            .map { String($0) + "." } ?? text
-        return firstSentence
-            .replacingOccurrences(of: " Confidence 90%.", with: "")
-            .replacingOccurrences(of: " Confidence 97%.", with: "")
-            .trimmingCharacters(in: .whitespaces)
+        return StewardBriefingBuilder.firstSentence(text)
     }
 
     private static func short(_ date: Date) -> String {
