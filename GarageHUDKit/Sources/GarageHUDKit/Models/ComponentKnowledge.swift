@@ -13,11 +13,13 @@ public enum ComponentKnowledge: Sendable, Equatable {
 /// The measurement basis behind a horsepower figure. Comparing a measured wheel number
 /// against a factory *crank* rating is an approximation, and the reasoning must say so
 /// rather than presenting a dollars-per-hp figure as if it were dyno-corrected truth.
-public enum PowerBasis: String, Sendable, Codable, Equatable, Hashable {
+public enum PowerBasis: String, Sendable, Codable, Equatable, Hashable, CaseIterable, Identifiable {
     case factoryCrank       // manufacturer rating, at the crank
     case estimatedCrank     // an estimate referred to the crank
     case measuredWheel      // measured on a chassis dyno, at the wheels
     case unknown
+
+    public var id: String { rawValue }
 
     public var describes: String {
         switch self {
@@ -27,14 +29,25 @@ public enum PowerBasis: String, Sendable, Codable, Equatable, Hashable {
         case .unknown: return "unspecified"
         }
     }
+
+    public var displayName: String {
+        switch self {
+        case .factoryCrank: return "Factory (crank)"
+        case .estimatedCrank: return "Estimated (crank)"
+        case .measuredWheel: return "Measured (wheel)"
+        case .unknown: return "Unspecified"
+        }
+    }
 }
 
 /// Drivetrain layout, used to estimate drivetrain loss so a factory *crank* rating can be
 /// brought to a *wheel*-equivalent baseline — the normalization that lets cost-per-hp compare
 /// wheel-to-wheel instead of wheel-to-crank. The fractions are typical rule-of-thumb losses,
 /// not measured for a specific car, so any result stays explicitly an estimate.
-public enum Drivetrain: String, Sendable, Codable, Equatable, Hashable {
+public enum Drivetrain: String, Sendable, Codable, Equatable, Hashable, CaseIterable, Identifiable {
     case fwd, rwd, awd, unknown
+
+    public var id: String { rawValue }
 
     /// Typical driveline loss as a fraction of crank power. `unknown` uses a conservative
     /// middle assumption so an estimate is still possible, flagged as assumed.
@@ -50,6 +63,12 @@ public enum Drivetrain: String, Sendable, Codable, Equatable, Hashable {
     public var label: String {
         switch self {
         case .fwd: return "FWD"; case .rwd: return "RWD"; case .awd: return "AWD"; case .unknown: return "drivetrain"
+        }
+    }
+
+    public var displayName: String {
+        switch self {
+        case .fwd: return "FWD"; case .rwd: return "RWD"; case .awd: return "AWD"; case .unknown: return "Unspecified"
         }
     }
 }
