@@ -12,6 +12,7 @@ struct GarageOverviewView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 header
+                fleetSteward
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 280), spacing: 16)], spacing: 16) {
                     ForEach(1...maxSlots, id: \.self) { slot in
                         if let vehicle = store.vehicles.first(where: { $0.garageSlot == slot }) {
@@ -34,6 +35,18 @@ struct GarageOverviewView: View {
             .padding(24)
         }
         .background(HUDTheme.background)
+    }
+
+    @ViewBuilder
+    private var fleetSteward: some View {
+        let observations = Steward.observeFleet(store.vehicles)
+        if !observations.isEmpty {
+            HUDPanel(title: "Fleet Steward") {
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(observations) { StewardObservationRow($0) }
+                }
+            }
+        }
     }
 
     private var header: some View {
