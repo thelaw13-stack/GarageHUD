@@ -1,0 +1,605 @@
+[
+  {
+    "buildEvents" : [
+      {
+        "date" : "2023-06-15T12:00:00Z",
+        "eventDescription" : "CP 87mm 11.0:1 pistons, King XP bearings — forged bottom end.",
+        "id" : "CEA6F7E1-BCAB-4EE5-9210-7284368A68AC",
+        "photos" : [
+
+        ],
+        "relatedPartIDs" : [
+
+        ],
+        "title" : "Engine rebuild"
+      },
+      {
+        "date" : "2023-08-20T12:00:00Z",
+        "eventDescription" : "SoS Paxton NOVI 1200, ID1340s on E85, Hondata K-Pro.",
+        "id" : "9D69B601-E3B4-43EA-9E76-417B483E315F",
+        "photos" : [
+
+        ],
+        "relatedPartIDs" : [
+
+        ],
+        "title" : "Supercharger install"
+      },
+      {
+        "date" : "2024-06-01T12:00:00Z",
+        "eventDescription" : "E85 calibration on the NOVI 1200.",
+        "id" : "500126B0-F527-4FBC-AC3F-79B0E64F8A3D",
+        "photos" : [
+
+        ],
+        "relatedPartIDs" : [
+
+        ],
+        "title" : "Dyno tune — 477 whp"
+      }
+    ],
+    "colorName" : "",
+    "confirmedStockSystems" : [
+
+    ],
+    "dateAdded" : "2026-07-12T20:01:36Z",
+    "documentedTotalInvestment" : 12396.73,
+    "drivetrain" : "rwd",
+    "drivetrainDescription" : "RWD 6MT · SoS Sport 400 hybrid clutch",
+    "engineDescription" : "F22C1 · SoS Paxton NOVI 1200 supercharged · CP 87mm 11.0:1 · E85",
+    "factoryHorsepower" : 237,
+    "factoryPowerBasis" : "factoryCrank",
+    "factoryTorque" : 162,
+    "factoryWeightLbs" : 2855,
+    "garageSlot" : 1,
+    "id" : "7860B66D-4A35-41CE-9C55-FD0D1A7D82A1",
+    "make" : "Honda",
+    "model" : "S2000",
+    "nickname" : "S2K",
+    "notes" : [
+      {
+        "body" : "Configuration immediately before the current engine teardown. Bottom-end internals under inspection; rod\/main bearings likely replacement items.",
+        "date" : "2025-06-01T12:00:00Z",
+        "id" : "8D29C6C0-D2EC-4694-A4C5-916CBE210150",
+        "title" : "Status"
+      }
+    ],
+    "parts" : [
+      {
+        "brand" : "ScienceOfSpeed",
+        "category" : "Forced Induction",
+        "cost" : 5759.75,
+        "id" : "7BC61E61-6A21-4D4C-9270-C64F652FD76F",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "ScienceOfSpeed Supercharger System",
+        "notes" : "Paxton NOVI 1200 · 3.0in pulley · aftercooler · racing heat exchanger · TiAL Q BOV",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Forced Induction",
+        "cost" : 18.15,
+        "id" : "1767CE80-83FC-4152-8F74-11444FA017B8",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Vacuum Hose, Tees & Clamps",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Injector Dynamics",
+        "category" : "Fueling",
+        "cost" : 945,
+        "id" : "C857F5A2-F996-4A24-988A-B0E91A9C027B",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Injector Dynamics ID1340 Injectors (x4)",
+        "notes" : "",
+        "partNumber" : "idx1300.48.14.14.4",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Radium",
+        "category" : "Fueling",
+        "cost" : 149.95,
+        "id" : "8C7CD486-72C7-480E-BCFA-892119E8A577",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Radium Fuel Rail",
+        "notes" : "",
+        "partNumber" : "20-0391-02",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Radium",
+        "category" : "Fueling",
+        "cost" : 89.95,
+        "id" : "6DE12360-D823-44F0-A1DF-0779AB6F4BD5",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Radium Fuel Pulse Damper FPD-R",
+        "notes" : "",
+        "partNumber" : "20-0776",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Mocal",
+        "category" : "Fueling",
+        "cost" : 179.95,
+        "id" : "42739DA2-B2CA-412E-8AE6-F047802DD3BA",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Mocal Fuel Pressure Regulator FPR1",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Grams",
+        "category" : "Fueling",
+        "cost" : 20.99,
+        "id" : "F6B3C664-EA25-4C34-AFFC-F3DC6C33BB15",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Grams Fuel Pressure Gauge 0-120psi",
+        "notes" : "",
+        "partNumber" : "G2-99-1200",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Radium",
+        "category" : "Fueling",
+        "cost" : 124.95,
+        "id" : "F15C6031-291C-48D0-AF15-CF7C8AFF86B6",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Radium Microglass Fuel Filter 6µm",
+        "notes" : "",
+        "partNumber" : "20-0220-05",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Radium",
+        "category" : "Fueling",
+        "cost" : 49.95,
+        "id" : "DF34FF28-536B-491D-9F1C-53D4F9BD90BD",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Radium Fuel Filter Clamp 60mm",
+        "notes" : "",
+        "partNumber" : "20-0218",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Walbro",
+        "category" : "Fueling",
+        "cost" : 149.95,
+        "id" : "DD54B929-8643-40B0-BDE7-AE8194F351A2",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Walbro 450 LPH E85 Fuel Pump",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Fueling",
+        "cost" : 69.95,
+        "id" : "41848B4F-79D6-4A90-981F-884E7F830369",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Fuel Pump Hardwire Kit",
+        "notes" : "50A breaker · 70A relay · 10ga SXL",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Radium",
+        "category" : "Fueling",
+        "cost" : 229.95,
+        "id" : "2773B394-0607-4712-9AA6-973EBE49D1DE",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Radium Crankcase Catch Can (Fluid Lock)",
+        "notes" : "",
+        "partNumber" : "20-0097-FL",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Mocal",
+        "category" : "Fueling",
+        "cost" : 107.4,
+        "id" : "0E104965-F929-487D-8013-ACC3BAFBC86B",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Mocal -6AN Fuel Hose (12ft)",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Fueling",
+        "cost" : 249.65,
+        "id" : "18A958D8-61C6-45C4-90F1-4F738118D4CF",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "AN \/ ORB Fittings & Adapters",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Fueling",
+        "cost" : 40.9,
+        "id" : "9D5F4579-1837-4744-BE72-3E1BB4D73B93",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "In-Tank Fuel Hose & Clamps",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Fueling",
+        "cost" : 56.65,
+        "id" : "DF8201EC-6A61-4E8E-830E-3E96BEAEE4A2",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Catch-Can Hose Ends & Clamps",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Denso",
+        "category" : "Electronics",
+        "cost" : 719.2,
+        "id" : "613A064C-A7DA-4C3F-96DA-4EA1E15AC236",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Denso Ignition Coils (x4)",
+        "notes" : "",
+        "partNumber" : "673-2301",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "NGK",
+        "category" : "Electronics",
+        "cost" : 54,
+        "id" : "E5DC751C-47B8-4BD6-9068-92A58F1869E4",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "NGK Iridium IX Plugs (x4)",
+        "notes" : "gapped 0.022in",
+        "partNumber" : "BKR8EIX",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "ScienceOfSpeed",
+        "category" : "Electronics",
+        "cost" : 110,
+        "id" : "63ECBB0B-BD56-48F2-90E7-22B0861A91AC",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "ScienceOfSpeed 4-Bar MAP Sensor",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Hondata",
+        "category" : "Electronics",
+        "id" : "D7F26FB0-F707-43A7-95FD-BAC4644EBB01",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Hondata K-Pro ECU",
+        "notes" : "price not documented",
+        "partNumber" : "FP-S2K-US-32314",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "ScienceOfSpeed",
+        "category" : "Drivetrain",
+        "cost" : 907.75,
+        "id" : "4A994E60-E89A-41F0-8779-3AA7D196F417",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "ScienceOfSpeed Sport 400 Hybrid Clutch",
+        "notes" : "Nachi OEM release + pilot bearings",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Invidia",
+        "category" : "Exhaust",
+        "cost" : 874.3,
+        "id" : "AA5DB55E-B8CD-42F0-AA7A-12E4B6BBA79F",
+        "installDate" : "2023-07-10T12:00:00Z",
+        "name" : "Invidia Q300 Titanium-Tip Cat-Back",
+        "notes" : "",
+        "partNumber" : "invHS00HS1G2T",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Berk",
+        "category" : "Exhaust",
+        "cost" : 134.99,
+        "id" : "3E6BFFD7-055E-4221-9A6C-E518DE762CFC",
+        "installDate" : "2023-07-10T12:00:00Z",
+        "name" : "Berk 70mm Test Pipe",
+        "notes" : "",
+        "partNumber" : "BT1602",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "SPC",
+        "category" : "Suspension",
+        "cost" : 264.4,
+        "id" : "ABB32136-2DC3-4FE2-A087-3EEB23D5C7C4",
+        "installDate" : "2024-03-01T12:00:00Z",
+        "name" : "SPC Adjustable Upper Ball Joints (x2)",
+        "notes" : "1.5° range",
+        "partNumber" : "67220",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Öhlins",
+        "category" : "Suspension",
+        "id" : "59FDF27B-2EAB-463D-A609-174336C1C909",
+        "installDate" : "2024-03-01T12:00:00Z",
+        "name" : "Öhlins Road & Track DFV Coilovers",
+        "notes" : "15 clicks from full stiff · price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Cusco",
+        "category" : "Suspension",
+        "id" : "24187176-7E35-4D5E-99D3-588067F0EEBD",
+        "installDate" : "2024-03-01T12:00:00Z",
+        "name" : "Cusco Rear Trunk Brace",
+        "notes" : "price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Titan 7",
+        "category" : "Wheels & Tires",
+        "id" : "875186EE-8736-4FD6-8CA5-A2243EF11C3D",
+        "installDate" : "2024-04-15T12:00:00Z",
+        "name" : "Titan 7 Wheels 17x9.5 (square)",
+        "notes" : "price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Continental",
+        "category" : "Wheels & Tires",
+        "id" : "F59E0BCF-AC81-401B-9768-5C7376BB75DF",
+        "installDate" : "2024-04-15T12:00:00Z",
+        "name" : "Continental Tires 275\/35R17 (square)",
+        "notes" : "price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Exterior",
+        "id" : "CAD4F525-95A7-4706-8A27-19D73353E5B8",
+        "installDate" : "2024-04-15T12:00:00Z",
+        "name" : "Front Fenders +30mm",
+        "notes" : "price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Koyo",
+        "category" : "Cooling",
+        "id" : "A4A4C25F-00E4-48F8-8282-BF92AE6CFDFD",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Koyo Aluminum Radiator",
+        "notes" : "price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "AiM",
+        "category" : "Electronics",
+        "id" : "1873F25C-8BB0-4095-8833-564AB9F00A96",
+        "installDate" : "2024-05-01T12:00:00Z",
+        "name" : "AiM MXG 1.2 Strada Dash",
+        "notes" : "EXP module · GPS09C · OBDII-CAN",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "AEM",
+        "category" : "Electronics",
+        "id" : "3695D585-E852-443F-B8FA-11469B52F029",
+        "installDate" : "2024-05-01T12:00:00Z",
+        "name" : "AEM X-Series Wideband AFR",
+        "notes" : "price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "CP",
+        "category" : "Engine",
+        "cost" : 858.9,
+        "id" : "56D2CC10-CFA0-422A-A222-677AD826702A",
+        "installDate" : "2023-06-15T12:00:00Z",
+        "name" : "CP Pistons 87mm 11.0:1",
+        "notes" : "",
+        "partNumber" : "SC7170-4",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "King",
+        "category" : "Engine",
+        "cost" : 94.34,
+        "id" : "723A63B0-BB0C-4B96-94CF-FFC5715A0BB4",
+        "installDate" : "2023-06-15T12:00:00Z",
+        "name" : "King XP Rod Bearings",
+        "notes" : "",
+        "partNumber" : "CR4033XP",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "King",
+        "category" : "Engine",
+        "cost" : 136.71,
+        "id" : "472AA524-E47B-47EF-B153-F03A91729129",
+        "installDate" : "2023-06-15T12:00:00Z",
+        "name" : "King XP Main Bearings",
+        "notes" : "",
+        "partNumber" : "MB5673XP",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      }
+    ],
+    "performanceRecords" : [
+      {
+        "capturedPoints" : [
+
+        ],
+        "date" : "2024-06-01T12:00:00Z",
+        "id" : "F35679FC-F9C2-46B0-AF5E-8E2B6DD7F3EA",
+        "isFromLiveSession" : false,
+        "location" : "E85 tune",
+        "notes" : "SoS Paxton NOVI 1200 · 3.0in pulley · Hondata K-Pro · E85",
+        "type" : "Dyno",
+        "wheelHorsepower" : 477
+      }
+    ],
+    "photos" : [
+
+    ],
+    "trim" : "AP2",
+    "year" : 2006
+  }
+]
