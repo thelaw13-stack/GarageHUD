@@ -3,15 +3,29 @@ import SwiftUI
 struct LiveSessionView: View {
     @Binding var vehicle: Vehicle
 
-    @State private var source: SimulatedLiveDataSource?
+    /// Where the frame comes from — a real adapter earns "measured" provenance; the
+    /// simulator stays honestly "estimated".
+    private enum Feed: String, CaseIterable, Identifiable { case simulated = "Simulated", adapter = "OBD-II Adapter"; var id: String { rawValue } }
+    @State private var feed: Feed = .simulated
+
+    @State private var source: LiveDataSource?
     @State private var isRunning = false
     @State private var latest: LiveMetrics?
     @State private var captured: [LiveMetrics] = []
     @State private var streamTask: Task<Void, Never>?
 
+    private var isMeasured: Bool { feed == .adapter }
+
     var body: some View {
         VStack(spacing: 24) {
             statusIndicator
+
+            Picker("Feed", selection: $feed) {
+                ForEach(Feed.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .disabled(isRunning)
+            .frame(maxWidth: 320)
 
             HUDPanel(title: "Live Telemetry") {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 130))], spacing: 20) {
@@ -24,9 +38,9 @@ struct LiveSessionView: View {
                 .frame(maxWidth: .infinity)
             }
 
-            // Steward reasons over the (currently estimated) live frame in real time.
+            // Steward reasons over the live frame in real time — measured or estimated.
             if let latest, isRunning {
-                let live = Steward.observe(live: latest, for: vehicle)
+                let live = Steward.observe(live: latest, for: vehicle, measured: isMeasured)
                 if !live.isEmpty {
                     HUDPanel(title: "Steward — Live") {
                         VStack(alignment: .leading, spacing: 12) {
@@ -48,7 +62,9 @@ struct LiveSessionView: View {
                 }
             }
 
-            Text("Simulated OBD-II feed for now — swap in a Bluetooth ELM327 adapter later without changing this screen.")
+            Text(isMeasured
+                 ? "Reading a Bluetooth ELM327 adapter. Steward tags these frames MEASURED."
+                 : "Simulated feed — plausible wandering values, tagged ESTIMATED. Switch to OBD-II Adapter for real data.")
                 .font(HUDTheme.monoFont(10))
                 .foregroundStyle(HUDTheme.textSecondary)
                 .multilineTextAlignment(.center)
@@ -77,7 +93,7 @@ struct LiveSessionView: View {
 
     private func start() {
         captured = []
-        let newSource = SimulatedLiveDataSource()
+        let newSource: LiveDataSource = makeSource()
         source = newSource
         newSource.start()
         isRunning = true
@@ -87,6 +103,13 @@ struct LiveSessionView: View {
                 captured.append(metrics)
             }
         }
+    }
+
+    private func makeSource() -> LiveDataSource {
+        #if canImport(CoreBluetooth)
+        if feed == .adapter { return OBDLiveDataSource() }
+        #endif
+        return SimulatedLiveDataSource()
     }
 
     private func stop() {

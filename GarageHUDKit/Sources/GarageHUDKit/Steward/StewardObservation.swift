@@ -16,7 +16,8 @@ public struct StewardObservation: Identifiable, Hashable, Sendable {
     public enum Provenance: Sendable, Equatable {
         case recorded        // logged parts / notes / dyno — GarageHUD's own memory
         case derived         // computed from recorded data (arithmetic, dates)
-        case estimatedLive   // real-time telemetry that is currently *estimated* (no hardware yet)
+        case estimatedLive   // real-time telemetry that is *estimated* (simulated, no hardware)
+        case measuredLive    // real-time telemetry read from an actual OBD-II adapter
     }
 
     public let id = UUID()

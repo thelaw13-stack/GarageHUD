@@ -30,17 +30,27 @@ public struct StewardObservationRow: View {
                         .font(HUDTheme.monoFont(9, weight: .semibold))
                         .foregroundStyle(accent)
                         .tracking(0.5)
-                    if observation.provenance == .estimatedLive {
-                        Text("ESTIMATED")
+                    if let tag = provenanceTag {
+                        Text(tag.text)
                             .font(HUDTheme.monoFont(8, weight: .semibold))
-                            .foregroundStyle(HUDTheme.textSecondary)
+                            .foregroundStyle(tag.color)
                             .padding(.horizontal, 5).padding(.vertical, 1)
-                            .overlay(Capsule().strokeBorder(HUDTheme.textSecondary.opacity(0.5), lineWidth: 1))
+                            .overlay(Capsule().strokeBorder(tag.color.opacity(0.5), lineWidth: 1))
                     }
                 }
                 .padding(.top, 1)
             }
             Spacer(minLength: 0)
+        }
+    }
+
+    /// Live frames wear their honesty on their sleeve: estimated (simulated) reads muted,
+    /// measured (real adapter) reads in the confident cyan. Recorded/derived carry no tag.
+    private var provenanceTag: (text: String, color: Color)? {
+        switch observation.provenance {
+        case .estimatedLive: return ("ESTIMATED", HUDTheme.textSecondary)
+        case .measuredLive: return ("MEASURED", HUDTheme.cyan)
+        case .recorded, .derived: return nil
         }
     }
 

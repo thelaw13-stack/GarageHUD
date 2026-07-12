@@ -133,30 +133,34 @@ public enum Steward {
 
     // MARK: - Live observations (estimated telemetry hook)
 
-    /// Reasoning over a live telemetry frame. Today the data source is *estimated*
-    /// (no OBD-II hardware yet), so these observations are deliberately low-confidence
-    /// and tagged `.estimatedLive`. When a real Bluetooth ELM327 source replaces the
-    /// simulator, only the provenance/confidence need to rise — the rules stay.
-    public static func observe(live metrics: LiveMetrics, for vehicle: Vehicle) -> [StewardObservation] {
+    /// Reasoning over a live telemetry frame. `measured` says whether the frame came from a
+    /// real OBD-II adapter (`OBDLiveDataSource`) or the simulator. When it's measured, the
+    /// same rules stand but the provenance rises to `.measuredLive` and confidence lifts —
+    /// the reasoning never changed, only the honesty of its inputs did.
+    public static func observe(live metrics: LiveMetrics, for vehicle: Vehicle,
+                               measured: Bool = false) -> [StewardObservation] {
         var out: [StewardObservation] = []
+        let provenance: StewardObservation.Provenance = measured ? .measuredLive : .estimatedLive
+        let lift = measured ? 25 : 0          // measured data earns more certainty
+        let word = measured ? "Measured" : "Estimated"
 
         if metrics.coolantTempF >= 235 {
             out.append(StewardObservation(
                 statement: "The data suggests coolant is running hot.",
-                evidence: "Estimated coolant \(Int(metrics.coolantTempF))°F under load.",
-                confidence: 66, tone: .advisory, provenance: .estimatedLive))
+                evidence: "\(word) coolant \(Int(metrics.coolantTempF))°F under load.",
+                confidence: 66 + lift, tone: .advisory, provenance: provenance))
         } else if metrics.coolantTempF >= 215 {
             out.append(StewardObservation(
                 statement: "I observed coolant climbing toward the upper range.",
-                evidence: "Estimated coolant \(Int(metrics.coolantTempF))°F.",
-                confidence: 60, tone: .caution, provenance: .estimatedLive))
+                evidence: "\(word) coolant \(Int(metrics.coolantTempF))°F.",
+                confidence: 60 + lift, tone: .caution, provenance: provenance))
         }
 
         if metrics.boostPsi >= 18 {
             out.append(StewardObservation(
                 statement: "I observed boost near the top of a typical street range.",
-                evidence: "Estimated \(String(format: "%.1f", metrics.boostPsi)) psi.",
-                confidence: 58, tone: .informational, provenance: .estimatedLive))
+                evidence: "\(word) \(String(format: "%.1f", metrics.boostPsi)) psi.",
+                confidence: 58 + lift, tone: .informational, provenance: provenance))
         }
 
         return out
