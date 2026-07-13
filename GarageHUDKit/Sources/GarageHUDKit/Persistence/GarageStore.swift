@@ -65,7 +65,7 @@ public final class GarageStore: ObservableObject {
         // place, and add any seed vehicle that isn't present into a free bay. Gated by a flag so
         // an intentionally-emptied garage isn't re-seeded later.
         if !UserDefaults.standard.bool(forKey: seedAppliedKey) {
-            applyInitialSeed()
+            if applyInitialSeed() { seededThisLaunch = true }
             UserDefaults.standard.set(true, forKey: seedAppliedKey)
         }
         if cloud != nil {
@@ -73,18 +73,25 @@ public final class GarageStore: ObservableObject {
         }
     }
 
-    private let seedAppliedKey = "GHUD.didApplyInitialSeed.v1"
+    private let seedAppliedKey = "GHUD.didApplyInitialSeed.v2"
+    /// True when this launch merged/added seed data — so the local (now-superset) garage is
+    /// pushed authoritatively rather than risk a smaller cloud record overwriting the addition.
+    private var seededThisLaunch = false
 
     /// One-time seed: merge into bare matches, then add any missing seed vehicles into free bays.
-    private func applyInitialSeed() {
-        guard let seeds = loadSeedVehicles() else { return }
-        mergeSeedIntoBareMatches()
+    /// Returns true if it changed anything.
+    @discardableResult
+    private func applyInitialSeed() -> Bool {
+        guard let seeds = loadSeedVehicles() else { return false }
+        var changed = mergeSeedIntoBareMatches()
         for seed in seeds where !vehicles.contains(where: { $0.identityMatches(seed) }) {
             guard let slot = firstFreeSlot() else { break }
             var v = seed
             v.garageSlot = slot
             vehicles.append(v)
+            changed = true
         }
+        return changed
     }
 
     private func firstFreeSlot() -> Int? {
@@ -129,9 +136,9 @@ public final class GarageStore: ObservableObject {
         }
         syncStatus = .syncing
         if let remote = await cloud.pull() {
-            if shouldPreferLocal(over: remote.vehicles) {
-                // Local holds a real build and the cloud is empty/stripped — never let stale
-                // cloud clobber it. Make local authoritative (repairs the cloud record too).
+            if seededThisLaunch || shouldPreferLocal(over: remote.vehicles) {
+                // We just added seed data (a superset), or local holds a real build the cloud
+                // lacks — make local authoritative rather than let the cloud overwrite it.
                 initialSyncPending = false
                 let stamp = Date()
                 if await cloud.push(vehicles: vehicles, updatedAt: stamp) {

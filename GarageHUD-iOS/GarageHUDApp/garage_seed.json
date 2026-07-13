@@ -1,562 +1,1320 @@
 [
   {
-    "buildEvents": [
+    "buildEvents" : [
       {
-        "date": "2023-06-15T12:00:00Z",
-        "eventDescription": "CP 87mm 11.0:1 pistons, King XP bearings \u2014 forged bottom end.",
-        "id": "CEA6F7E1-BCAB-4EE5-9210-7284368A68AC",
-        "photos": [],
-        "relatedPartIDs": [],
-        "title": "Engine rebuild"
+        "date" : "2023-06-15T12:00:00Z",
+        "eventDescription" : "CP 87mm 11.0:1 pistons, King XP bearings — forged bottom end.",
+        "id" : "CEA6F7E1-BCAB-4EE5-9210-7284368A68AC",
+        "photos" : [
+
+        ],
+        "relatedPartIDs" : [
+
+        ],
+        "title" : "Engine rebuild"
       },
       {
-        "date": "2023-08-20T12:00:00Z",
-        "eventDescription": "SoS Paxton NOVI 1200, ID1340s on E85, Hondata K-Pro.",
-        "id": "9D69B601-E3B4-43EA-9E76-417B483E315F",
-        "photos": [],
-        "relatedPartIDs": [],
-        "title": "Supercharger install"
+        "date" : "2023-08-20T12:00:00Z",
+        "eventDescription" : "SoS Paxton NOVI 1200, ID1340s on E85, Hondata K-Pro.",
+        "id" : "9D69B601-E3B4-43EA-9E76-417B483E315F",
+        "photos" : [
+
+        ],
+        "relatedPartIDs" : [
+
+        ],
+        "title" : "Supercharger install"
       },
       {
-        "date": "2024-06-01T12:00:00Z",
-        "eventDescription": "E85 calibration on the NOVI 1200.",
-        "id": "500126B0-F527-4FBC-AC3F-79B0E64F8A3D",
-        "photos": [],
-        "relatedPartIDs": [],
-        "title": "Dyno tune \u2014 477 whp"
+        "date" : "2024-06-01T12:00:00Z",
+        "eventDescription" : "E85 calibration on the NOVI 1200.",
+        "id" : "500126B0-F527-4FBC-AC3F-79B0E64F8A3D",
+        "photos" : [
+
+        ],
+        "relatedPartIDs" : [
+
+        ],
+        "title" : "Dyno tune — 477 whp"
       }
     ],
-    "colorName": "",
-    "confirmedStockSystems": [],
-    "dateAdded": "2026-07-12T20:01:36Z",
-    "documentedTotalInvestment": 12396.73,
-    "drivetrain": "rwd",
-    "drivetrainDescription": "RWD 6MT \u00b7 SoS Sport 400 hybrid clutch",
-    "engineDescription": "F22C1 \u00b7 SoS Paxton NOVI 1200 supercharged \u00b7 CP 87mm 11.0:1 \u00b7 E85",
-    "factoryHorsepower": 237,
-    "factoryPowerBasis": "factoryCrank",
-    "factoryTorque": 162,
-    "factoryWeightLbs": 2855,
-    "garageSlot": 1,
-    "id": "7860B66D-4A35-41CE-9C55-FD0D1A7D82A1",
-    "make": "Honda",
-    "model": "S2000",
-    "nickname": "S2K",
-    "notes": [
+    "colorName" : "",
+    "confirmedStockSystems" : [
+
+    ],
+    "dateAdded" : "2026-07-12T20:01:36Z",
+    "documentedTotalInvestment" : 12396.73,
+    "drivetrain" : "rwd",
+    "drivetrainDescription" : "RWD 6MT · SoS Sport 400 hybrid clutch",
+    "engineDescription" : "F22C1 · SoS Paxton NOVI 1200 supercharged · CP 87mm 11.0:1 · E85",
+    "factoryHorsepower" : 237,
+    "factoryPowerBasis" : "factoryCrank",
+    "factoryTorque" : 162,
+    "factoryWeightLbs" : 2855,
+    "garageSlot" : 1,
+    "id" : "7860B66D-4A35-41CE-9C55-FD0D1A7D82A1",
+    "make" : "Honda",
+    "model" : "S2000",
+    "nickname" : "S2K",
+    "notes" : [
       {
-        "body": "Configuration immediately before the current engine teardown. Bottom-end internals under inspection; rod/main bearings likely replacement items.",
-        "date": "2025-06-01T12:00:00Z",
-        "id": "8D29C6C0-D2EC-4694-A4C5-916CBE210150",
-        "title": "Status"
+        "body" : "Configuration immediately before the current engine teardown. Bottom-end internals under inspection; rod\/main bearings likely replacement items.",
+        "date" : "2025-06-01T12:00:00Z",
+        "id" : "8D29C6C0-D2EC-4694-A4C5-916CBE210150",
+        "title" : "Status"
       }
     ],
-    "parts": [
+    "parts" : [
       {
-        "brand": "ScienceOfSpeed",
-        "category": "Forced Induction",
-        "cost": 5759.75,
-        "id": "7BC61E61-6A21-4D4C-9270-C64F652FD76F",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "ScienceOfSpeed Supercharger System",
-        "notes": "Paxton NOVI 1200 \u00b7 3.0in pulley \u00b7 aftercooler \u00b7 racing heat exchanger \u00b7 TiAL Q BOV",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "ScienceOfSpeed",
+        "category" : "Forced Induction",
+        "cost" : 5759.75,
+        "flaggedForRebuild" : false,
+        "id" : "7BC61E61-6A21-4D4C-9270-C64F652FD76F",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "ScienceOfSpeed Supercharger System",
+        "notes" : "Paxton NOVI 1200 · 3.0in pulley · aftercooler · racing heat exchanger · TiAL Q BOV",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "",
-        "category": "Forced Induction",
-        "cost": 18.15,
-        "id": "1767CE80-83FC-4152-8F74-11444FA017B8",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Vacuum Hose, Tees & Clamps",
-        "notes": "",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "",
+        "category" : "Forced Induction",
+        "cost" : 18.15,
+        "flaggedForRebuild" : false,
+        "id" : "1767CE80-83FC-4152-8F74-11444FA017B8",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Vacuum Hose, Tees & Clamps",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Injector Dynamics",
-        "category": "Fueling",
-        "cost": 945,
-        "id": "C857F5A2-F996-4A24-988A-B0E91A9C027B",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Injector Dynamics ID1340 Injectors (x4)",
-        "notes": "",
-        "partNumber": "idx1300.48.14.14.4",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Injector Dynamics",
+        "category" : "Fueling",
+        "cost" : 945,
+        "flaggedForRebuild" : false,
+        "id" : "C857F5A2-F996-4A24-988A-B0E91A9C027B",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Injector Dynamics ID1340 Injectors (x4)",
+        "notes" : "",
+        "partNumber" : "idx1300.48.14.14.4",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Radium",
-        "category": "Fueling",
-        "cost": 149.95,
-        "id": "8C7CD486-72C7-480E-BCFA-892119E8A577",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Radium Fuel Rail",
-        "notes": "",
-        "partNumber": "20-0391-02",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Radium",
+        "category" : "Fueling",
+        "cost" : 149.95,
+        "flaggedForRebuild" : false,
+        "id" : "8C7CD486-72C7-480E-BCFA-892119E8A577",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Radium Fuel Rail",
+        "notes" : "",
+        "partNumber" : "20-0391-02",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Radium",
-        "category": "Fueling",
-        "cost": 89.95,
-        "id": "6DE12360-D823-44F0-A1DF-0779AB6F4BD5",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Radium Fuel Pulse Damper FPD-R",
-        "notes": "",
-        "partNumber": "20-0776",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Radium",
+        "category" : "Fueling",
+        "cost" : 89.95,
+        "flaggedForRebuild" : false,
+        "id" : "6DE12360-D823-44F0-A1DF-0779AB6F4BD5",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Radium Fuel Pulse Damper FPD-R",
+        "notes" : "",
+        "partNumber" : "20-0776",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Mocal",
-        "category": "Fueling",
-        "cost": 179.95,
-        "id": "42739DA2-B2CA-412E-8AE6-F047802DD3BA",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Mocal Fuel Pressure Regulator FPR1",
-        "notes": "",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Mocal",
+        "category" : "Fueling",
+        "cost" : 179.95,
+        "flaggedForRebuild" : false,
+        "id" : "42739DA2-B2CA-412E-8AE6-F047802DD3BA",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Mocal Fuel Pressure Regulator FPR1",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Grams",
-        "category": "Fueling",
-        "cost": 20.99,
-        "id": "F6B3C664-EA25-4C34-AFFC-F3DC6C33BB15",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Grams Fuel Pressure Gauge 0-120psi",
-        "notes": "",
-        "partNumber": "G2-99-1200",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Grams",
+        "category" : "Fueling",
+        "cost" : 20.99,
+        "flaggedForRebuild" : false,
+        "id" : "F6B3C664-EA25-4C34-AFFC-F3DC6C33BB15",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Grams Fuel Pressure Gauge 0-120psi",
+        "notes" : "",
+        "partNumber" : "G2-99-1200",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Radium",
-        "category": "Fueling",
-        "cost": 124.95,
-        "id": "F15C6031-291C-48D0-AF15-CF7C8AFF86B6",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Radium Microglass Fuel Filter 6\u00b5m",
-        "notes": "",
-        "partNumber": "20-0220-05",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Radium",
+        "category" : "Fueling",
+        "cost" : 124.95,
+        "flaggedForRebuild" : false,
+        "id" : "F15C6031-291C-48D0-AF15-CF7C8AFF86B6",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Radium Microglass Fuel Filter 6µm",
+        "notes" : "",
+        "partNumber" : "20-0220-05",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Radium",
-        "category": "Fueling",
-        "cost": 49.95,
-        "id": "DF34FF28-536B-491D-9F1C-53D4F9BD90BD",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Radium Fuel Filter Clamp 60mm",
-        "notes": "",
-        "partNumber": "20-0218",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Radium",
+        "category" : "Fueling",
+        "cost" : 49.95,
+        "flaggedForRebuild" : false,
+        "id" : "DF34FF28-536B-491D-9F1C-53D4F9BD90BD",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Radium Fuel Filter Clamp 60mm",
+        "notes" : "",
+        "partNumber" : "20-0218",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Walbro",
-        "category": "Fueling",
-        "cost": 149.95,
-        "id": "DD54B929-8643-40B0-BDE7-AE8194F351A2",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Walbro 450 LPH E85 Fuel Pump",
-        "notes": "",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Walbro",
+        "category" : "Fueling",
+        "cost" : 149.95,
+        "flaggedForRebuild" : false,
+        "id" : "DD54B929-8643-40B0-BDE7-AE8194F351A2",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Walbro 450 LPH E85 Fuel Pump",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "",
-        "category": "Fueling",
-        "cost": 69.95,
-        "id": "41848B4F-79D6-4A90-981F-884E7F830369",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Fuel Pump Hardwire Kit",
-        "notes": "50A breaker \u00b7 70A relay \u00b7 10ga SXL",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "",
+        "category" : "Fueling",
+        "cost" : 69.95,
+        "flaggedForRebuild" : false,
+        "id" : "41848B4F-79D6-4A90-981F-884E7F830369",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Fuel Pump Hardwire Kit",
+        "notes" : "50A breaker · 70A relay · 10ga SXL",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Radium",
-        "category": "Fueling",
-        "cost": 229.95,
-        "id": "2773B394-0607-4712-9AA6-973EBE49D1DE",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Radium Crankcase Catch Can (Fluid Lock)",
-        "notes": "",
-        "partNumber": "20-0097-FL",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Radium",
+        "category" : "Fueling",
+        "cost" : 229.95,
+        "flaggedForRebuild" : false,
+        "id" : "2773B394-0607-4712-9AA6-973EBE49D1DE",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Radium Crankcase Catch Can (Fluid Lock)",
+        "notes" : "",
+        "partNumber" : "20-0097-FL",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Mocal",
-        "category": "Fueling",
-        "cost": 107.4,
-        "id": "0E104965-F929-487D-8013-ACC3BAFBC86B",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Mocal -6AN Fuel Hose (12ft)",
-        "notes": "",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Mocal",
+        "category" : "Fueling",
+        "cost" : 107.4,
+        "flaggedForRebuild" : false,
+        "id" : "0E104965-F929-487D-8013-ACC3BAFBC86B",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Mocal -6AN Fuel Hose (12ft)",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "",
-        "category": "Fueling",
-        "cost": 249.65,
-        "id": "18A958D8-61C6-45C4-90F1-4F738118D4CF",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "AN / ORB Fittings & Adapters",
-        "notes": "",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "",
+        "category" : "Fueling",
+        "cost" : 249.65,
+        "flaggedForRebuild" : false,
+        "id" : "18A958D8-61C6-45C4-90F1-4F738118D4CF",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "AN \/ ORB Fittings & Adapters",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "",
-        "category": "Fueling",
-        "cost": 40.9,
-        "id": "9D5F4579-1837-4744-BE72-3E1BB4D73B93",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "In-Tank Fuel Hose & Clamps",
-        "notes": "",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "",
+        "category" : "Fueling",
+        "cost" : 40.9,
+        "flaggedForRebuild" : false,
+        "id" : "9D5F4579-1837-4744-BE72-3E1BB4D73B93",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "In-Tank Fuel Hose & Clamps",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "",
-        "category": "Fueling",
-        "cost": 56.65,
-        "id": "DF8201EC-6A61-4E8E-830E-3E96BEAEE4A2",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Catch-Can Hose Ends & Clamps",
-        "notes": "",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "",
+        "category" : "Fueling",
+        "cost" : 56.65,
+        "flaggedForRebuild" : false,
+        "id" : "DF8201EC-6A61-4E8E-830E-3E96BEAEE4A2",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Catch-Can Hose Ends & Clamps",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Denso",
-        "category": "Electronics",
-        "cost": 719.2,
-        "id": "613A064C-A7DA-4C3F-96DA-4EA1E15AC236",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Denso Ignition Coils (x4)",
-        "notes": "",
-        "partNumber": "673-2301",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Denso",
+        "category" : "Electronics",
+        "cost" : 719.2,
+        "flaggedForRebuild" : false,
+        "id" : "613A064C-A7DA-4C3F-96DA-4EA1E15AC236",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Denso Ignition Coils (x4)",
+        "notes" : "",
+        "partNumber" : "673-2301",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "NGK",
-        "category": "Electronics",
-        "cost": 54,
-        "id": "E5DC751C-47B8-4BD6-9068-92A58F1869E4",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "NGK Iridium IX Plugs (x4)",
-        "notes": "gapped 0.022in",
-        "partNumber": "BKR8EIX",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "NGK",
+        "category" : "Electronics",
+        "cost" : 54,
+        "flaggedForRebuild" : false,
+        "id" : "E5DC751C-47B8-4BD6-9068-92A58F1869E4",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "NGK Iridium IX Plugs (x4)",
+        "notes" : "gapped 0.022in",
+        "partNumber" : "BKR8EIX",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "ScienceOfSpeed",
-        "category": "Electronics",
-        "cost": 110,
-        "id": "63ECBB0B-BD56-48F2-90E7-22B0861A91AC",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "ScienceOfSpeed 4-Bar MAP Sensor",
-        "notes": "",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "ScienceOfSpeed",
+        "category" : "Electronics",
+        "cost" : 110,
+        "flaggedForRebuild" : false,
+        "id" : "63ECBB0B-BD56-48F2-90E7-22B0861A91AC",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "ScienceOfSpeed 4-Bar MAP Sensor",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Hondata",
-        "category": "Electronics",
-        "id": "D7F26FB0-F707-43A7-95FD-BAC4644EBB01",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Hondata K-Pro ECU",
-        "notes": "price not documented",
-        "partNumber": "FP-S2K-US-32314",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Hondata",
+        "category" : "Electronics",
+        "flaggedForRebuild" : false,
+        "id" : "D7F26FB0-F707-43A7-95FD-BAC4644EBB01",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Hondata K-Pro ECU",
+        "notes" : "price not documented",
+        "partNumber" : "FP-S2K-US-32314",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "ScienceOfSpeed",
-        "category": "Drivetrain",
-        "cost": 907.75,
-        "id": "4A994E60-E89A-41F0-8779-3AA7D196F417",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "ScienceOfSpeed Sport 400 Hybrid Clutch",
-        "notes": "Nachi OEM release + pilot bearings",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "ScienceOfSpeed",
+        "category" : "Drivetrain",
+        "cost" : 907.75,
+        "flaggedForRebuild" : false,
+        "id" : "4A994E60-E89A-41F0-8779-3AA7D196F417",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "ScienceOfSpeed Sport 400 Hybrid Clutch",
+        "notes" : "Nachi OEM release + pilot bearings",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Invidia",
-        "category": "Exhaust",
-        "cost": 874.3,
-        "id": "AA5DB55E-B8CD-42F0-AA7A-12E4B6BBA79F",
-        "installDate": "2023-07-10T12:00:00Z",
-        "name": "Invidia Q300 Titanium-Tip Cat-Back",
-        "notes": "",
-        "partNumber": "invHS00HS1G2T",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Invidia",
+        "category" : "Exhaust",
+        "cost" : 874.3,
+        "flaggedForRebuild" : false,
+        "id" : "AA5DB55E-B8CD-42F0-AA7A-12E4B6BBA79F",
+        "installDate" : "2023-07-10T12:00:00Z",
+        "name" : "Invidia Q300 Titanium-Tip Cat-Back",
+        "notes" : "",
+        "partNumber" : "invHS00HS1G2T",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Berk",
-        "category": "Exhaust",
-        "cost": 134.99,
-        "id": "3E6BFFD7-055E-4221-9A6C-E518DE762CFC",
-        "installDate": "2023-07-10T12:00:00Z",
-        "name": "Berk 70mm Test Pipe",
-        "notes": "",
-        "partNumber": "BT1602",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Berk",
+        "category" : "Exhaust",
+        "cost" : 134.99,
+        "flaggedForRebuild" : false,
+        "id" : "3E6BFFD7-055E-4221-9A6C-E518DE762CFC",
+        "installDate" : "2023-07-10T12:00:00Z",
+        "name" : "Berk 70mm Test Pipe",
+        "notes" : "",
+        "partNumber" : "BT1602",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "SPC",
-        "category": "Suspension",
-        "cost": 264.4,
-        "id": "ABB32136-2DC3-4FE2-A087-3EEB23D5C7C4",
-        "installDate": "2024-03-01T12:00:00Z",
-        "name": "SPC Adjustable Upper Ball Joints (x2)",
-        "notes": "1.5\u00b0 range",
-        "partNumber": "67220",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "SPC",
+        "category" : "Suspension",
+        "cost" : 264.4,
+        "flaggedForRebuild" : false,
+        "id" : "ABB32136-2DC3-4FE2-A087-3EEB23D5C7C4",
+        "installDate" : "2024-03-01T12:00:00Z",
+        "name" : "SPC Adjustable Upper Ball Joints (x2)",
+        "notes" : "1.5° range",
+        "partNumber" : "67220",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "\u00d6hlins",
-        "category": "Suspension",
-        "id": "59FDF27B-2EAB-463D-A609-174336C1C909",
-        "installDate": "2024-03-01T12:00:00Z",
-        "name": "\u00d6hlins Road & Track DFV Coilovers",
-        "notes": "15 clicks from full stiff \u00b7 price not documented",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Öhlins",
+        "category" : "Suspension",
+        "flaggedForRebuild" : false,
+        "id" : "59FDF27B-2EAB-463D-A609-174336C1C909",
+        "installDate" : "2024-03-01T12:00:00Z",
+        "name" : "Öhlins Road & Track DFV Coilovers",
+        "notes" : "15 clicks from full stiff · price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Cusco",
-        "category": "Suspension",
-        "id": "24187176-7E35-4D5E-99D3-588067F0EEBD",
-        "installDate": "2024-03-01T12:00:00Z",
-        "name": "Cusco Rear Trunk Brace",
-        "notes": "price not documented",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Cusco",
+        "category" : "Suspension",
+        "flaggedForRebuild" : false,
+        "id" : "24187176-7E35-4D5E-99D3-588067F0EEBD",
+        "installDate" : "2024-03-01T12:00:00Z",
+        "name" : "Cusco Rear Trunk Brace",
+        "notes" : "price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Titan 7",
-        "category": "Wheels & Tires",
-        "id": "875186EE-8736-4FD6-8CA5-A2243EF11C3D",
-        "installDate": "2024-04-15T12:00:00Z",
-        "name": "Titan 7 Wheels 17x9.5 (square)",
-        "notes": "price not documented",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Titan 7",
+        "category" : "Wheels & Tires",
+        "flaggedForRebuild" : false,
+        "id" : "875186EE-8736-4FD6-8CA5-A2243EF11C3D",
+        "installDate" : "2024-04-15T12:00:00Z",
+        "name" : "Titan 7 Wheels 17x9.5 (square)",
+        "notes" : "price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Continental",
-        "category": "Wheels & Tires",
-        "id": "F59E0BCF-AC81-401B-9768-5C7376BB75DF",
-        "installDate": "2024-04-15T12:00:00Z",
-        "name": "Continental Tires 275/35R17 (square)",
-        "notes": "price not documented",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Continental",
+        "category" : "Wheels & Tires",
+        "flaggedForRebuild" : false,
+        "id" : "F59E0BCF-AC81-401B-9768-5C7376BB75DF",
+        "installDate" : "2024-04-15T12:00:00Z",
+        "name" : "Continental Tires 275\/35R17 (square)",
+        "notes" : "price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "",
-        "category": "Exterior",
-        "id": "CAD4F525-95A7-4706-8A27-19D73353E5B8",
-        "installDate": "2024-04-15T12:00:00Z",
-        "name": "Front Fenders +30mm",
-        "notes": "price not documented",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "",
+        "category" : "Exterior",
+        "flaggedForRebuild" : false,
+        "id" : "CAD4F525-95A7-4706-8A27-19D73353E5B8",
+        "installDate" : "2024-04-15T12:00:00Z",
+        "name" : "Front Fenders +30mm",
+        "notes" : "price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "Koyo",
-        "category": "Cooling",
-        "id": "A4A4C25F-00E4-48F8-8282-BF92AE6CFDFD",
-        "installDate": "2023-08-20T12:00:00Z",
-        "name": "Koyo Aluminum Radiator",
-        "notes": "price not documented",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "Koyo",
+        "category" : "Cooling",
+        "flaggedForRebuild" : false,
+        "id" : "A4A4C25F-00E4-48F8-8282-BF92AE6CFDFD",
+        "installDate" : "2023-08-20T12:00:00Z",
+        "name" : "Koyo Aluminum Radiator",
+        "notes" : "price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "AiM",
-        "category": "Electronics",
-        "id": "1873F25C-8BB0-4095-8833-564AB9F00A96",
-        "installDate": "2024-05-01T12:00:00Z",
-        "name": "AiM MXG 1.2 Strada Dash",
-        "notes": "EXP module \u00b7 GPS09C \u00b7 OBDII-CAN",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "AiM",
+        "category" : "Electronics",
+        "flaggedForRebuild" : false,
+        "id" : "1873F25C-8BB0-4095-8833-564AB9F00A96",
+        "installDate" : "2024-05-01T12:00:00Z",
+        "name" : "AiM MXG 1.2 Strada Dash",
+        "notes" : "EXP module · GPS09C · OBDII-CAN",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "AEM",
-        "category": "Electronics",
-        "id": "3695D585-E852-443F-B8FA-11469B52F029",
-        "installDate": "2024-05-01T12:00:00Z",
-        "name": "AEM X-Series Wideband AFR",
-        "notes": "price not documented",
-        "partNumber": "",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "AEM",
+        "category" : "Electronics",
+        "flaggedForRebuild" : false,
+        "id" : "3695D585-E852-443F-B8FA-11469B52F029",
+        "installDate" : "2024-05-01T12:00:00Z",
+        "name" : "AEM X-Series Wideband AFR",
+        "notes" : "price not documented",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "CP",
-        "category": "Engine",
-        "cost": 858.9,
-        "id": "56D2CC10-CFA0-422A-A222-677AD826702A",
-        "installDate": "2023-06-15T12:00:00Z",
-        "name": "CP Pistons 87mm 11.0:1",
-        "notes": "",
-        "partNumber": "SC7170-4",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "CP",
+        "category" : "Engine",
+        "cost" : 858.9,
+        "flaggedForRebuild" : false,
+        "id" : "56D2CC10-CFA0-422A-A222-677AD826702A",
+        "installDate" : "2023-06-15T12:00:00Z",
+        "name" : "CP Pistons 87mm 11.0:1",
+        "notes" : "",
+        "partNumber" : "SC7170-4",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "King",
-        "category": "Engine",
-        "cost": 94.34,
-        "flaggedForRebuild": true,
-        "id": "723A63B0-BB0C-4B96-94CF-FFC5715A0BB4",
-        "installDate": "2023-06-15T12:00:00Z",
-        "name": "King XP Rod Bearings",
-        "notes": "",
-        "partNumber": "CR4033XP",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "King",
+        "category" : "Engine",
+        "cost" : 94.34,
+        "flaggedForRebuild" : true,
+        "id" : "723A63B0-BB0C-4B96-94CF-FFC5715A0BB4",
+        "installDate" : "2023-06-15T12:00:00Z",
+        "name" : "King XP Rod Bearings",
+        "notes" : "",
+        "partNumber" : "CR4033XP",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       },
       {
-        "brand": "King",
-        "category": "Engine",
-        "cost": 136.71,
-        "flaggedForRebuild": true,
-        "id": "472AA524-E47B-47EF-B153-F03A91729129",
-        "installDate": "2023-06-15T12:00:00Z",
-        "name": "King XP Main Bearings",
-        "notes": "",
-        "partNumber": "MB5673XP",
-        "photos": [],
-        "status": "Installed",
-        "vendor": ""
+        "brand" : "King",
+        "category" : "Engine",
+        "cost" : 136.71,
+        "flaggedForRebuild" : true,
+        "id" : "472AA524-E47B-47EF-B153-F03A91729129",
+        "installDate" : "2023-06-15T12:00:00Z",
+        "name" : "King XP Main Bearings",
+        "notes" : "",
+        "partNumber" : "MB5673XP",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
       }
     ],
-    "performanceRecords": [
+    "performanceRecords" : [
       {
-        "capturedPoints": [],
-        "date": "2024-06-01T12:00:00Z",
-        "id": "F35679FC-F9C2-46B0-AF5E-8E2B6DD7F3EA",
-        "isFromLiveSession": false,
-        "location": "E85 tune",
-        "notes": "SoS Paxton NOVI 1200 \u00b7 3.0in pulley \u00b7 Hondata K-Pro \u00b7 E85",
-        "type": "Dyno",
-        "wheelHorsepower": 477
+        "capturedPoints" : [
+
+        ],
+        "date" : "2024-06-01T12:00:00Z",
+        "id" : "F35679FC-F9C2-46B0-AF5E-8E2B6DD7F3EA",
+        "isFromLiveSession" : false,
+        "location" : "E85 tune",
+        "notes" : "SoS Paxton NOVI 1200 · 3.0in pulley · Hondata K-Pro · E85",
+        "type" : "Dyno",
+        "wheelHorsepower" : 477
       }
     ],
-    "photos": [],
-    "serviceStatus": {
-      "checklist": [
+    "photos" : [
+
+    ],
+    "serviceStatus" : {
+      "checklist" : [
         {
-          "id": "EF778D58-CE88-45DC-9CD5-87C822F20420",
-          "isDone": true,
-          "note": "",
-          "title": "Inspect bottom end / measure bearing clearances"
+          "id" : "EF778D58-CE88-45DC-9CD5-87C822F20420",
+          "isDone" : true,
+          "note" : "",
+          "title" : "Inspect bottom end \/ measure bearing clearances"
         },
         {
-          "id": "FF6C2C36-FE31-4969-9D8E-6B5AB4751D32",
-          "isDone": false,
-          "note": "",
-          "title": "Replace King XP rod bearings"
+          "id" : "FF6C2C36-FE31-4969-9D8E-6B5AB4751D32",
+          "isDone" : false,
+          "note" : "",
+          "title" : "Replace King XP rod bearings"
         },
         {
-          "id": "D17D16A5-9D31-4E94-9C21-3858DA0547C1",
-          "isDone": false,
-          "note": "",
-          "title": "Replace King XP main bearings"
+          "id" : "D17D16A5-9D31-4E94-9C21-3858DA0547C1",
+          "isDone" : false,
+          "note" : "",
+          "title" : "Replace King XP main bearings"
         },
         {
-          "id": "21B88A69-A05D-4DA4-B096-9FA44E2C9C75",
-          "isDone": false,
-          "note": "",
-          "title": "Reassemble short block & torque to spec"
+          "id" : "21B88A69-A05D-4DA4-B096-9FA44E2C9C75",
+          "isDone" : false,
+          "note" : "",
+          "title" : "Reassemble short block & torque to spec"
         },
         {
-          "id": "F7F96DDB-4A70-40EC-A183-136947EAF57B",
-          "isDone": false,
-          "note": "",
-          "title": "Reinstall supercharger & fuel system"
+          "id" : "F7F96DDB-4A70-40EC-A183-136947EAF57B",
+          "isDone" : false,
+          "note" : "",
+          "title" : "Reinstall supercharger & fuel system"
         },
         {
-          "id": "2BA9EF8F-77CC-4C40-B74B-5244C3463080",
-          "isDone": false,
-          "note": "",
-          "title": "Re-tune on E85 (Hondata K-Pro)"
+          "id" : "2BA9EF8F-77CC-4C40-B74B-5244C3463080",
+          "isDone" : false,
+          "note" : "",
+          "title" : "Re-tune on E85 (Hondata K-Pro)"
         }
       ],
-      "isInService": true,
-      "reason": "Engine teardown \u2014 bottom-end internals under inspection",
-      "since": "2025-06-01T12:00:00Z"
+      "isInService" : true,
+      "reason" : "Engine teardown — bottom-end internals under inspection",
+      "since" : "2025-06-01T12:00:00Z"
     },
-    "trim": "AP2",
-    "year": 2006
+    "trim" : "AP2",
+    "year" : 2006
+  },
+  {
+    "buildEvents" : [
+      {
+        "date" : "2024-06-01T12:00:00Z",
+        "eventDescription" : "Mustang dyno at YimiSport.",
+        "id" : "43B04077-66D0-4B5A-9C93-F18781960A9C",
+        "photos" : [
+
+        ],
+        "relatedPartIDs" : [
+
+        ],
+        "title" : "Dyno tune — 381 whp (E85)"
+      },
+      {
+        "date" : "2026-02-01T12:00:00Z",
+        "eventDescription" : "Dash, console, shifter, column, replacement AccessPort.",
+        "id" : "9F01F1F9-24D2-49D1-B3EB-1910587C2B35",
+        "photos" : [
+
+        ],
+        "relatedPartIDs" : [
+
+        ],
+        "title" : "Break-in \/ theft repair"
+      }
+    ],
+    "colorName" : "World Rally Blue Pearl (02C)",
+    "confirmedStockSystems" : [
+
+    ],
+    "dateAdded" : "2026-07-13T06:04:34Z",
+    "documentedTotalInvestment" : 21963.31,
+    "drivetrain" : "awd",
+    "drivetrainDescription" : "AWD · 4EAT automatic",
+    "engineDescription" : "EJ255 · COBB 20G · E85 · YimiSport tune",
+    "factoryHorsepower" : 224,
+    "factoryPowerBasis" : "factoryCrank",
+    "factoryTorque" : 226,
+    "factoryWeightLbs" : 3320,
+    "garageSlot" : 2,
+    "id" : "ACCC3EFC-0B7F-4C20-A56F-55D51217B005",
+    "make" : "Subaru",
+    "model" : "Forester",
+    "nickname" : "Fozzy",
+    "notes" : [
+      {
+        "body" : "Verify rear Focal model, cat-back brand, turbo\/injector manufacturer, sub impedance\/wiring. Document JL TüN routing + final DSP tune. Clock spring replacement pending.",
+        "date" : "2026-02-15T12:00:00Z",
+        "id" : "5314E671-0EE2-47BB-A544-CE9819246ACB",
+        "title" : "Open items"
+      },
+      {
+        "body" : "P1: finalize JL DSP docs, optimize tune, clock spring. P2: engine-bay refinement, exhaust identity, visual cleanup. P3: mono sub amp, repurpose VX800\/8i, Audiofrog\/Morel strategy.",
+        "date" : "2026-02-15T12:00:00Z",
+        "id" : "CB4E90E1-9C27-4E03-B7E6-E88C72B35D40",
+        "title" : "Roadmap"
+      }
+    ],
+    "parts" : [
+      {
+        "brand" : "",
+        "category" : "Engine",
+        "cost" : 4766.62,
+        "flaggedForRebuild" : false,
+        "id" : "6CB77699-0CD1-45AD-B4F2-960C53489A43",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "OEM EJ255 Long Block",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "ARP",
+        "category" : "Engine",
+        "flaggedForRebuild" : false,
+        "id" : "933C9F2F-0E1A-4263-85FA-2AF4BA3EFCE2",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "ARP2000 11mm Head Studs",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "JE",
+        "category" : "Engine",
+        "flaggedForRebuild" : false,
+        "id" : "2ADE0C23-6836-4B63-9932-B8A79FB644AD",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "JE ProSeal Head Gaskets",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Engine",
+        "flaggedForRebuild" : false,
+        "id" : "712B8CAF-DE3F-4196-ADD1-9C7FE5FD114D",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Cylinder Heads Resurfaced",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "IAG",
+        "category" : "Engine",
+        "flaggedForRebuild" : false,
+        "id" : "377D6607-DC49-4AFA-8538-FD21F9584721",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "IAG V2 Oil Pickup",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "IAG",
+        "category" : "Engine",
+        "flaggedForRebuild" : false,
+        "id" : "39A7CDD2-638A-4F40-A8EA-ED01E2FB86EB",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "IAG Air Oil Separator",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "COBB",
+        "category" : "Forced Induction",
+        "flaggedForRebuild" : false,
+        "id" : "DBB6CECD-6613-42CF-BC29-14E3520176B7",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "COBB 20G Turbo",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "COBB",
+        "category" : "Forced Induction",
+        "flaggedForRebuild" : false,
+        "id" : "B033DB0F-F8CE-4A99-9876-98492BF144F8",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "COBB Silicone Turbo Inlet V2",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Subaru",
+        "category" : "Forced Induction",
+        "flaggedForRebuild" : false,
+        "id" : "B102DE87-E0D1-4FF5-A6E7-B040E8115230",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Subaru Intake",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Grimmspeed",
+        "category" : "Cooling",
+        "flaggedForRebuild" : false,
+        "id" : "9F540492-6C84-4C11-9ADE-5B473A3DB856",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Grimmspeed Top Mount Intercooler + Y-Pipe",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Koyo",
+        "category" : "Cooling",
+        "flaggedForRebuild" : false,
+        "id" : "A7736281-F9F2-4B65-A971-989A2550C75D",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Koyo Radiator",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Fueling",
+        "cost" : 775.41,
+        "flaggedForRebuild" : false,
+        "id" : "5EAA1185-A147-41DA-B4F4-0EE19A527BFF",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "1050cc Top Feed Injectors",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "AEM",
+        "category" : "Fueling",
+        "flaggedForRebuild" : false,
+        "id" : "03DAD6A4-688F-47F7-BED1-67BC594020DC",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "AEM 320LPH E85 Fuel Pump",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "COBB",
+        "category" : "Fueling",
+        "flaggedForRebuild" : false,
+        "id" : "4EF5484A-B681-4B8C-BB5C-D29D0B9F2098",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "COBB Fuel Pressure Regulator",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "HKS",
+        "category" : "Exhaust",
+        "flaggedForRebuild" : false,
+        "id" : "1DC8C2AE-38FF-4036-B90B-5E0F04835606",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "HKS Headers",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "COBB",
+        "category" : "Exhaust",
+        "flaggedForRebuild" : false,
+        "id" : "EB282FF3-5743-4EF1-974E-767605C74B5E",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "COBB GESi Downpipe",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Exhaust",
+        "flaggedForRebuild" : false,
+        "id" : "81F0010A-73C6-4617-81FC-6B50A563D940",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Cat-back Exhaust (brand unverified)",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "COBB",
+        "category" : "Electronics",
+        "cost" : 761.03,
+        "flaggedForRebuild" : false,
+        "id" : "A2704CD7-5952-460A-9085-7EA296E69BEF",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "COBB AccessPort SUB-003",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Innovate",
+        "category" : "Electronics",
+        "cost" : 1502.92,
+        "flaggedForRebuild" : false,
+        "id" : "2B30F388-E6EA-4B8E-9164-3BF011EEFD5B",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Innovate MTX-D Ethanol Content Gauge",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "HKS",
+        "category" : "Suspension",
+        "cost" : 4454.04,
+        "flaggedForRebuild" : false,
+        "id" : "E9E045F5-8590-4DAA-A610-F3BBC58770E0",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "HKS Hipermax S Coilovers",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Whiteline",
+        "category" : "Suspension",
+        "flaggedForRebuild" : false,
+        "id" : "D49EA93B-1CEE-440F-9349-0FD094F28AA7",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Whiteline BSK003 Sway Bars",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Whiteline",
+        "category" : "Suspension",
+        "flaggedForRebuild" : false,
+        "id" : "CC7AC27F-C84C-4E41-ACB2-0BED38C354BF",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Whiteline KCA313 Roll Center Kit",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Brembo",
+        "category" : "Brakes",
+        "cost" : 1283.64,
+        "flaggedForRebuild" : false,
+        "id" : "20CDFED8-A33A-4025-91F6-6CA531D68DB0",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Front Gold Brembo Conversion",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Motul",
+        "category" : "Brakes",
+        "flaggedForRebuild" : false,
+        "id" : "49720B27-040F-4688-9765-ED6B755911FA",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Motul 5.1 Brake Fluid",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Enkei",
+        "category" : "Wheels & Tires",
+        "cost" : 5197.23,
+        "flaggedForRebuild" : false,
+        "id" : "B5A012C8-926C-48EE-9F4F-65BEA4B76914",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Enkei T6R 18x8 +45",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Continental",
+        "category" : "Wheels & Tires",
+        "flaggedForRebuild" : false,
+        "id" : "A3A72B4E-4114-4AAD-B424-599A6D243131",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Continental ExtremeContact 245\/40R18",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Exterior",
+        "cost" : 370,
+        "flaggedForRebuild" : false,
+        "id" : "6B45366A-23C4-489E-9AC6-FDF9BD970B82",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Fender Rolling",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Interior",
+        "cost" : 2853.16,
+        "flaggedForRebuild" : false,
+        "id" : "98BE47C0-1CAD-460F-B179-61A67AEDB5DE",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "2026 break-in repairs (dash, console, shifter, column)",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Kenwood",
+        "category" : "Electronics",
+        "flaggedForRebuild" : false,
+        "id" : "35C47253-DD61-4066-A75B-5EF8623DDFF2",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Kenwood DMX1058XR head unit",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "JL Audio",
+        "category" : "Electronics",
+        "flaggedForRebuild" : false,
+        "id" : "B47591B3-B580-4D60-B83A-BFF85CF7C2EE",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "JL Audio VX600\/6i amplifier",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "JL Audio",
+        "category" : "Electronics",
+        "flaggedForRebuild" : false,
+        "id" : "642231D7-E504-4AC2-8AAD-750A9EECE095",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "JL Audio VX800\/8i amplifier",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Focal",
+        "category" : "Electronics",
+        "flaggedForRebuild" : false,
+        "id" : "56395DAF-15B7-4A45-AAB3-6501C07FDA1C",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Focal ES165K2 front components",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "Focal",
+        "category" : "Electronics",
+        "flaggedForRebuild" : false,
+        "id" : "7C5DDA63-C1B5-4ACD-B133-E8B2477F45FF",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Focal K2 rear components (model unverified)",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "JL Audio",
+        "category" : "Electronics",
+        "flaggedForRebuild" : false,
+        "id" : "A849600F-CC0F-48F8-91AE-758E726B22C0",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "2× JL Audio 10TW3 subwoofers",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Interior",
+        "flaggedForRebuild" : false,
+        "id" : "B7DC774C-DE22-41D6-8575-9DEB0081D465",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Custom fiberglass enclosures + amp rack + sound deadening",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Installed",
+        "vendor" : ""
+      },
+      {
+        "brand" : "",
+        "category" : "Electronics",
+        "flaggedForRebuild" : false,
+        "id" : "FA5824F5-96C2-44D4-8707-87F13C6BCC21",
+        "installDate" : "2024-06-01T12:00:00Z",
+        "name" : "Mono subwoofer amplifier",
+        "notes" : "",
+        "partNumber" : "",
+        "photos" : [
+
+        ],
+        "status" : "Wishlist",
+        "vendor" : ""
+      }
+    ],
+    "performanceRecords" : [
+      {
+        "capturedPoints" : [
+
+        ],
+        "date" : "2024-06-01T12:00:00Z",
+        "id" : "C84FE1FF-6325-47E1-BE5A-1BA8B1B729DF",
+        "isFromLiveSession" : false,
+        "location" : "Mustang dyno · YimiSport",
+        "notes" : "E85",
+        "type" : "Dyno",
+        "wheelHorsepower" : 381
+      }
+    ],
+    "photos" : [
+
+    ],
+    "serviceStatus" : {
+      "checklist" : [
+
+      ],
+      "isInService" : false,
+      "reason" : ""
+    },
+    "trim" : "XT Sport",
+    "year" : 2008
   }
 ]
