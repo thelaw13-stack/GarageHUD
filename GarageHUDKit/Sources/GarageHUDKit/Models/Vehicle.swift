@@ -172,4 +172,15 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         guard installedPartsCount > 0, totalInvested > 0 else { return nil }
         return totalInvested / Double(installedPartsCount)
     }
+
+    /// Recorded spend grouped by system, highest first — only categories with priced parts
+    /// (removed parts and undocumented-price parts are excluded). Note this sums *itemized*
+    /// part prices, which can differ from `documentedTotalInvestment` (a lump-sum figure).
+    public var spendByCategory: [(category: PartCategory, total: Double)] {
+        var sums: [PartCategory: Double] = [:]
+        for part in parts where part.status != .removed {
+            if let cost = part.cost, cost > 0 { sums[part.category, default: 0] += cost }
+        }
+        return sums.map { (category: $0.key, total: $0.value) }.sorted { $0.total > $1.total }
+    }
 }

@@ -56,6 +56,8 @@ struct SpecSheetView: View {
                     }
                 }
 
+                spendBySystemPanel
+
                 HUDPanel(title: "Efficiency") {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 16)], spacing: 16) {
                         if let costPerHP = vehicle.costPerHorsepowerGained {
@@ -115,6 +117,37 @@ struct SpecSheetView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This removes the vehicle and all its parts, notes, photos, and records — on every device. This can't be undone.")
+        }
+    }
+
+    @ViewBuilder
+    private var spendBySystemPanel: some View {
+        let breakdown = vehicle.spendByCategory
+        if !breakdown.isEmpty {
+            let maxTotal = breakdown.first?.total ?? 1
+            HUDPanel(title: "Spend by System") {
+                VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                    ForEach(breakdown, id: \.category) { row in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(row.category.rawValue.uppercased())
+                                    .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textSecondary).tracking(1)
+                                Spacer()
+                                Text(row.total.formatted(.currency(code: "USD").precision(.fractionLength(0))))
+                                    .font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
+                            }
+                            GeometryReader { geo in
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(HUDTheme.cyan.opacity(0.5))
+                                    .frame(width: max(2, geo.size.width * CGFloat(row.total / maxTotal)), height: 4)
+                            }
+                            .frame(height: 4)
+                        }
+                    }
+                    Text("Itemized part prices — undocumented-price parts aren't counted here.")
+                        .font(HUDTheme.monoFont(9)).foregroundStyle(HUDTheme.textSecondary)
+                }
+            }
         }
     }
 
