@@ -22,4 +22,22 @@ public enum FleetHealth {
         }
         return ServiceDue(overdue: overdue, dueSoon: dueSoon)
     }
+
+    /// The single most-pressing car to service: any overdue car first (soonest due date wins), then
+    /// the most-pressing due-soon car. Out-of-service cars are skipped. Nil if nothing needs service.
+    public static func mostUrgent(in vehicles: [Vehicle], now: Date = .now,
+                                  calendar: Calendar = .current) -> Vehicle? {
+        // Rank: overdue (2) before dueSoon (1); within a rank, the earliest due date is most urgent.
+        func rank(_ v: Vehicle) -> Int {
+            switch v.maintenanceDue(now: now, calendar: calendar) {
+            case .overdue: return 2; case .dueSoon: return 1; case .ok: return 0
+            }
+        }
+        func soonestDue(_ v: Vehicle) -> Date {
+            v.maintenance.map { $0.dueDate(calendar) }.min() ?? .distantFuture
+        }
+        return vehicles
+            .filter { !$0.serviceStatus.isInService && rank($0) > 0 }
+            .max { a, b in rank(a) != rank(b) ? rank(a) < rank(b) : soonestDue(a) > soonestDue(b) }
+    }
 }

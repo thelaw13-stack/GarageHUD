@@ -74,6 +74,14 @@ struct GarageOverviewView: View {
             healthStat("\(review)", "TO REVIEW", review > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
             if service.total > 0 {
                 healthStat("\(service.total)", "SERVICE DUE", serviceColor)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if let urgent = FleetHealth.mostUrgent(in: store.vehicles) {
+                            selectedVehicleID = urgent.id
+                        }
+                    }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityHint("Jump to the car most in need of service")
             }
             Spacer(minLength: 0)
         }
