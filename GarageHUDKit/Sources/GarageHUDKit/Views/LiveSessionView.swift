@@ -59,13 +59,18 @@ struct LiveSessionView: View {
                 }
             }
 
-            // Pull Guardian: pulls auto-captured this session, each graded by how much of its
-            // boost claim was actually measured — not just detected, but honestly scored.
-            if !sessionPulls.isEmpty {
-                HUDPanel(title: "Pulls This Session") {
+            // Pull Guardian: a live presence the whole session, not just a list that appears after
+            // the fact — watching for a pull, showing the capture in progress, then the graded runs.
+            if isRunning {
+                HUDPanel(title: "Pull Guardian") {
                     VStack(alignment: .leading, spacing: 12) {
-                        ForEach(sessionPulls.reversed(), id: \.id) { pull in
-                            pullRow(pull)
+                        guardianStatusLine
+                        pullRunway
+                        if !sessionPulls.isEmpty {
+                            Divider().overlay(HUDTheme.hairline)
+                            ForEach(sessionPulls.reversed(), id: \.id) { pull in
+                                pullRow(pull)
+                            }
                         }
                     }
                 }
@@ -167,6 +172,62 @@ struct LiveSessionView: View {
                     vehicle.recordPullReport(report)
                 }
             }
+        }
+    }
+
+    // A live "is it watching, or capturing right now" line — the Guardian's presence should be
+    // visible the whole session, not just discoverable after a run closes.
+    private var guardianStatusLine: some View {
+        let capturing = detector?.isCapturing ?? false
+        return HStack(spacing: 8) {
+            Circle().fill(capturing ? HUDTheme.cyan : HUDTheme.textTertiary).frame(width: 7, height: 7)
+            Text(capturing ? "CAPTURING PULL" : "WATCHING FOR A PULL")
+                .font(HUDTheme.label(.semibold)).tracking(1.2)
+                .foregroundStyle(capturing ? HUDTheme.cyan : HUDTheme.textSecondary)
+            Spacer(minLength: 0)
+            if capturing, let start = detector?.activeRPMStart {
+                Text("\(Int(start))→\(Int(displayed?.rpm ?? start)) rpm · \(detector?.activeSampleCount ?? 0) pts")
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+            }
+        }
+    }
+
+    // A horizontal RPM runway: the car's own tune bands (when defined) as colored segments, with a
+    // marker tracking the live RPM in real time — so the pull's progress against target is visible
+    // as it happens, not only reconstructed afterward from a report.
+    private var pullRunway: some View {
+        let bands = vehicle.operatingEnvelope.expectedBoostByRPM
+        let maxRPM = max(7_500, Double(bands.map(\.rpmHigh).max() ?? 0))
+        let currentRPM = displayed?.rpm ?? 0
+        return VStack(alignment: .leading, spacing: 4) {
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(HUDTheme.hairline).frame(height: 8)
+                    ForEach(Array(bands.enumerated()), id: \.offset) { index, band in
+                        let start = max(0, Double(band.rpmLow) / maxRPM) * proxy.size.width
+                        let width = max(3, Double(band.rpmHigh - band.rpmLow) / maxRPM * proxy.size.width)
+                        Capsule()
+                            .fill((index.isMultiple(of: 2) ? HUDTheme.cyan : HUDTheme.green).opacity(0.55))
+                            .frame(width: width, height: 8)
+                            .offset(x: start)
+                    }
+                    if isRunning, currentRPM > 0 {
+                        let markerColor = detector?.isCapturing == true ? HUDTheme.cyan : HUDTheme.textSecondary
+                        Circle().fill(markerColor).frame(width: 12, height: 12)
+                            .overlay(Circle().strokeBorder(HUDTheme.background, lineWidth: 2))
+                            .offset(x: max(0, min(proxy.size.width - 12, currentRPM / maxRPM * proxy.size.width - 6)))
+                    }
+                }
+            }
+            .frame(height: 14)
+            HStack {
+                Text("0")
+                Spacer()
+                Text(bands.isEmpty ? "NO TUNE TARGET DEFINED" : "TUNE TARGET")
+                Spacer()
+                Text("\(Int(maxRPM)) RPM")
+            }
+            .font(HUDTheme.label()).foregroundStyle(HUDTheme.textTertiary)
         }
     }
 

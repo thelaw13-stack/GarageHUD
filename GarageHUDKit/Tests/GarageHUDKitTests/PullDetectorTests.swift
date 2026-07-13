@@ -148,6 +148,35 @@ final class PullDetectorTests: XCTestCase {
         XCTAssertGreaterThan(report.coolantDeltaF!, 0)
     }
 
+    // MARK: Live in-progress state (for the cockpit's "watching vs. capturing" readout)
+
+    func testIsCapturingReflectsAnOpenRunOnly() {
+        var d = PullDetector(feedLabel: "Simulated", envelope: envelope)
+        XCTAssertFalse(d.isCapturing)
+        _ = d.ingest(frame(t: 0, rpm: 3000, throttle: 90, boost: 10), now: now(0))
+        XCTAssertTrue(d.isCapturing)
+        _ = d.ingest(frame(t: 2.5, rpm: 5500, throttle: 10), now: now(2.5))   // closes the run
+        XCTAssertFalse(d.isCapturing)
+    }
+
+    func testActiveSampleCountTracksTheOpenRunAndResetsAfterClose() {
+        var d = PullDetector(feedLabel: "Simulated", envelope: envelope)
+        XCTAssertEqual(d.activeSampleCount, 0)
+        for (i, t) in stride(from: 0.0, through: 2.0, by: 0.5).enumerated() {
+            _ = d.ingest(frame(t: t, rpm: 3000 + t * 1000, throttle: 90, boost: 10), now: now(t))
+            XCTAssertEqual(d.activeSampleCount, i + 1)
+        }
+        _ = d.ingest(frame(t: 2.5, rpm: 5500, throttle: 10), now: now(2.5))   // closes the run
+        XCTAssertEqual(d.activeSampleCount, 0, "must not show a stale count once capture has ended")
+    }
+
+    func testActiveRPMStartIsNilWhenNotCapturing() {
+        var d = PullDetector(feedLabel: "Simulated", envelope: envelope)
+        XCTAssertNil(d.activeRPMStart)
+        _ = d.ingest(frame(t: 0, rpm: 3200, throttle: 90, boost: 10), now: now(0))
+        XCTAssertEqual(d.activeRPMStart, 3200)
+    }
+
     func testDetectorResetsCleanlyForANewPullAfterOne() {
         var d = PullDetector(feedLabel: "Simulated", envelope: envelope)
         for t in stride(from: 0.0, through: 2.5, by: 0.5) {
