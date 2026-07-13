@@ -33,6 +33,22 @@ public struct ServiceStatus: Codable, Hashable, Sendable {
     }
 }
 
+public extension Vehicle {
+    /// Close out a service period: record it in the car's biography (a "Back in service" build
+    /// event, with how long it was down) and return to operational — clearing the reason and
+    /// checklist. No-op if the car wasn't in service.
+    mutating func markBackInService(on date: Date = .now, calendar: Calendar = .current) {
+        guard serviceStatus.isInService else { return }
+        var detail = serviceStatus.reason.isEmpty ? "Returned to service." : "\(serviceStatus.reason)."
+        if let since = serviceStatus.since {
+            let days = calendar.dateComponents([.day], from: since, to: date).day ?? 0
+            detail += " \(days) day\(days == 1 ? "" : "s") out of service."
+        }
+        buildEvents.append(BuildEvent(date: date, title: "Back in service", eventDescription: detail))
+        serviceStatus = .operational
+    }
+}
+
 /// One item on a rebuild/service checklist.
 public struct ServiceTask: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID = UUID()

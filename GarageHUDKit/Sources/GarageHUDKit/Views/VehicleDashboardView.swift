@@ -4,6 +4,7 @@ struct VehicleDashboardView: View {
     @Binding var vehicle: Vehicle
     @State private var showingAsk = false
     @State private var newTask = ""
+    @State private var confirmingReturn = false
 
     var body: some View {
         ScrollView {
@@ -192,9 +193,38 @@ struct VehicleDashboardView: View {
                             .onSubmit(addTask)
                     }
                     .padding(.top, HUDTheme.space1)
+
+                    Button { attemptReturn() } label: {
+                        HStack(spacing: HUDTheme.space2) {
+                            Image(systemName: "checkmark.seal")
+                            Text("MARK BACK IN SERVICE")
+                                .font(HUDTheme.label(.semibold)).tracking(1.5)
+                        }
+                        .foregroundStyle(HUDTheme.green)
+                        .padding(.horizontal, HUDTheme.space3).padding(.vertical, 9)
+                        .frame(maxWidth: .infinity)
+                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(HUDTheme.green.opacity(0.45), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, HUDTheme.space2)
                 }
             }
+            .confirmationDialog("Mark \(vehicle.displayName) back in service?",
+                                isPresented: $confirmingReturn, titleVisibility: .visible) {
+                Button("Back in service") { vehicle.markBackInService() }
+                Button("Keep working", role: .cancel) {}
+            } message: {
+                let remaining = vehicle.serviceStatus.checklist.count - vehicle.serviceStatus.completedCount
+                Text(remaining > 0
+                     ? "\(remaining) checklist item\(remaining == 1 ? "" : "s") still open. This logs a build event and clears the checklist."
+                     : "This logs a build event and clears the checklist.")
+            }
         }
+    }
+
+    private func attemptReturn() {
+        let remaining = vehicle.serviceStatus.checklist.count - vehicle.serviceStatus.completedCount
+        if remaining > 0 { confirmingReturn = true } else { vehicle.markBackInService() }
     }
 
     private var rebuildTitle: String {

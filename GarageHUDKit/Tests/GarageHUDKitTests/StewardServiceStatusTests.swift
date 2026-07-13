@@ -52,6 +52,32 @@ final class StewardServiceStatusTests: XCTestCase {
         XCTAssertTrue(svc!.evidence.contains("1 of 3 done"))
     }
 
+    func testMarkBackInServiceLogsEventAndResets() {
+        var v = longQuietCar("S2K", slot: 1)
+        v.serviceStatus = ServiceStatus(isInService: true, reason: "Engine teardown", since: day(-30),
+            checklist: [ServiceTask(title: "a", isDone: true)])
+        let eventsBefore = v.buildEvents.count
+
+        v.markBackInService()
+
+        XCTAssertFalse(v.serviceStatus.isInService)
+        XCTAssertTrue(v.serviceStatus.checklist.isEmpty)
+        XCTAssertEqual(v.buildEvents.count, eventsBefore + 1)
+        let event = v.buildEvents.last!
+        XCTAssertEqual(event.title, "Back in service")
+        XCTAssertTrue(event.eventDescription.localizedCaseInsensitiveContains("engine teardown"))
+        XCTAssertTrue(event.eventDescription.contains("30 days"))
+        // And the Steward stops calling it out of service.
+        XCTAssertFalse(Steward.observe(v).contains { $0.ruleID == "service.inService" })
+    }
+
+    func testMarkBackInServiceIsNoOpWhenOperational() {
+        var v = longQuietCar("S2K", slot: 1)   // operational
+        let before = v.buildEvents.count
+        v.markBackInService()
+        XCTAssertEqual(v.buildEvents.count, before)
+    }
+
     func testServiceStatusDefaultsOperationalAndCodableRoundTrips() throws {
         var v = Vehicle(make: "T", model: "C", year: 2020, garageSlot: 1)
         XCTAssertFalse(v.serviceStatus.isInService)
