@@ -47,6 +47,8 @@ struct LiveSessionView: View {
                 .frame(maxWidth: .infinity)
             }
 
+            pullGuardianPanel
+
             // Steward reasons only over the *fresh* values in the current frame.
             if let frame, isRunning {
                 let live = Steward.observe(frame: frame, for: vehicle)
@@ -143,6 +145,97 @@ struct LiveSessionView: View {
         }
     }
 
+    private var pullGuardianPanel: some View {
+        HUDPanel(title: "Pull Guardian", caption: guardianCaption) {
+            VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                HStack(alignment: .firstTextBaseline, spacing: HUDTheme.space2) {
+                    Circle().fill(guardianColor).frame(width: 8, height: 8)
+                    Text(guardianState)
+                        .font(HUDTheme.body(.semibold))
+                        .foregroundStyle(guardianColor)
+                    Spacer(minLength: HUDTheme.space2)
+                    if let detector, detector.isCapturing {
+                        Text("\(detector.activeSampleCount) SAMPLES")
+                            .font(HUDTheme.label(.semibold))
+                            .foregroundStyle(HUDTheme.textSecondary)
+                            .tracking(1)
+                    }
+                }
+
+                Text(guardianDetail)
+                    .font(HUDTheme.label())
+                    .foregroundStyle(HUDTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                rpmRunway
+            }
+        }
+    }
+
+    private var guardianState: String {
+        guard isRunning else { return "STANDING BY" }
+        return detector?.isCapturing == true ? "CAPTURING PULL" : "WATCHING FOR LOAD"
+    }
+
+    private var guardianCaption: String {
+        guard isRunning else { return "Arm at 65% throttle" }
+        return detector?.isCapturing == true ? "Lift closes the report" : "Structured memory armed"
+    }
+
+    private var guardianDetail: String {
+        if let detector, detector.isCapturing, let start = detector.activeRPMStart {
+            return "Pull opened at \(Int(start)) rpm. Guardian is collecting band fit, ceiling, coolant, source, and evidence confidence."
+        }
+        if let pull = sessionPulls.last {
+            return "Last capture: \(pull.headline). \(pull.confidence.label) evidence was saved to this vehicle."
+        }
+        return "A sustained run is banked automatically after at least 2 seconds and 400 rpm of rise."
+    }
+
+    private var guardianColor: Color {
+        guard isRunning else { return HUDTheme.textSecondary }
+        return detector?.isCapturing == true ? HUDTheme.amber : HUDTheme.green
+    }
+
+    private var rpmRunway: some View {
+        let bands = vehicle.operatingEnvelope.expectedBoostByRPM.sorted { $0.rpmLow < $1.rpmLow }
+        let minimum = Double(min(bands.first?.rpmLow ?? 1000, 1000))
+        let maximum = Double(max(bands.last?.rpmHigh ?? 7500, 7500))
+        let rpm = displayed?.rpm ?? minimum
+        let position = ((rpm - minimum) / max(1, maximum - minimum)).clamped(to: 0...1)
+
+        return VStack(alignment: .leading, spacing: HUDTheme.space1) {
+            HStack {
+                Text("RPM RUNWAY")
+                Spacer()
+                Text("\(Int(rpm)) RPM")
+            }
+            .font(HUDTheme.label(.semibold))
+            .foregroundStyle(HUDTheme.textTertiary)
+            .tracking(1)
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(HUDTheme.hairline).frame(height: 8)
+                    ForEach(Array(bands.enumerated()), id: \.offset) { index, band in
+                        let start = (Double(band.rpmLow) - minimum) / max(1, maximum - minimum)
+                        let width = Double(band.rpmHigh - band.rpmLow) / max(1, maximum - minimum)
+                        Capsule()
+                            .fill((index.isMultiple(of: 2) ? HUDTheme.cyan : HUDTheme.green).opacity(0.55))
+                            .frame(width: max(3, proxy.size.width * width), height: 8)
+                            .offset(x: proxy.size.width * start)
+                    }
+                    Rectangle()
+                        .fill(guardianColor)
+                        .frame(width: 3, height: 22)
+                        .offset(x: max(0, min(proxy.size.width - 3, proxy.size.width * position)))
+                }
+                .frame(maxHeight: .infinity)
+            }
+            .frame(height: 22)
+        }
+    }
+
     private func start() {
         captured = []
         displayed = nil
@@ -209,5 +302,11 @@ struct LiveSessionView: View {
         )
         vehicle.performanceRecords.append(record)
         captured = []
+    }
+}
+
+private extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        min(max(self, range.lowerBound), range.upperBound)
     }
 }

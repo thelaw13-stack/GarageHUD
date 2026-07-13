@@ -40,9 +40,63 @@ public protocol LiveDataSource: AnyObject {
     func stop()
 }
 
-/// Generates plausible wandering values so the Live HUD is demoable before real OBD-II
-/// hardware is connected. Every value it emits is tagged `.simulated` and freshly timestamped
-/// — honest about being invented, never mistaken for measured.
+/// A repeatable garage demo: idle, one deliberate pull, recovery, then cruise. The fixed shape
+/// exercises the same detector thresholds on every run and makes visual review reproducible.
+struct SimulatedDemoCycle: Sendable {
+    static let frameCount = 60
+    static let interval: TimeInterval = 0.2
+
+    static func frame(at rawIndex: Int, timestamp: Date) -> LiveTelemetryFrame {
+        let index = rawIndex % frameCount
+        let rpm: Double
+        let speed: Double
+        let boost: Double
+        let throttle: Double
+        let coolant: Double
+
+        switch index {
+        case 0..<10:
+            rpm = 950 + Double(index) * 16
+            speed = 4
+            boost = -2.5
+            throttle = 11
+            coolant = 178 + Double(index) * 0.08
+        case 10..<30:
+            let progress = Double(index - 10) / 19
+            rpm = 2400 + progress * 3900
+            speed = 28 + progress * 56
+            boost = 4 + progress * 9
+            throttle = 88
+            coolant = 180 + progress * 4
+        case 30:
+            rpm = 6350
+            speed = 86
+            boost = 2
+            throttle = 14
+            coolant = 184
+        default:
+            let recovery = Double(index - 31)
+            rpm = max(1700, 3500 - recovery * 70)
+            speed = max(32, 82 - recovery * 1.8)
+            boost = -1.5
+            throttle = 18
+            coolant = max(181, 184 - recovery * 0.12)
+        }
+
+        func measurement(_ value: Double) -> TimedMeasurement<Double> {
+            TimedMeasurement(value, source: .simulated, at: timestamp)
+        }
+        return LiveTelemetryFrame(
+            rpm: measurement(rpm), speedMph: measurement(speed),
+            coolantTempF: measurement(coolant), boostPsi: measurement(boost),
+            throttlePercent: measurement(throttle), connectionState: .polling,
+            capturedAt: timestamp)
+    }
+}
+
+/// Generates deterministic demo values before real OBD-II hardware is connected. Every value
+/// is tagged `.simulated` and freshly timestamped: useful for rehearsal, never mistaken for
+/// measured evidence.
 public final class SimulatedLiveDataSource: LiveDataSource {
     public let frames: AsyncStream<LiveTelemetryFrame>
     private let continuation: AsyncStream<LiveTelemetryFrame>.Continuation
@@ -60,20 +114,10 @@ public final class SimulatedLiveDataSource: LiveDataSource {
         connectionState = .polling
         let continuation = continuation
         task = Task {
-            var rpm = 900.0, speed = 0.0, boost = 0.0, throttle = 0.0, coolant = 175.0
+            var index = 0
             while !Task.isCancelled {
-                throttle = (throttle + Double.random(in: -18...22)).clamped(to: 0...100)
-                rpm = (rpm + Double.random(in: -300...900) + throttle * 4).clamped(to: 800...7200)
-                speed = (speed + Double.random(in: -4...7) + throttle * 0.05).clamped(to: 0...150)
-                boost = (boost + Double.random(in: -2...3) + (throttle > 70 ? 1.5 : -1)).clamped(to: -6...20)
-                coolant = (coolant + Double.random(in: -1...1)).clamped(to: 160...225)
-
-                let now = Date()
-                func m(_ v: Double) -> TimedMeasurement<Double> { TimedMeasurement(v, source: .simulated, at: now) }
-                continuation.yield(LiveTelemetryFrame(
-                    rpm: m(rpm), speedMph: m(speed), coolantTempF: m(coolant),
-                    boostPsi: m(boost), throttlePercent: m(throttle),
-                    connectionState: .polling, capturedAt: now))
+                continuation.yield(SimulatedDemoCycle.frame(at: index, timestamp: .now))
+                index = (index + 1) % SimulatedDemoCycle.frameCount
                 try? await Task.sleep(nanoseconds: 200_000_000)
             }
         }
@@ -87,10 +131,4 @@ public final class SimulatedLiveDataSource: LiveDataSource {
     }
 
     deinit { continuation.finish() }
-}
-
-private extension Comparable {
-    func clamped(to range: ClosedRange<Self>) -> Self {
-        min(max(self, range.lowerBound), range.upperBound)
-    }
 }

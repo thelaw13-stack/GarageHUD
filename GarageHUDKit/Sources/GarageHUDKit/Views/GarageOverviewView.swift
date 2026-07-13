@@ -9,11 +9,14 @@ struct GarageOverviewView: View {
     var onUpgrade: () -> Void
     @State private var showingBriefing = false
     @State private var showingCompare = false
+    @State private var spotlightVehicleID: UUID?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HUDTheme.space4) {
                 header
+                dataSafetyNotices
+                spotlightSection
                 fleetHealthStrip
                 grid
                 fleetSteward
@@ -27,11 +30,119 @@ struct GarageOverviewView: View {
         }
     }
 
+    @ViewBuilder
+    private var spotlightSection: some View {
+        if let vehicle = spotlightVehicle {
+            VStack(alignment: .leading, spacing: HUDTheme.space2) {
+                HStack {
+                    Text("ACTIVE BAY")
+                        .font(HUDTheme.label(.semibold))
+                        .foregroundStyle(HUDTheme.textSecondary)
+                        .tracking(1.4)
+                    Spacer(minLength: HUDTheme.space3)
+                    bayTabs
+                }
+                GarageSpotlightView(vehicle: vehicle) { selectedVehicleID = vehicle.id }
+                    .id(vehicle.id)
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    private var bayTabs: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: HUDTheme.space3) {
+                ForEach(store.vehicles.sorted(by: { $0.garageSlot < $1.garageSlot })) { vehicle in
+                    let selected = vehicle.id == spotlightVehicle?.id
+                    Button {
+                        withAnimation(.easeOut(duration: 0.18)) { spotlightVehicleID = vehicle.id }
+                    } label: {
+                        VStack(spacing: 4) {
+                            Text("BAY \(vehicle.garageSlot)")
+                                .font(HUDTheme.label(.semibold))
+                                .foregroundStyle(selected ? HUDTheme.textPrimary : HUDTheme.textSecondary)
+                                .tracking(1)
+                            Rectangle().fill(selected ? HUDTheme.cyan : Color.clear).frame(height: 2)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Show \(vehicle.displayName), bay \(vehicle.garageSlot)")
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                }
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var spotlightVehicle: Vehicle? {
+        if let spotlightVehicleID,
+           let selected = store.vehicles.first(where: { $0.id == spotlightVehicleID }) {
+            return selected
+        }
+        return store.vehicles.sorted { lhs, rhs in
+            let left = spotlightScore(lhs)
+            let right = spotlightScore(rhs)
+            if left != right { return left > right }
+            return (lhs.lastActivityDate ?? .distantPast) > (rhs.lastActivityDate ?? .distantPast)
+        }.first
+    }
+
+    private func spotlightScore(_ vehicle: Vehicle) -> Int {
+        var score = Steward.observe(vehicle).filter { $0.tone != .informational }.count * 12
+        if vehicle.serviceStatus.isInService { score += 100 }
+        switch vehicle.maintenanceDue() {
+        case .overdue: score += 80
+        case .dueSoon: score += 35
+        case .ok: break
+        }
+        if !vehicle.pullReports.isEmpty { score += 10 }
+        return score
+    }
+
+    @ViewBuilder
+    private var dataSafetyNotices: some View {
+        if let backupURL = store.loadFailureBackupURL {
+            DataSafetyNotice(
+                title: "LOCAL FILE PRESERVED",
+                message: "GarageHUD found an unreadable garage file and saved the original before continuing.",
+                url: backupURL)
+        }
+        if case .conflict(let snapshotURL) = store.syncStatus {
+            DataSafetyNotice(
+                title: "SYNC CONFLICT PRESERVED",
+                message: "A newer iCloud garage was applied. Your attempted local edit was saved separately for review.",
+                url: snapshotURL)
+        }
+    }
+
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline) {
+                garageTitle
+                Spacer()
+                headerActions
+            }
+            VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                garageTitle
+                headerActions
+            }
+        }
+    }
+
+    private var garageTitle: some View {
+        VStack(alignment: .leading, spacing: HUDTheme.space1) {
             Text("GARAGE").font(HUDTheme.title()).foregroundStyle(HUDTheme.textPrimary)
-            Spacer()
-            if !store.vehicles.isEmpty {
+            Text("\(store.vehicles.count) of \(maxSlots) bays occupied")
+                .font(HUDTheme.label())
+                .foregroundStyle(HUDTheme.textSecondary)
+                .tracking(0.8)
+        }
+    }
+
+    @ViewBuilder
+    private var headerActions: some View {
+        if !store.vehicles.isEmpty {
+            HStack(spacing: HUDTheme.space2) {
                 ShareLink(item: GarageBackup.of(store), preview: SharePreview("GarageHUD backup")) {
                     Image(systemName: "square.and.arrow.up")
                 }
@@ -68,25 +179,25 @@ struct GarageOverviewView: View {
         let serviceColor: Color = service.overdue > 0 ? HUDTheme.danger
             : (service.dueSoon > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
 
-        return HStack(spacing: HUDTheme.space3) {
-            Circle().fill(dot).frame(width: 8, height: 8)
-            healthStat("\(store.vehicles.count)", "VEHICLES")
-            healthStat("\(outOfService)", "OUT OF SERVICE", outOfService > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
-            healthStat("\(review)", "TO REVIEW", review > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
-            if service.total > 0 {
-                healthStat("\(service.total)", "SERVICE DUE", serviceColor)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if let urgentService {
-                            selectedVehicleID = urgentService.vehicleID
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: HUDTheme.space3) {
+                Circle().fill(dot).frame(width: 8, height: 8)
+                healthStat("\(store.vehicles.count)", "VEHICLES")
+                healthStat("\(outOfService)", "OUT OF SERVICE", outOfService > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
+                healthStat("\(review)", "TO REVIEW", review > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
+                if service.total > 0 {
+                    healthStat("\(service.total)", "SERVICE DUE", serviceColor)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if let urgentService { selectedVehicleID = urgentService.vehicleID }
                         }
-                    }
-                    .accessibilityAddTraits(.isButton)
-                    .accessibilityHint(urgentService.map { "Jump to \($0.vehicleName) for \($0.itemName)" } ?? "Jump to the car most in need of service")
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityHint(urgentService.map { "Jump to \($0.vehicleName) for \($0.itemName)" } ?? "Jump to the car most in need of service")
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            .padding(.horizontal, HUDTheme.space3).padding(.vertical, HUDTheme.space2)
         }
-        .padding(.horizontal, HUDTheme.space3).padding(.vertical, HUDTheme.space2)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.panelBackground))
         .accessibilityElement(children: .combine)
@@ -131,6 +242,38 @@ struct GarageOverviewView: View {
     }
 }
 
+private struct DataSafetyNotice: View {
+    var title: String
+    var message: String
+    var url: URL
+
+    var body: some View {
+        HStack(alignment: .top, spacing: HUDTheme.space3) {
+            Image(systemName: "shield.lefthalf.filled").foregroundStyle(HUDTheme.amber)
+            VStack(alignment: .leading, spacing: HUDTheme.space1) {
+                Text(title).font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.amber).tracking(1)
+                Text(message).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                Text(url.lastPathComponent)
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textTertiary)
+                    .lineLimit(1).truncationMode(.middle)
+            }
+            Spacer(minLength: 0)
+            if let data = try? Data(contentsOf: url) {
+                let backup = GarageBackup(data: data, filename: url.lastPathComponent)
+                ShareLink(item: backup, preview: SharePreview(title)) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .buttonStyle(.secondaryAction)
+                .accessibilityLabel("Export preserved garage file")
+            }
+        }
+        .padding(HUDTheme.space3)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.panelBackground))
+        .overlay(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).strokeBorder(HUDTheme.amber.opacity(0.35), lineWidth: 1))
+    }
+}
+
 private struct VehicleOverviewCard: View {
     var vehicle: Vehicle
 
@@ -151,12 +294,14 @@ private struct VehicleOverviewCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: HUDTheme.space2) {
             HStack(alignment: .top, spacing: HUDTheme.space2) {
-                PhotoThumbnailView(photo: vehicle.heroPhoto, size: 52)
+                PhotoThumbnailView(photo: vehicle.heroPhoto, vehicle: vehicle, size: 58)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(vehicle.displayName.uppercased())
                         .font(HUDTheme.body(.semibold)).foregroundStyle(HUDTheme.textPrimary)
+                        .lineLimit(1).minimumScaleFactor(0.78)
                     Text(vehicle.subtitle)
                         .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                        .lineLimit(1).minimumScaleFactor(0.78)
 
                     if vehicle.serviceStatus.isInService {
                         Text("OUT OF SERVICE")

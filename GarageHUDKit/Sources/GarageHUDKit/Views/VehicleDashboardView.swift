@@ -16,7 +16,7 @@ struct VehicleDashboardView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HUDTheme.space4) {
-                commandSurface          // A — identity + status + next step + metrics, one object
+                VehicleIdentitySurface(vehicle: vehicle)
                 stewardPanel            // C — required attention (quieter, supporting)
                 buildAssessment         // synthesis
                 rebuildChecklist        // D — contextual workflow

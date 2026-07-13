@@ -4,6 +4,7 @@ import SwiftUI
 /// on macOS (NSImage) and iOS (UIImage). Falls back to a car glyph when there's no photo.
 struct PhotoThumbnailView: View {
     let photo: Photo?
+    var vehicle: Vehicle?
     var size: CGFloat = 52
 
     var body: some View {
@@ -12,15 +13,10 @@ struct PhotoThumbnailView: View {
                 #if canImport(AppKit)
                 Image(nsImage: image).resizable()
                 #else
-                Image(uiImage: image).resizable()
+                    Image(uiImage: image).resizable()
                 #endif
             } else {
-                ZStack {
-                    Rectangle().fill(HUDTheme.panelBackground)
-                    Image(systemName: "car.side")
-                        .font(.system(size: size * 0.4))
-                        .foregroundStyle(HUDTheme.textTertiary)
-                }
+                VehicleVisualFallback(vehicle: vehicle, style: .thumbnail)
             }
         }
         .aspectRatio(1, contentMode: .fill)

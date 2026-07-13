@@ -4,6 +4,7 @@ struct VehicleDetailView: View {
     @Binding var vehicle: Vehicle
     var onBackToGarage: () -> Void
     var onDelete: () -> Void
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var selectedTab: DetailTab = .dashboard
 
     enum DetailTab: String, CaseIterable, Identifiable {
@@ -11,6 +12,7 @@ struct VehicleDetailView: View {
         case parts = "Parts"
         case timeline = "Timeline"
         case performance = "Performance"
+        case tuner = "Tuner"
         case live = "Live"
         case gallery = "Gallery"
         case notes = "Notes"
@@ -33,6 +35,7 @@ struct VehicleDetailView: View {
             case .parts: "wrench.and.screwdriver"
             case .timeline: "clock.arrow.circlepath"
             case .performance: "speedometer"
+            case .tuner: "slider.horizontal.3"
             case .live: "dot.radiowaves.left.and.right"
             case .gallery: "photo.on.rectangle"
             case .notes: "note.text"
@@ -53,7 +56,7 @@ struct VehicleDetailView: View {
         .background(HUDTheme.background)
     }
 
-    // A horizontal scrolling strip shows all 8 sections equally on every platform —
+    // A horizontal scrolling strip shows every section equally on every platform —
     // iOS caps a native TabView at 5 items and hides the rest under "More".
     private var tabStrip: some View {
         ScrollViewReader { proxy in
@@ -99,7 +102,7 @@ struct VehicleDetailView: View {
     private var vehicleBanner: some View {
         HStack(spacing: 10) {
             Button(action: onBackToGarage) {
-                Label("All Vehicles", systemImage: "chevron.left")
+                Label(horizontalSizeClass == .compact ? "Garage" : "All Vehicles", systemImage: "chevron.left")
                     .font(HUDTheme.label(.medium))
             }
             .buttonStyle(.plain)
@@ -107,25 +110,32 @@ struct VehicleDetailView: View {
 
             Divider().frame(height: 14)
 
-            Text(vehicle.displayName.uppercased())
-                .font(HUDTheme.body(.semibold))
-                .foregroundStyle(HUDTheme.textPrimary)
-            Text(vehicle.subtitle)
-                .font(HUDTheme.label())
-                .foregroundStyle(HUDTheme.textSecondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(vehicle.displayName.uppercased())
+                    .font(HUDTheme.body(.semibold))
+                    .foregroundStyle(HUDTheme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                if horizontalSizeClass != .compact {
+                    Text(vehicle.subtitle)
+                        .font(HUDTheme.label())
+                        .foregroundStyle(HUDTheme.textSecondary)
+                        .lineLimit(1)
+                }
+            }
+            .layoutPriority(1)
             Spacer()
             if vehicle.serviceStatus.isInService {
-                Text("IN SERVICE")
-                    .font(HUDTheme.label(.semibold))
+                Image(systemName: "wrench.and.screwdriver.fill")
+                    .font(.system(size: 12))
                     .foregroundStyle(HUDTheme.amber)
-                    .tracking(1)
-                    .padding(.horizontal, 6).padding(.vertical, 3)
-                    .overlay(Capsule().strokeBorder(HUDTheme.amber.opacity(0.5), lineWidth: 1))
+                    .accessibilityLabel("In service")
             }
             Text("BAY \(vehicle.garageSlot)")
                 .font(HUDTheme.label(.semibold))
                 .foregroundStyle(HUDTheme.textSecondary)
                 .tracking(1)
+                .fixedSize()
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -142,6 +152,7 @@ struct VehicleDetailView: View {
         case .parts: PartsInventoryView(vehicle: $vehicle)
         case .timeline: BuildTimelineView(vehicle: $vehicle)
         case .performance: PerformanceView(vehicle: $vehicle)
+        case .tuner: TunerView(vehicle: $vehicle)
         case .live: LiveSessionView(vehicle: $vehicle)
         case .gallery: GalleryView(vehicle: $vehicle)
         case .notes: NotesView(vehicle: $vehicle)

@@ -37,6 +37,13 @@ public struct PullDetector: Sendable {
     private let feedLabel: String
     private let envelope: OperatingEnvelope
 
+    /// Live cockpit state. These expose the detector's presence without leaking its mutable
+    /// implementation or pretending that an in-progress run is already a validated report.
+    public var isCapturing: Bool { runStart != nil }
+    public var activeSampleCount: Int { isCapturing ? sampleCount : 0 }
+    public var activeRPMStart: Double? { isCapturing ? rpmStart : nil }
+    public var activeRPMPeak: Double? { isCapturing ? rpmPeak : nil }
+
     public init(feedLabel: String, envelope: OperatingEnvelope) {
         self.feedLabel = feedLabel
         self.envelope = envelope
