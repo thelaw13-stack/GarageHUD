@@ -28,6 +28,12 @@ struct GarageOverviewView: View {
             Text("GARAGE").font(HUDTheme.title()).foregroundStyle(HUDTheme.textPrimary)
             Spacer()
             if !store.vehicles.isEmpty {
+                ShareLink(item: GarageBackup.of(store), preview: SharePreview("GarageHUD backup")) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .buttonStyle(.secondaryAction)
+                .accessibilityLabel("Back up garage")
+
                 Button { showingBriefing = true } label: {
                     Label("Brief me", systemImage: "text.bubble")
                 }

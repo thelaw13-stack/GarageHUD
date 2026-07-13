@@ -337,6 +337,11 @@ public final class GarageStore: ObservableObject {
         try? data.write(to: fileURL, options: .atomic)
     }
 
+    /// The whole garage as a versioned JSON backup the owner can export and keep.
+    public func exportData() -> Data {
+        (try? GaragePersistence.encode(vehicles)) ?? Data("[]".utf8)
+    }
+
     public func addVehicle(_ vehicle: Vehicle) {
         vehicles.append(vehicle)
     }
