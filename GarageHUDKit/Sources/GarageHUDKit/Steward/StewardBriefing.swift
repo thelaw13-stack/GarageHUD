@@ -85,7 +85,9 @@ public enum StewardBriefingBuilder {
             }
         case .dueSoon:
             if let miles = focus.milesRemaining, miles > 0 {
-                lead = "\(focus.vehicleName) needs \(focus.itemName.lowercased()) in \(miles.formatted(.number.grouping(.automatic))) mi"
+                // If we've learned the car's pace, translate the miles into plain-English time.
+                let pace = pacePhrase(focus: focus, in: vehicles, context: context)
+                lead = "\(focus.vehicleName) needs \(focus.itemName.lowercased()) in \(miles.formatted(.number.grouping(.automatic))) mi\(pace)"
             } else {
                 lead = "\(focus.vehicleName) is due soon for \(focus.itemName.lowercased())"
             }
@@ -97,6 +99,20 @@ public enum StewardBriefingBuilder {
         let others = max(0, due.total - 1)   // the focus car is one of the total
         if others == 0 { return lead + "." }
         return "\(lead); \(others) other car\(others == 1 ? "" : "s") also need\(others == 1 ? "s" : "") service."
+    }
+
+    /// ", about 3 weeks at your pace" when the focus car has a learned driving rate that projects
+    /// the mileage service into the near future — else empty (say only what we can stand behind).
+    private static func pacePhrase(focus: FleetHealth.ServiceFocus, in vehicles: [Vehicle],
+                                   context: StewardContext) -> String {
+        guard let car = vehicles.first(where: { $0.id == focus.vehicleID }),
+              let item = car.maintenance.first(where: { $0.id == focus.itemID }),
+              let projected = item.projectedMileageDueDate(currentMileage: car.currentMileage,
+                                                           milesPerDay: car.milesPerDay, now: context.now),
+              projected > context.now
+        else { return "" }
+        let text = projected.formatted(.relative(presentation: .named))   // e.g. "in 3 weeks"
+        return " — \(text) at your pace"
     }
 
     // MARK: Copy
