@@ -50,14 +50,23 @@ struct GalleryView: View {
                                         Button("Delete Photo", role: .destructive) { removePhoto(photo) }
                                     }
                                 }
+                                // Visible-but-quiet cover control: a tappable star on every photo —
+                                // filled when it's the cover, outline to make it one. No right-click
+                                // required (the context menu stays as a secondary path).
                                 .overlay(alignment: .topLeading) {
-                                    if vehicle.coverPhotoID == photo.id {
-                                        Image(systemName: "star.fill")
-                                            .font(.system(size: 11)).foregroundStyle(.white)
-                                            .padding(4)
-                                            .background(HUDTheme.cyan, in: Circle())
-                                            .padding(6)
+                                    let isCover = vehicle.coverPhotoID == photo.id
+                                    Button {
+                                        vehicle.setCover(isCover ? nil : photo.id)
+                                    } label: {
+                                        Image(systemName: isCover ? "star.fill" : "star")
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(isCover ? .white : .white.opacity(0.9))
+                                            .padding(5)
+                                            .background((isCover ? HUDTheme.cyan : Color.black.opacity(0.35)), in: Circle())
                                     }
+                                    .buttonStyle(.plain)
+                                    .padding(6)
+                                    .accessibilityLabel(isCover ? "Cover photo. Tap to remove." : "Set as cover photo")
                                 }
                         }
                     }
