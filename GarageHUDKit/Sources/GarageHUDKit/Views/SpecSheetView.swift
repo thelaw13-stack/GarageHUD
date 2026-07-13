@@ -46,7 +46,7 @@ struct SpecSheetView: View {
 
                 HUDPanel(title: "Investment") {
                     VStack(alignment: .leading, spacing: 12) {
-                        editableStat(label: "Documented Total", value: $vehicle.documentedTotalInvestment, unit: "USD", color: HUDTheme.green)
+                        editableStat(label: "Documented Total", value: $vehicle.documentedTotalInvestment, unit: "USD", color: HUDTheme.textPrimary)
                         Text("Use this for a known lump-sum figure from a build sheet — it overrides the sum of itemized part costs below wherever \"Total Invested\" is shown.")
                             .font(HUDTheme.monoFont(9))
                             .foregroundStyle(HUDTheme.textSecondary)
@@ -64,18 +64,16 @@ struct SpecSheetView: View {
                             StatReadout(
                                 label: "Cost per WHP Gained",
                                 value: costPerHP.formatted(.currency(code: "USD")),
-                                unit: "/hp",
-                                color: HUDTheme.purple
+                                unit: "/hp", color: HUDTheme.textPrimary
                             )
                         }
                         if let gained = vehicle.horsepowerGainedOverStock {
-                            StatReadout(label: "WHP Gained over Stock", value: "+\(Int(gained))", unit: "HP", color: HUDTheme.danger)
+                            StatReadout(label: "WHP Gained over Stock", value: "+\(Int(gained))", unit: "HP", color: HUDTheme.textPrimary)
                         }
                         if let costPerPart = vehicle.costPerInstalledPart {
                             StatReadout(
                                 label: "Avg Cost per Mod",
-                                value: costPerPart.formatted(.currency(code: "USD")),
-                                color: HUDTheme.amber
+                                value: costPerPart.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary
                             )
                         }
                     }
@@ -89,13 +87,12 @@ struct SpecSheetView: View {
                 HUDPanel(title: "Current Estimated") {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 16)], spacing: 16) {
                         if let hp = vehicle.currentHorsepowerEstimate {
-                            StatReadout(label: "Horsepower", value: "\(Int(hp))", unit: "HP", color: HUDTheme.cyan)
+                            StatReadout(label: "Horsepower", value: "\(Int(hp))", unit: "HP", color: HUDTheme.textPrimary)
                         }
                         if let ratio = vehicle.powerToWeight {
-                            StatReadout(label: "Power/Weight", value: String(format: "%.2f", ratio), unit: "lb/hp", color: HUDTheme.amber)
+                            StatReadout(label: "Power/Weight", value: String(format: "%.2f", ratio), unit: "lb/hp", color: HUDTheme.textPrimary)
                         }
-                        StatReadout(label: "Total Invested", value: vehicle.totalInvested.formatted(.currency(code: "USD")), color: HUDTheme.green)
-                        StatReadout(label: "Build Complete", value: String(format: "%.0f", vehicle.buildCompletionPercent), unit: "%")
+                        StatReadout(label: "Total Invested", value: vehicle.totalInvested.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary)
                     }
                 }
 

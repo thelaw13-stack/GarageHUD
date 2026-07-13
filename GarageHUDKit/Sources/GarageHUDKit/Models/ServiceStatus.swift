@@ -25,6 +25,9 @@ public struct ServiceStatus: Codable, Hashable, Sendable {
 
     public static var operational: ServiceStatus { ServiceStatus() }
 
+    /// Prominent headline for the status strip, e.g. "OUT OF SERVICE". Empty when operational.
+    public var displayLabel: String { isInService ? "OUT OF SERVICE" : "" }
+
     public var completedCount: Int { checklist.filter(\.isDone).count }
     /// e.g. "2 of 5 done", or nil when there's no checklist.
     public var progressText: String? {

@@ -45,7 +45,7 @@ struct VehicleDetailView: View {
         VStack(spacing: 0) {
             vehicleBanner
             tabStrip
-            Divider().overlay(HUDTheme.cyan.opacity(0.2))
+            Divider().overlay(HUDTheme.hairline)
             tabContent(for: selectedTab)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -67,7 +67,7 @@ struct VehicleDetailView: View {
                                 Image(systemName: tab.systemImage)
                                     .font(.system(size: 12))
                                 Text(tab.rawValue.uppercased())
-                                    .font(HUDTheme.monoFont(10, weight: .semibold))
+                                    .font(HUDTheme.label(.semibold))
                                     .tracking(1)
                             }
                             .foregroundStyle(selectedTab == tab ? HUDTheme.background : HUDTheme.textSecondary)
@@ -79,7 +79,7 @@ struct VehicleDetailView: View {
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 6)
-                                    .strokeBorder(HUDTheme.cyan.opacity(selectedTab == tab ? 0 : 0.3), lineWidth: 1)
+                                    .strokeBorder(selectedTab == tab ? Color.clear : HUDTheme.hairline, lineWidth: 1)
                             )
                         }
                         .buttonStyle(.plain)
@@ -100,38 +100,37 @@ struct VehicleDetailView: View {
         HStack(spacing: 10) {
             Button(action: onBackToGarage) {
                 Label("All Vehicles", systemImage: "chevron.left")
-                    .font(HUDTheme.monoFont(10, weight: .medium))
+                    .font(HUDTheme.label(.medium))
             }
             .buttonStyle(.plain)
             .foregroundStyle(HUDTheme.textSecondary)
 
             Divider().frame(height: 14)
 
-            Circle().fill(HUDTheme.cyan).frame(width: 7, height: 7).hudGlow(HUDTheme.cyan, radius: 3)
             Text(vehicle.displayName.uppercased())
-                .font(HUDTheme.monoFont(13, weight: .bold))
-                .foregroundStyle(HUDTheme.cyan)
+                .font(HUDTheme.body(.semibold))
+                .foregroundStyle(HUDTheme.textPrimary)
             Text(vehicle.subtitle)
-                .font(HUDTheme.monoFont(11))
+                .font(HUDTheme.label())
                 .foregroundStyle(HUDTheme.textSecondary)
             Spacer()
             if vehicle.serviceStatus.isInService {
                 Text("IN SERVICE")
-                    .font(HUDTheme.monoFont(8, weight: .semibold))
+                    .font(HUDTheme.label(.semibold))
                     .foregroundStyle(HUDTheme.amber)
                     .tracking(1)
                     .padding(.horizontal, 6).padding(.vertical, 3)
                     .overlay(Capsule().strokeBorder(HUDTheme.amber.opacity(0.5), lineWidth: 1))
             }
             Text("BAY \(vehicle.garageSlot)")
-                .font(HUDTheme.monoFont(9, weight: .semibold))
+                .font(HUDTheme.label(.semibold))
                 .foregroundStyle(HUDTheme.textSecondary)
                 .tracking(1)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(HUDTheme.panelBackground)
-        .overlay(Rectangle().frame(height: 1).foregroundStyle(HUDTheme.cyan.opacity(0.25)), alignment: .bottom)
+        .overlay(Rectangle().frame(height: 1).foregroundStyle(HUDTheme.hairline), alignment: .bottom)
     }
 
     @ViewBuilder

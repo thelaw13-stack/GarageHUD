@@ -3,26 +3,28 @@ import SwiftUI
 struct VehicleDashboardView: View {
     @Binding var vehicle: Vehicle
     @State private var showingAsk = false
+    @State private var showingAllObservations = false
     @State private var newTask = ""
     @State private var confirmingReturn = false
+    @State private var editingPart: Part?
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                header
-                keyMetrics
-                buildProgress
-                buildAssessment
-                nextSteps
-                rebuildChecklist
-                recentActivity
+            VStack(alignment: .leading, spacing: HUDTheme.space4) {
+                identityAndStatus       // A — identity + current status
+                primaryMetrics          // B — three primary metrics
+                stewardPanel            // C — required attention
+                buildAssessment         // synthesis
+                rebuildChecklist        // D — contextual workflow
+                detailsPanel            // E — secondary specs / build detail
+                recentActivity          // F
             }
-            .padding(24)
+            .padding(HUDTheme.space4)
         }
         .background(HUDTheme.background)
-        .sheet(isPresented: $showingAsk) {
-            AskStewardView(vehicle: vehicle)
-        }
+        .sheet(isPresented: $showingAsk) { AskStewardView(vehicle: vehicle) }
+        .sheet(isPresented: $showingAllObservations) { allObservationsSheet }
+        .sheet(item: $editingPart) { part in AddEditPartView(vehicle: $vehicle, partID: part.id) }
         .confirmationDialog("Mark \(vehicle.displayName) back in service?",
                             isPresented: $confirmingReturn, titleVisibility: .visible) {
             Button("Back in service") { vehicle.markBackInService() }
@@ -35,167 +37,157 @@ struct VehicleDashboardView: View {
         }
     }
 
-    private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(vehicle.displayName.uppercased())
-                    .font(HUDTheme.monoFont(24, weight: .bold))
-                    .foregroundStyle(HUDTheme.cyan)
-                    .hudGlow(HUDTheme.cyan, radius: 6)
-                Text(vehicle.subtitle)
-                    .font(HUDTheme.monoFont(13))
-                    .foregroundStyle(HUDTheme.textSecondary)
-            }
-            Spacer()
-            if let lastActivity = vehicle.lastActivityDate {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("LAST ACTIVITY")
-                        .font(HUDTheme.monoFont(8, weight: .semibold))
-                        .foregroundStyle(HUDTheme.textSecondary)
-                        .tracking(1.5)
-                    Text(lastActivity.formatted(date: .abbreviated, time: .omitted))
-                        .font(HUDTheme.monoFont(12, weight: .medium))
-                        .foregroundStyle(HUDTheme.textPrimary)
-                }
-            }
+    // MARK: A — Identity + status
+
+    private var identityAndStatus: some View {
+        VStack(alignment: .leading, spacing: HUDTheme.space2) {
+            Text(vehicle.displayName.uppercased())
+                .font(HUDTheme.title())
+                .foregroundStyle(HUDTheme.textPrimary)
+            Text(vehicle.subtitle)
+                .font(HUDTheme.label())
+                .foregroundStyle(HUDTheme.textSecondary)
+            serviceStrip
         }
     }
 
-    private var keyMetrics: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("KEY METRICS")
-                .font(HUDTheme.monoFont(11, weight: .semibold))
-                .foregroundStyle(HUDTheme.cyan)
-                .tracking(2)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
-                MetricTile(
-                    label: "Horsepower",
-                    value: vehicle.currentHorsepowerEstimate.map { "\(Int($0))" } ?? "—",
-                    unit: "HP",
-                    color: HUDTheme.danger,
-                    subtitle: vehicle.latestPerformance?.type == .dyno ? "Last dyno" : "Factory rated"
-                )
-                MetricTile(
-                    label: "Torque",
-                    value: (vehicle.performanceRecords.filter { $0.type == .dyno }.sorted { $0.date > $1.date }.first?.wheelTorque ?? vehicle.factoryTorque).map { "\(Int($0))" } ?? "—",
-                    unit: "LB-FT",
-                    color: HUDTheme.blue
-                )
-                if let ratio = vehicle.powerToWeight {
-                    MetricTile(label: "Power/Weight", value: String(format: "%.1f", ratio), unit: "lb/hp", color: HUDTheme.purple)
-                }
-                if let weight = vehicle.factoryWeightLbs {
-                    MetricTile(label: "Weight", value: "\(Int(weight))", unit: "lbs", color: HUDTheme.textPrimary)
-                }
-                MetricTile(label: "Installed Parts", value: "\(vehicle.installedPartsCount)", color: HUDTheme.cyan)
-                if let latest = vehicle.latestPerformance {
-                    MetricTile(label: "Latest Test", value: latest.summary, color: HUDTheme.amber, subtitle: latest.type.rawValue)
-                }
-            }
-        }
-    }
-
-    private var buildProgress: some View {
-        HUDPanel(title: "Build Progress") {
-            HStack(spacing: 24) {
-                CircularGauge(value: vehicle.buildCompletionPercent, maxValue: 100, label: "Complete", unit: "%", color: HUDTheme.cyan)
-                VStack(alignment: .leading, spacing: 8) {
-                    if !vehicle.engineDescription.isEmpty {
-                        StatReadout(label: "Engine", value: vehicle.engineDescription)
-                    }
-                    if !vehicle.drivetrainDescription.isEmpty {
-                        StatReadout(label: "Drivetrain", value: vehicle.drivetrainDescription)
+    @ViewBuilder
+    private var serviceStrip: some View {
+        if vehicle.serviceStatus.isInService {
+            HStack(spacing: HUDTheme.space2) {
+                Image(systemName: "wrench.and.screwdriver.fill").font(.system(size: 13))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("OUT OF SERVICE").font(HUDTheme.label(.semibold)).tracking(1.5)
+                    if !vehicle.serviceStatus.reason.isEmpty {
+                        Text(vehicle.serviceStatus.reason)
+                            .font(HUDTheme.label()).foregroundStyle(HUDTheme.amber.opacity(0.85))
                     }
                 }
-                Spacer()
+                Spacer(minLength: 0)
             }
+            .foregroundStyle(HUDTheme.amber)
+            .padding(.horizontal, HUDTheme.space3).padding(.vertical, HUDTheme.space2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: HUDTheme.space2).fill(HUDTheme.amber.opacity(0.12)))
+            .padding(.top, HUDTheme.space1)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Out of service. \(vehicle.serviceStatus.reason)")
         }
     }
 
-    private var nextSteps: some View {
+    // MARK: B — Three primary metrics
+
+    private var primaryMetrics: some View {
+        HStack(spacing: HUDTheme.space3) {
+            metric("POWER", vehicle.currentHorsepowerEstimate.map { "\(Int($0))" } ?? "—", "whp")
+            metric("LATEST TEST", vehicle.latestPerformance?.summary ?? "—", "")
+            metric("LAST ACTIVITY",
+                   vehicle.lastActivityDate.map { $0.formatted(.dateTime.month(.abbreviated).day()) } ?? "—", "")
+        }
+    }
+
+    private func metric(_ label: String, _ value: String, _ unit: String) -> some View {
+        VStack(alignment: .leading, spacing: HUDTheme.space1) {
+            Text(label).font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textSecondary).tracking(1)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(value).font(HUDTheme.section()).foregroundStyle(HUDTheme.textPrimary)
+                if !unit.isEmpty { Text(unit).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary) }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(HUDTheme.space3)
+        .background(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.panelBackground))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label), \(value) \(unit)")
+    }
+
+    // MARK: C — Steward (top two + view all)
+
+    private var stewardPanel: some View {
         let observations = Steward.observe(vehicle)
         return HUDPanel(title: "Steward") {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: HUDTheme.space3) {
                 if observations.isEmpty {
-                    Text("Steward is watching. Nothing stands out yet — log parts, a dyno pull, or a documented total and observations will appear here.")
-                        .font(HUDTheme.monoFont(11))
-                        .foregroundStyle(HUDTheme.textSecondary)
+                    Text("Steward is watching. Nothing stands out yet.")
+                        .font(HUDTheme.body()).foregroundStyle(HUDTheme.textSecondary)
                 } else {
-                    ForEach(observations) { observation in
-                        VStack(alignment: .leading, spacing: 8) {
+                    ForEach(observations.prefix(2)) { observation in
+                        VStack(alignment: .leading, spacing: HUDTheme.space2) {
                             StewardObservationRow(observation)
                             resolveAction(for: observation)
                         }
                     }
-                }
-
-                Button { showingAsk = true } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "waveform")
-                        Text("ASK STEWARD")
-                            .font(HUDTheme.monoFont(11, weight: .semibold))
-                            .tracking(1.5)
+                    if observations.count > 2 {
+                        Button("View all \(observations.count)") { showingAllObservations = true }
+                            .buttonStyle(.secondaryAction)
                     }
-                    .foregroundStyle(HUDTheme.cyan)
-                    .padding(.horizontal, 14).padding(.vertical, 9)
-                    .frame(maxWidth: .infinity)
-                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(HUDTheme.cyan.opacity(0.4), lineWidth: 1))
                 }
-                .buttonStyle(.plain)
+                Button {
+                    showingAsk = true
+                } label: {
+                    Label("Ask Steward", systemImage: "waveform").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.primaryAction)
             }
         }
     }
 
-    /// Close the loop where the owner actually sees it: an undocumented gap can be resolved
-    /// inline — either the factory system is confirmed stock (→ a firm caution) or it's on the
-    /// car and just needs logging. No trip to the Specs tab required.
+    private var allObservationsSheet: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: HUDTheme.space4) {
+                Text("STEWARD").font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textSecondary).tracking(1.5)
+                ForEach(Steward.observe(vehicle)) { observation in
+                    VStack(alignment: .leading, spacing: HUDTheme.space2) {
+                        StewardObservationRow(observation)
+                        resolveAction(for: observation)
+                    }
+                }
+            }
+            .padding(HUDTheme.space4)
+        }
+        .background(HUDTheme.background)
+    }
+
+    /// Resolve an undocumented gap in place — compact, shared action styling.
     @ViewBuilder
     private func resolveAction(for observation: StewardObservation) -> some View {
         if let category = gapCategory(observation), vehicle.knowledge(of: category) == .undocumented {
-            Button {
+            Button("Confirm \(category.rawValue.lowercased()) is factory-stock") {
                 vehicle.confirmedStockSystems.insert(category)
-            } label: {
-                Label("Confirm \(category.rawValue.lowercased()) is factory-stock", systemImage: "checkmark.seal")
-                    .font(HUDTheme.monoFont(9, weight: .semibold))
-                    .foregroundStyle(HUDTheme.amber)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .overlay(Capsule().strokeBorder(HUDTheme.amber.opacity(0.4), lineWidth: 1))
             }
-            .buttonStyle(.plain)
-            .padding(.leading, 22)
+            .buttonStyle(.attentionAction)
+            .padding(.leading, HUDTheme.space4)
         }
     }
 
-    /// The part category a `gap.*` observation is about, if the record leaves it undocumented.
     private func gapCategory(_ observation: StewardObservation) -> PartCategory? {
         guard observation.ruleID.hasPrefix("gap.") else { return nil }
         return PartCategory(rawValue: String(observation.ruleID.dropFirst("gap.".count)))
     }
 
-    /// A synthesized read on whether the build's support scales with its power.
+    // MARK: synthesis — Build Assessment
+
     @ViewBuilder
     private var buildAssessment: some View {
         if let a = Steward.assess(vehicle) {
             HUDPanel(title: "Build Assessment") {
                 VStack(alignment: .leading, spacing: HUDTheme.space3) {
-                    Text(a.powerSummary)
-                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
-                    Text(a.headline)
-                        .font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
+                    Text(a.powerSummary).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                    Text(a.headline).font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                     Divider().overlay(HUDTheme.hairline)
                     ForEach(a.subsystems) { sub in
                         HStack(alignment: .top, spacing: HUDTheme.space3) {
-                            Circle().fill(assessmentColor(sub.status)).frame(width: 8, height: 8)
-                                .padding(.top, 4)
+                            Circle().fill(assessmentColor(sub.status)).frame(width: 8, height: 8).padding(.top, 4)
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(sub.label)
-                                    .font(HUDTheme.body()).foregroundStyle(HUDTheme.textPrimary)
+                                Text(sub.label).font(HUDTheme.body()).foregroundStyle(HUDTheme.textPrimary)
                                 Text("\(assessmentStatusText(sub.status)) · \(sub.role)")
                                     .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                             }
                             Spacer(minLength: 0)
                         }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("\(sub.label): \(assessmentStatusText(sub.status))")
                     }
                     Text(a.confidence.label.uppercased())
                         .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textTertiary).tracking(1)
@@ -211,7 +203,6 @@ struct VehicleDashboardView: View {
         case .undocumented: return HUDTheme.amber
         }
     }
-
     private func assessmentStatusText(_ s: BuildAssessment.Status) -> String {
         switch s {
         case .supported: return "Covered"
@@ -220,19 +211,20 @@ struct VehicleDashboardView: View {
         }
     }
 
-    /// Shown only while the car is out of service — what's left before it's back together.
+    // MARK: D — Rebuild workflow
+
     @ViewBuilder
     private var rebuildChecklist: some View {
         if vehicle.serviceStatus.isInService {
             HUDPanel(title: rebuildTitle) {
                 VStack(alignment: .leading, spacing: HUDTheme.space3) {
-                    // Iterate by value + mutate by id — never ForEach($binding) alongside
-                    // deletion/clearing, which invalidates positional bindings and crashes.
+                    subsectionHeader("WORK REQUIRED")
                     ForEach(vehicle.serviceStatus.checklist) { task in
                         HStack(alignment: .top, spacing: HUDTheme.space3) {
                             Button { toggleTask(task.id) } label: {
                                 Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
                                     .foregroundStyle(task.isDone ? HUDTheme.green : HUDTheme.textSecondary)
+                                    .frame(width: 24, height: 24)   // touch target
                             }
                             .buttonStyle(.plain)
                             Text(task.title)
@@ -240,100 +232,120 @@ struct VehicleDashboardView: View {
                                 .foregroundStyle(task.isDone ? HUDTheme.textSecondary : HUDTheme.textPrimary)
                                 .strikethrough(task.isDone, color: HUDTheme.textSecondary)
                             Spacer(minLength: 0)
-                            Button { deleteTask(task.id) } label: {
-                                Image(systemName: "minus.circle").foregroundStyle(HUDTheme.textTertiary)
-                            }
-                            .buttonStyle(.plain)
                         }
+                        .contentShape(Rectangle())
+                        .contextMenu { Button("Delete", role: .destructive) { deleteTask(task.id) } }
                     }
                     HStack(spacing: HUDTheme.space2) {
                         Image(systemName: "plus").foregroundStyle(HUDTheme.cyan).font(.system(size: 12))
                         TextField("Add a task…", text: $newTask)
-                            .font(HUDTheme.body())
-                            .textFieldStyle(.plain)
-                            .onSubmit(addTask)
+                            .font(HUDTheme.body()).textFieldStyle(.plain).onSubmit(addTask)
                     }
-                    .padding(.top, HUDTheme.space1)
 
                     let flagged = vehicle.partsFlaggedForRebuild
                     if !flagged.isEmpty {
                         Divider().overlay(HUDTheme.hairline)
-                        Text("FLAGGED FOR REPLACEMENT")
-                            .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.amber).tracking(1)
+                        subsectionHeader("PARTS TO INSPECT / REPLACE")
                         ForEach(flagged) { part in
-                            HStack(spacing: HUDTheme.space2) {
-                                Image(systemName: "exclamationmark.triangle")
-                                    .font(.system(size: 10)).foregroundStyle(HUDTheme.amber)
-                                Text(part.name)
-                                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                            Button { editingPart = part } label: {
+                                HStack(spacing: HUDTheme.space2) {
+                                    Image(systemName: "exclamationmark.triangle").font(.system(size: 11)).foregroundStyle(HUDTheme.amber)
+                                    Text(part.name).font(HUDTheme.body()).foregroundStyle(HUDTheme.textPrimary)
+                                    Spacer(minLength: 0)
+                                    Image(systemName: "chevron.right").font(.system(size: 10)).foregroundStyle(HUDTheme.textTertiary)
+                                }
+                                .frame(minHeight: 32)
                             }
+                            .buttonStyle(.plain)
                         }
                     }
 
-                    Button { attemptReturn() } label: {
-                        HStack(spacing: HUDTheme.space2) {
-                            Image(systemName: "checkmark.seal")
-                            Text("MARK BACK IN SERVICE")
-                                .font(HUDTheme.label(.semibold)).tracking(1.5)
-                        }
-                        .foregroundStyle(HUDTheme.green)
-                        .padding(.horizontal, HUDTheme.space3).padding(.vertical, 9)
-                        .frame(maxWidth: .infinity)
-                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(HUDTheme.green.opacity(0.45), lineWidth: 1))
+                    Button {
+                        attemptReturn()
+                    } label: {
+                        Label("Mark back in service", systemImage: "checkmark.seal").frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.top, HUDTheme.space2)
+                    .buttonStyle(.secondaryAction)
+                    .padding(.top, HUDTheme.space1)
                 }
             }
         }
+    }
+
+    private func subsectionHeader(_ text: String) -> some View {
+        Text(text).font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textTertiary).tracking(1)
+    }
+
+    private var rebuildTitle: String {
+        if let p = vehicle.serviceStatus.progressText { return "Rebuild · \(p)" }
+        return "Rebuild"
     }
 
     private func attemptReturn() {
         let remaining = vehicle.serviceStatus.checklist.count - vehicle.serviceStatus.completedCount
         if remaining > 0 { confirmingReturn = true } else { vehicle.markBackInService() }
     }
-
     private func toggleTask(_ id: UUID) {
         if let i = vehicle.serviceStatus.checklist.firstIndex(where: { $0.id == id }) {
             vehicle.serviceStatus.checklist[i].isDone.toggle()
         }
     }
-
-    private var rebuildTitle: String {
-        if let p = vehicle.serviceStatus.progressText { return "Rebuild Checklist · \(p)" }
-        return "Rebuild Checklist"
-    }
-
     private func addTask() {
         let t = newTask.trimmingCharacters(in: .whitespaces)
         guard !t.isEmpty else { return }
         vehicle.serviceStatus.checklist.append(ServiceTask(title: t))
         newTask = ""
     }
-
     private func deleteTask(_ id: UUID) {
         vehicle.serviceStatus.checklist.removeAll { $0.id == id }
     }
+
+    // MARK: E — Secondary detail
+
+    private var detailsPanel: some View {
+        HUDPanel(title: "Build Detail") {
+            VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                if !vehicle.engineDescription.isEmpty {
+                    StatReadout(label: "Engine", value: vehicle.engineDescription)
+                }
+                if !vehicle.drivetrainDescription.isEmpty {
+                    StatReadout(label: "Drivetrain", value: vehicle.drivetrainDescription)
+                }
+                HStack(spacing: HUDTheme.space5) {
+                    detailStat("\(vehicle.installedPartsCount)", "PARTS")
+                    if let torque = vehicle.performanceRecords.filter({ $0.type == .dyno }).sorted(by: { $0.date > $1.date }).first?.wheelTorque ?? vehicle.factoryTorque {
+                        detailStat("\(Int(torque))", "LB-FT")
+                    }
+                    if let ratio = vehicle.powerToWeight { detailStat(String(format: "%.1f", ratio), "LB/HP") }
+                }
+            }
+        }
+    }
+
+    private func detailStat(_ value: String, _ label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value).font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
+            Text(label).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary).tracking(1)
+        }
+    }
+
+    // MARK: F — Recent activity
 
     private var recentActivity: some View {
         HUDPanel(title: "Recent Activity") {
             let events = Array(vehicle.buildEvents.sorted { $0.date > $1.date }.prefix(5))
             if events.isEmpty {
                 Text("No build events logged yet.")
-                    .font(HUDTheme.monoFont(12))
-                    .foregroundStyle(HUDTheme.textSecondary)
+                    .font(HUDTheme.body()).foregroundStyle(HUDTheme.textSecondary)
             } else {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: HUDTheme.space2) {
                     ForEach(events) { event in
-                        HStack {
-                            Circle().fill(HUDTheme.cyan).frame(width: 6, height: 6)
-                            Text(event.title)
-                                .font(HUDTheme.monoFont(12, weight: .medium))
-                                .foregroundStyle(HUDTheme.textPrimary)
-                            Spacer()
+                        HStack(spacing: HUDTheme.space2) {
+                            Circle().fill(HUDTheme.textTertiary).frame(width: 5, height: 5)
+                            Text(event.title).font(HUDTheme.body()).foregroundStyle(HUDTheme.textPrimary)
+                            Spacer(minLength: 0)
                             Text(event.date.formatted(date: .abbreviated, time: .omitted))
-                                .font(HUDTheme.monoFont(10))
-                                .foregroundStyle(HUDTheme.textSecondary)
+                                .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                         }
                     }
                 }
