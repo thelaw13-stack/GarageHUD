@@ -40,3 +40,16 @@ final class MaintenanceTests: XCTestCase {
         XCTAssertEqual(back[0].maintenance.first?.intervalMonths, 24)
     }
 }
+
+extension MaintenanceTests {
+    func testMarkDoneLogsServiceHistory() {
+        var v = Vehicle(make: "Subaru", model: "Forester", year: 2008, garageSlot: 1)
+        let item = MaintenanceItem(name: "Oil change", intervalMonths: 6, lastServiced: monthsAgo(8))
+        v.maintenance = [item]
+        let eventsBefore = v.buildEvents.count
+        v.markMaintenanceDone(item.id)
+        XCTAssertEqual(v.buildEvents.count, eventsBefore + 1)
+        XCTAssertTrue(v.buildEvents.last!.title.contains("Serviced: Oil change"))
+        XCTAssertEqual(v.maintenanceDue(), .ok)   // clock reset
+    }
+}

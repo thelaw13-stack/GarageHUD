@@ -112,6 +112,14 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         maintenance = try c.decodeIfPresent([MaintenanceItem].self, forKey: .maintenance) ?? []
     }
 
+    /// Record a maintenance item as done: reset its interval and log it to the biography so the
+    /// service history is preserved (and shows on the timeline / in the export).
+    public mutating func markMaintenanceDone(_ id: UUID, on date: Date = .now) {
+        guard let i = maintenance.firstIndex(where: { $0.id == id }) else { return }
+        maintenance[i].lastServiced = date
+        buildEvents.append(BuildEvent(date: date, title: "Serviced: \(maintenance[i].name)"))
+    }
+
     /// The most-pressing maintenance state across all items (worst wins).
     public func maintenanceDue(now: Date = .now, calendar: Calendar = .current) -> MaintenanceItem.Due {
         let states = maintenance.map { $0.due(now: now, calendar: calendar) }

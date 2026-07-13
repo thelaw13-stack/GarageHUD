@@ -371,9 +371,7 @@ struct VehicleDashboardView: View {
     private func maintenanceStatusText(_ d: MaintenanceItem.Due) -> String {
         switch d { case .overdue: return "Overdue"; case .dueSoon: return "Due soon"; case .ok: return "OK" }
     }
-    private func markServiced(_ id: UUID) {
-        if let i = vehicle.maintenance.firstIndex(where: { $0.id == id }) { vehicle.maintenance[i].lastServiced = .now }
-    }
+    private func markServiced(_ id: UUID) { vehicle.markMaintenanceDone(id) }
     private func removeMaintenance(_ id: UUID) { vehicle.maintenance.removeAll { $0.id == id } }
     private func addMaintenance() {
         let n = newMaintName.trimmingCharacters(in: .whitespaces)

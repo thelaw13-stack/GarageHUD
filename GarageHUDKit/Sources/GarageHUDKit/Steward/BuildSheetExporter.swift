@@ -71,6 +71,20 @@ public enum BuildSheetExporter {
             }
         }
 
+        // Maintenance schedule
+        if !vehicle.maintenance.isEmpty {
+            header("Maintenance")
+            for item in vehicle.maintenance {
+                let status: String
+                switch item.due(now: context.now, calendar: context.calendar) {
+                case .overdue: status = "OVERDUE"
+                case .dueSoon: status = "due soon"
+                case .ok: status = "ok"
+                }
+                line("  \(item.name): \(status) — every \(item.intervalMonths) mo, due \(short(item.dueDate(context.calendar)))")
+            }
+        }
+
         // Timeline highlights
         let events = vehicle.buildEvents.sorted { $0.date > $1.date }.prefix(6)
         if !events.isEmpty {
