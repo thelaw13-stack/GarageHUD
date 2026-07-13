@@ -64,19 +64,33 @@ public final class GarageStore: ObservableObject {
         isLoading = true
         load()
         isLoading = false
-        // Seed when there's no *real* data yet — empty, or only stripped shells left behind by a
-        // stale cloud record. Once the seed's parts/records are present, this won't fire again.
-        let hasRealData = vehicles.contains { !$0.parts.isEmpty || !$0.performanceRecords.isEmpty }
-        if !hasRealData {
-            if seedFromBundle() {
-                didSeedThisLaunch = true
-            } else if vehicles.isEmpty {
-                seedDefaults()
-            }
+        if vehicles.isEmpty {
+            // Empty garage — seed the whole thing (or a placeholder if there's no bundle seed).
+            if seedFromBundle() { didSeedThisLaunch = true } else { seedDefaults() }
+        } else if mergeSeedIntoBareMatches() {
+            // A bare vehicle (e.g. a stripped cloud shell) matched a seed vehicle and was filled
+            // in place, keeping its id so sync doesn't fork it.
+            didSeedThisLaunch = true
         }
         if cloud != nil {
             Task { await initialSync() }
         }
+    }
+
+    /// Fills any *bare* existing vehicle (no parts logged) with a matching seed vehicle's build —
+    /// parts, records, events, notes, service status, and any missing specs — preserving the
+    /// existing vehicle's id and garage slot. Runs once: once parts are present it no longer
+    /// matches. Returns true if anything was merged.
+    @discardableResult
+    private func mergeSeedIntoBareMatches() -> Bool {
+        guard let seeds = loadSeedVehicles() else { return false }
+        var merged = false
+        for i in vehicles.indices where vehicles[i].parts.isEmpty {
+            guard let seed = seeds.first(where: { $0.identityMatches(vehicles[i]) }) else { continue }
+            vehicles[i] = vehicles[i].filledFromSeed(seed)
+            merged = true
+        }
+        return merged
     }
 
     // MARK: - CloudKit sync
@@ -218,16 +232,23 @@ public final class GarageStore: ObservableObject {
     /// bundled full-res photos into the image store so galleries work offline.
     @discardableResult
     private func seedFromBundle() -> Bool {
+        guard let seeded = loadSeedVehicles() else { return false }
+        vehicles = seeded
+        return true
+    }
+
+    /// Decodes the bundled `garage_seed.json` and restores any bundled full-res photos into the
+    /// image store. Returns nil if there's no seed. Shared by the empty-garage seed and the
+    /// bare-vehicle merge.
+    private func loadSeedVehicles() -> [Vehicle]? {
         guard let url = Bundle.main.url(forResource: "garage_seed", withExtension: "json"),
-              let data = try? Data(contentsOf: url) else { return false }
+              let data = try? Data(contentsOf: url) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        guard let seeded = try? decoder.decode([Vehicle].self, from: data), !seeded.isEmpty else { return false }
+        guard let seeded = try? decoder.decode([Vehicle].self, from: data), !seeded.isEmpty else { return nil }
 
         for vehicle in seeded {
-            let photos = vehicle.photos
-                + vehicle.parts.flatMap(\.photos)
-                + vehicle.buildEvents.flatMap(\.photos)
+            let photos = vehicle.photos + vehicle.parts.flatMap(\.photos) + vehicle.buildEvents.flatMap(\.photos)
             for photo in photos where !ImageStore.exists(filename: photo.filename) {
                 let base = (photo.filename as NSString).deletingPathExtension
                 let ext = (photo.filename as NSString).pathExtension
@@ -237,8 +258,7 @@ public final class GarageStore: ObservableObject {
                 }
             }
         }
-        vehicles = seeded
-        return true
+        return seeded
     }
 
     public static var defaultFileURL: URL {

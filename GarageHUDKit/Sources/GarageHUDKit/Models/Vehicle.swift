@@ -82,6 +82,36 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         nickname.isEmpty ? "\(year) \(make) \(model)" : nickname
     }
 
+    /// Same physical car, by make/model/year — used to fill a bare vehicle from a seed without
+    /// relying on ids (which differ between a stale cloud shell and the bundled seed).
+    public func identityMatches(_ other: Vehicle) -> Bool {
+        make.caseInsensitiveCompare(other.make) == .orderedSame
+            && model.caseInsensitiveCompare(other.model) == .orderedSame
+            && (year == other.year || other.year == 0)
+    }
+
+    /// Return this (bare) vehicle filled with a seed's build — parts, records, events, notes,
+    /// service status, and any missing specs — while keeping this vehicle's id and garage slot.
+    /// Existing content always wins; only gaps are filled.
+    public func filledFromSeed(_ seed: Vehicle) -> Vehicle {
+        var v = self
+        if v.parts.isEmpty { v.parts = seed.parts }
+        if v.performanceRecords.isEmpty { v.performanceRecords = seed.performanceRecords }
+        if v.buildEvents.isEmpty { v.buildEvents = seed.buildEvents }
+        if v.notes.isEmpty { v.notes = seed.notes }
+        if !v.serviceStatus.isInService { v.serviceStatus = seed.serviceStatus }
+        v.factoryHorsepower = v.factoryHorsepower ?? seed.factoryHorsepower
+        v.factoryTorque = v.factoryTorque ?? seed.factoryTorque
+        v.factoryWeightLbs = v.factoryWeightLbs ?? seed.factoryWeightLbs
+        if v.documentedTotalInvestment == nil { v.documentedTotalInvestment = seed.documentedTotalInvestment }
+        if v.drivetrain == .unknown { v.drivetrain = seed.drivetrain }
+        if v.trim.isEmpty { v.trim = seed.trim }
+        if v.nickname.isEmpty { v.nickname = seed.nickname }
+        if v.engineDescription.isEmpty { v.engineDescription = seed.engineDescription }
+        if v.drivetrainDescription.isEmpty { v.drivetrainDescription = seed.drivetrainDescription }
+        return v
+    }
+
     public var subtitle: String {
         "\(year) \(make) \(model)\(trim.isEmpty ? "" : " \(trim)")"
     }
