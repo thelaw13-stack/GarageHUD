@@ -16,6 +16,14 @@ public enum PartCategory: String, Codable, CaseIterable, Identifiable, Sendable 
     case uncategorized = "Uncategorized"
 
     public var id: String { rawValue }
+
+    /// Systems the owner can confirm as factory-stock (every real category except the catch-all).
+    /// Ordered mechanical-first; fueling/cooling/brakes additionally drive the Steward's support-gap
+    /// reasoning, the rest sharpen documentation completeness.
+    public static let stockConfirmable: [PartCategory] = [
+        .engine, .forcedInduction, .drivetrain, .fueling, .cooling,
+        .exhaust, .suspension, .brakes, .wheelsAndTires, .electronics, .exterior, .interior,
+    ]
 }
 
 public enum PartStatus: String, Codable, CaseIterable, Identifiable, Sendable {

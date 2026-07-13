@@ -189,9 +189,9 @@ struct SpecSheetView: View {
 
                 Text("CONFIRMED FACTORY-STOCK SYSTEMS")
                     .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.cyan).tracking(1)
-                Text("Confirm a system is still stock so Steward can tell a real gap from a merely undocumented one — a confirmed gap is a firm caution; an undocumented one stays weak.")
+                Text("Confirm a system is still stock so Steward can tell a real gap from a merely undocumented one — a confirmed gap is a firm caution, an undocumented one stays weak. Fuel, cooling and brakes also feed the Steward's support-gap reasoning; the rest sharpen the car's documentation.")
                     .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
-                ForEach([PartCategory.fueling, .cooling, .brakes]) { category in
+                ForEach(PartCategory.stockConfirmable) { category in
                     Toggle(isOn: stockBinding(category)) {
                         Text("\(category.rawValue) is factory-stock")
                             .font(HUDTheme.label())
