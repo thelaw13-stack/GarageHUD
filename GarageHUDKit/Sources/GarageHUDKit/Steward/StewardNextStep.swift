@@ -1,0 +1,86 @@
+import Foundation
+
+/// The single most logical thing to do next — the Constitution's "advises" pillar, kept honest.
+/// It doesn't invent goals; it prioritizes what the recorded data already says: an active
+/// rebuild first, then a safety/time-sensitive advisory, then a real support gap for the power,
+/// then a stale tune. Confidence is inherited from whichever fact drives it.
+public struct NextStep: Equatable, Sendable {
+    public let action: String
+    public let rationale: String
+    public let confidence: ConfidenceBand
+}
+
+public extension Steward {
+
+    static func nextStep(_ vehicle: Vehicle, context: StewardContext = .live) -> NextStep? {
+        // 1. A car that's apart: the immediate priority is getting it back together.
+        if vehicle.serviceStatus.isInService {
+            let flagged = vehicle.partsFlaggedForRebuild.count
+            let flaggedNote = flagged > 0 ? " · \(flagged) part\(flagged == 1 ? "" : "s") to inspect/replace" : ""
+            if let progress = vehicle.serviceStatus.progressText,
+               vehicle.serviceStatus.completedCount < vehicle.serviceStatus.checklist.count {
+                return NextStep(action: "Finish the \(reasonPhrase(vehicle.serviceStatus.reason))",
+                                rationale: "\(progress)\(flaggedNote).", confidence: .confirmed)
+            }
+            return NextStep(action: "Add rebuild tasks, or mark it back in service",
+                            rationale: "It's out of service with nothing left to track\(flaggedNote).",
+                            confidence: .strong)
+        }
+
+        let observations = observe(vehicle, context: context)
+
+        // 2. A safety- or time-sensitive advisory outranks build coherence.
+        if let advisory = observations.first(where: { $0.tone == .advisory }) {
+            return NextStep(action: advisoryAction(advisory),
+                            rationale: advisory.evidence, confidence: advisory.confidence)
+        }
+
+        // 3. The build's own open item — shore up support for the power it makes.
+        if let a = assess(vehicle),
+           let open = a.subsystems.first(where: { $0.status != .supported }) {
+            let verb = open.status == .openItem ? "Address" : "Document"
+            return NextStep(action: "\(verb) \(open.label.lowercased()) for this power level",
+                            rationale: "\(a.powerSummary); \(open.label.lowercased()) "
+                                + (open.status == .openItem ? "is the open item." : "isn't documented."),
+                            confidence: a.confidence)
+        }
+
+        // 4. A tune that no longer matches the hardware.
+        if let stale = observations.first(where: { $0.ruleID == "tune.stale" }) {
+            return NextStep(action: "Re-dyno the current setup",
+                            rationale: stale.evidence, confidence: stale.confidence)
+        }
+
+        // 5. Any remaining caution.
+        if let caution = observations.first(where: { $0.tone == .caution }) {
+            return NextStep(action: cautionAction(caution),
+                            rationale: caution.evidence, confidence: caution.confidence)
+        }
+
+        return nil
+    }
+
+    private static func reasonPhrase(_ reason: String) -> String {
+        let r = reason.lowercased()
+        if r.contains("teardown") { return "engine teardown" }
+        if r.contains("rebuild") { return "rebuild" }
+        return reason.isEmpty ? "service work" : reason.split(separator: "—").first.map { $0.trimmingCharacters(in: .whitespaces) } ?? "service work"
+    }
+
+    private static func advisoryAction(_ o: StewardObservation) -> String {
+        switch o.ruleID {
+        case "build.quiet": return "Log some activity — a note, a drive, or a fresh pull"
+        case "live.coolantCritical": return "Back off — coolant is at its limit"
+        default: return "Look into \(o.statement.lowercased())"
+        }
+    }
+
+    private static func cautionAction(_ o: StewardObservation) -> String {
+        if o.ruleID.hasPrefix("gap.") { return "Document or upgrade the \(o.ruleID.dropFirst(4).lowercased())" }
+        switch o.ruleID {
+        case "dyno.plateau": return "Investigate the dyno plateau"
+        case "sequence.fiAheadOfFueling": return "Confirm the fueling is caught up to the boost"
+        default: return "Address: \(o.statement.lowercased())"
+        }
+    }
+}

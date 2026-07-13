@@ -12,6 +12,7 @@ struct VehicleDashboardView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: HUDTheme.space4) {
                 identityAndStatus       // A — identity + current status
+                nextStep                // the single most useful thing to do next
                 primaryMetrics          // B — three primary metrics
                 stewardPanel            // C — required attention
                 buildAssessment         // synthesis
@@ -72,6 +73,25 @@ struct VehicleDashboardView: View {
             .padding(.top, HUDTheme.space1)
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Out of service. \(vehicle.serviceStatus.reason)")
+        }
+    }
+
+    // The Steward's single recommended next step, when there is one.
+    @ViewBuilder
+    private var nextStep: some View {
+        if let step = Steward.nextStep(vehicle) {
+            HUDPanel(title: "Next Step") {
+                VStack(alignment: .leading, spacing: HUDTheme.space2) {
+                    Text(step.action)
+                        .font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(step.rationale)
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Next step: \(step.action). \(step.rationale)")
+            }
         }
     }
 
