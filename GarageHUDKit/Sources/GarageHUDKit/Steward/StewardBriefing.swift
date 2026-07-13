@@ -22,6 +22,9 @@ public struct StewardBriefing: Equatable, Sendable {
     public let headline: String
     public let items: [StewardBriefingItem]
     public let spokenScript: String
+    /// One plain-English sentence on the fleet's service state ("Tundra is 1,000 mi overdue for
+    /// oil; 1 other car is due soon."), or nil when nothing is due. Surfaced above the observations.
+    public let serviceSummary: String?
 }
 
 /// Assembles the briefing. Pure and synchronous — the voice layer just speaks `spokenScript`,
@@ -57,16 +60,51 @@ public enum StewardBriefingBuilder {
         }
         let items = Array(ranked.prefix(limit))
 
+        // Only surface service state when parked — while moving, keep the briefing to live advisories.
+        let service = mode == .moving ? nil : serviceSummary(for: vehicles, context: context)
         return StewardBriefing(
-            headline: headline(for: items, vehicleCount: vehicles.count, mode: mode),
+            headline: headline(for: items, service: service, vehicleCount: vehicles.count, mode: mode),
             items: items,
-            spokenScript: script(for: items, mode: mode))
+            spokenScript: script(for: items, mode: mode, service: service),
+            serviceSummary: service)
+    }
+
+    /// A single plain-English sentence describing the most-pressing service across the fleet, plus a
+    /// tail counting any other cars that also need attention. Nil when nothing is due.
+    static func serviceSummary(for vehicles: [Vehicle], context: StewardContext = .live) -> String? {
+        guard let focus = FleetHealth.mostUrgentService(in: vehicles, now: context.now, calendar: context.calendar)
+        else { return nil }
+
+        let lead: String
+        switch focus.due {
+        case .overdue:
+            if let miles = focus.milesRemaining, miles <= 0 {
+                lead = "\(focus.vehicleName) is \((-miles).formatted(.number.grouping(.automatic))) mi overdue for \(focus.itemName.lowercased())"
+            } else {
+                lead = "\(focus.vehicleName) is overdue for \(focus.itemName.lowercased())"
+            }
+        case .dueSoon:
+            if let miles = focus.milesRemaining, miles > 0 {
+                lead = "\(focus.vehicleName) needs \(focus.itemName.lowercased()) in \(miles.formatted(.number.grouping(.automatic))) mi"
+            } else {
+                lead = "\(focus.vehicleName) is due soon for \(focus.itemName.lowercased())"
+            }
+        case .ok:
+            return nil
+        }
+
+        let due = FleetHealth.serviceDue(for: vehicles, now: context.now, calendar: context.calendar)
+        let others = max(0, due.total - 1)   // the focus car is one of the total
+        if others == 0 { return lead + "." }
+        return "\(lead); \(others) other car\(others == 1 ? "" : "s") also need\(others == 1 ? "s" : "") service."
     }
 
     // MARK: Copy
 
-    private static func headline(for items: [StewardBriefingItem], vehicleCount: Int, mode: DrivingMode) -> String {
+    private static func headline(for items: [StewardBriefingItem], service: String?,
+                                 vehicleCount: Int, mode: DrivingMode) -> String {
         guard !items.isEmpty else {
+            if service != nil { return "Service needs attention." }
             return mode == .moving ? "Nothing urgent." : "Nothing pressing across the garage."
         }
         let cautionsUp = items.filter { $0.observation.tone != .informational }.count
@@ -75,11 +113,12 @@ public enum StewardBriefingBuilder {
         return "\(cautionsUp) thing\(cautionsUp == 1 ? "" : "s") for your attention\(cars)."
     }
 
-    private static func script(for items: [StewardBriefingItem], mode: DrivingMode) -> String {
-        guard !items.isEmpty else {
+    private static func script(for items: [StewardBriefingItem], mode: DrivingMode, service: String?) -> String {
+        guard !items.isEmpty || service != nil else {
             return mode == .moving ? "Nothing urgent right now." : "Nothing pressing across the garage right now."
         }
         var lines: [String] = [mode == .moving ? "Quick briefing." : "Here's your garage briefing."]
+        if let service { lines.append(service) }   // service state leads the spoken briefing
         for item in items {
             let statement = firstSentence(item.observation.statement)
             let prefix = item.vehicleName.map { "On \($0), " } ?? ""

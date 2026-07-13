@@ -32,8 +32,23 @@ struct StewardBriefingView: View {
         let brief = briefing
         VStack(alignment: .leading, spacing: 16) {
             header(brief)
-            if brief.items.isEmpty {
+            if let service = brief.serviceSummary {
+                HStack(alignment: .top, spacing: HUDTheme.space2) {
+                    Image(systemName: "wrench.and.screwdriver.fill")
+                        .font(.system(size: 13)).foregroundStyle(HUDTheme.amber)
+                    Text(service).font(HUDTheme.body()).foregroundStyle(HUDTheme.textPrimary)
+                    Spacer(minLength: 0)
+                }
+                .padding(HUDTheme.space3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.panelBackground))
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Service: \(service)")
+            }
+            if brief.items.isEmpty && brief.serviceSummary == nil {
                 emptyState
+            } else if brief.items.isEmpty {
+                Spacer(minLength: 0)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
@@ -114,7 +129,7 @@ struct StewardBriefingView: View {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.primaryAction)
-        .disabled(brief.items.isEmpty)
+        .disabled(brief.items.isEmpty && brief.serviceSummary == nil)
         #else
         EmptyView()
         #endif
