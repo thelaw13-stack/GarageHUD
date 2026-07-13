@@ -123,6 +123,25 @@ struct SpecSheetView: View {
     private var stewardInputsPanel: some View {
         HUDPanel(title: "Steward Inputs") {
             VStack(alignment: .leading, spacing: 14) {
+                Toggle(isOn: Binding(
+                    get: { vehicle.serviceStatus.isInService },
+                    set: { on in
+                        vehicle.serviceStatus.isInService = on
+                        if on && vehicle.serviceStatus.since == nil { vehicle.serviceStatus.since = Date() }
+                    })) {
+                    Text("Out of service (teardown / rebuild)")
+                        .font(HUDTheme.monoFont(11))
+                }
+                .hudCheckboxStyle()
+                if vehicle.serviceStatus.isInService {
+                    TextField("Reason — e.g. engine teardown", text: $vehicle.serviceStatus.reason)
+                        .font(HUDTheme.monoFont(11))
+                        .textFieldStyle(.roundedBorder)
+                    Text("Steward won't flag an out-of-service car as neglected.")
+                        .font(HUDTheme.monoFont(9)).foregroundStyle(HUDTheme.textSecondary)
+                }
+                Divider().overlay(HUDTheme.hairline)
+
                 pickerRow("Drivetrain", selection: $vehicle.drivetrain,
                           options: Drivetrain.allCases, label: { $0.displayName })
                 Text("Used to estimate driveline loss so cost-per-hp compares wheel-to-wheel.")

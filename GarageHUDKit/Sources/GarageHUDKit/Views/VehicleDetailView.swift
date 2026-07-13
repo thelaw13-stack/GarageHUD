@@ -115,6 +115,14 @@ struct VehicleDetailView: View {
                 .font(HUDTheme.monoFont(11))
                 .foregroundStyle(HUDTheme.textSecondary)
             Spacer()
+            if vehicle.serviceStatus.isInService {
+                Text("IN SERVICE")
+                    .font(HUDTheme.monoFont(8, weight: .semibold))
+                    .foregroundStyle(HUDTheme.amber)
+                    .tracking(1)
+                    .padding(.horizontal, 6).padding(.vertical, 3)
+                    .overlay(Capsule().strokeBorder(HUDTheme.amber.opacity(0.5), lineWidth: 1))
+            }
             Text("BAY \(vehicle.garageSlot)")
                 .font(HUDTheme.monoFont(9, weight: .semibold))
                 .foregroundStyle(HUDTheme.textSecondary)

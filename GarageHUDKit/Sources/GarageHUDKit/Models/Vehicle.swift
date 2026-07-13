@@ -32,6 +32,9 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// A per-vehicle override of the live operating limits. When nil, a default envelope is
     /// derived from the record (see `OperatingEnvelope.default(for:)`).
     public var operatingEnvelopeOverride: OperatingEnvelope?
+    /// Whether the car is operational or intentionally out of service (teardown/rebuild). A car
+    /// that's apart on purpose isn't neglected, and the Steward treats it accordingly.
+    public var serviceStatus: ServiceStatus = .operational
     /// A known total-spend figure (e.g. from a build sheet's lump-sum total) that overrides
     /// the sum of itemized part costs when set — most real build sheets give one total, not
     /// per-part pricing, so summing `Part.cost` alone would just read as $0.

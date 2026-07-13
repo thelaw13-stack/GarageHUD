@@ -80,8 +80,21 @@ public enum Steward {
             }
         }
 
-        // 4. Surface when the biography goes quiet — the elapsed time is a confirmed fact.
-        if let last = vehicle.lastActivityDate {
+        // 3e. Out of service — a car that's apart on purpose. State it plainly, and it also
+        //     suppresses the "quiet build" scolding below (a teardown isn't neglect).
+        if vehicle.serviceStatus.isInService {
+            let sinceNote = vehicle.serviceStatus.since.map { " since \(short($0))" } ?? ""
+            let reason = vehicle.serviceStatus.reason.isEmpty ? "Out of service." : vehicle.serviceStatus.reason
+            out.append(StewardObservation(
+                ruleID: "service.inService", subjectID: vid,
+                statement: "This car is currently out of service.",
+                evidence: "\(reason)\(sinceNote).",
+                confidence: .confirmed, tone: .informational, provenance: .recorded))
+        }
+
+        // 4. Surface when the biography goes quiet — but never for a car that's deliberately in
+        //    service. The elapsed time is a confirmed fact.
+        if !vehicle.serviceStatus.isInService, let last = vehicle.lastActivityDate {
             let days = context.days(from: last, to: context.now)
             if days >= 90 {
                 out.append(StewardObservation(

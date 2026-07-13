@@ -25,8 +25,11 @@ public extension Steward {
                 confidence: .moderate, tone: .informational, provenance: .derived))
         }
 
-        // 2. Neglected car — a build gone quiet while another stays active.
-        let dated = vehicles.compactMap { v -> (Vehicle, Date)? in v.lastActivityDate.map { (v, $0) } }
+        // 2. Neglected car — a build gone quiet while another stays active. A car that's
+        //    intentionally out of service is not a neglect candidate.
+        let dated = vehicles
+            .filter { !$0.serviceStatus.isInService }
+            .compactMap { v -> (Vehicle, Date)? in v.lastActivityDate.map { (v, $0) } }
         if dated.count >= 2,
            let quietest = dated.min(by: { $0.1 < $1.1 }),
            let freshest = dated.max(by: { $0.1 < $1.1 }),
