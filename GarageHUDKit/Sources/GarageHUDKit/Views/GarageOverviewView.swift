@@ -8,6 +8,7 @@ struct GarageOverviewView: View {
     var onAddVehicle: (Int) -> Void
     var onUpgrade: () -> Void
     @State private var showingBriefing = false
+    @State private var showingCompare = false
 
     var body: some View {
         ScrollView {
@@ -21,6 +22,9 @@ struct GarageOverviewView: View {
         }
         .background(HUDTheme.background)
         .sheet(isPresented: $showingBriefing) { StewardBriefingView(vehicles: store.vehicles) }
+        .sheet(isPresented: $showingCompare) {
+            FleetComparisonView(vehicles: store.vehicles) { selectedVehicleID = $0 }
+        }
     }
 
     private var header: some View {
@@ -33,6 +37,14 @@ struct GarageOverviewView: View {
                 }
                 .buttonStyle(.secondaryAction)
                 .accessibilityLabel("Back up garage")
+
+                if store.vehicles.count >= 2 {
+                    Button { showingCompare = true } label: {
+                        Image(systemName: "square.grid.2x2")
+                    }
+                    .buttonStyle(.secondaryAction)
+                    .accessibilityLabel("Compare fleet")
+                }
 
                 Button { showingBriefing = true } label: {
                     Label("Brief me", systemImage: "text.bubble")
