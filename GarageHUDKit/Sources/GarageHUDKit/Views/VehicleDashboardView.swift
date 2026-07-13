@@ -233,21 +233,24 @@ struct VehicleDashboardView: View {
         .background(HUDTheme.background)
     }
 
-    /// A Steward note; when it has a concrete fix, the whole row is tappable and opens the options.
+    /// A Steward note with a small door on the right — "Resolve" when there's a concrete fix,
+    /// otherwise a quiet "Review" into the fuller evidence. Restrained, never a heroic button.
     @ViewBuilder
     private func observationRow(_ observation: StewardObservation) -> some View {
         let actionable = StewardResolution.isActionable(observation, in: vehicle)
-        HStack(alignment: .top, spacing: HUDTheme.space2) {
+        HStack(alignment: .top, spacing: HUDTheme.space3) {
             StewardObservationRow(observation)
+            Spacer(minLength: 0)
             if actionable {
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(HUDTheme.textTertiary)
-                    .padding(.top, 3)
+                Button("Resolve") { resolving = observation }
+                    .buttonStyle(.compactAction)
+                    .accessibilityHint("Ways to resolve this")
+            } else {
+                Button("Review") { showingAllObservations = true }
+                    .buttonStyle(.compactAction)
+                    .accessibilityHint("See the full evidence")
             }
         }
-        .contentShape(Rectangle())
-        .onTapGesture { if actionable { resolving = observation } }
-        .accessibilityHint(actionable ? "Double tap for ways to resolve this" : "")
     }
 
     @ViewBuilder
