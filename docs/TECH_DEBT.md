@@ -16,17 +16,18 @@ surfaced. And the hardware-dependent tests: real-adapter integration, ISO-TP/mul
 and live disconnect/reconnect against a device. See ADR-0004. Synthetic serial-transcript replay
 is done (`OBDTranscriptReplayTests`).
 
-## TD-005 — No schema versioning in persisted JSON
+## TD-005 — Schema versioning in persisted JSON — RESOLVED
 
-Priority: Medium
+Priority: Medium — done
 
-Current state: Migration relies on additive, default-valued fields; older `garage.json` decodes
-into newer models. Decode uses `try?` and falls back to `[]` on failure — silent.
+Resolution: The local file is a versioned `GaragePersistence.Document { schemaVersion, vehicles }`
+with a typed load result (`.ok` / `.migratedLegacy` / `.unreadable` / `.empty`). Legacy bare
+arrays migrate in place; a corrupt file is backed up to `garage-unreadable-<ts>.json` and
+surfaced via `GarageStore.loadFailureBackupURL` instead of being silently discarded. Covered by
+`GaragePersistenceVersioningTests`. See [PERSISTENCE.md](PERSISTENCE.md).
 
-Risk: A non-additive schema change would fail silently and read an empty garage.
-
-Next steps: Add a `schemaVersion`, a versioned decode/transform path, and a non-silent failure
-mode. See [PERSISTENCE.md](PERSISTENCE.md). Until then, additive-only changes are mandatory.
+Remaining: the CloudKit payload is still an unversioned bare array; version it too before any
+non-additive change to the synced graph.
 
 ## TD-006 — CI / strict concurrency — RESOLVED
 

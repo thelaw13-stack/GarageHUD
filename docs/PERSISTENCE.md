@@ -44,16 +44,19 @@ There is **no explicit schema version** in the JSON today. The working strategy 
 3. **Never remove** a field another device might still be writing until all devices have shipped
    the removal.
 
-### Known gap (tracked in TECH_DEBT)
+### Schema versioning (TD-005 — resolved)
 
-Decoding uses `try? decoder.decode([Vehicle].self, …)`, which returns `nil` on **any** decode
-failure. Combined with additive-only changes this is safe in practice, but it means a genuinely
-breaking change would fail **silently** rather than surfacing — the app would read an empty
-garage instead of erroring. Before any non-additive schema change, this needs:
+The local file is a versioned `GaragePersistence.Document { schemaVersion, vehicles }` (see
+`GaragePersistence.swift`). Loading is typed, not `try? … ?? []`:
 
-- a `schemaVersion` field in the persisted payload,
-- a versioned decode path (decode-old → transform → current), and
-- a non-silent failure mode (surface a load error / preserve the unreadable file) rather than
-  discarding to `[]`.
+- **current/forward** — a versioned document decodes to `.ok`; a *newer* `schemaVersion` still
+  decodes its vehicles (fields are additive), so a newer device's file isn't dropped;
+- **legacy** — a pre-versioning bare `[Vehicle]` array decodes to `.migratedLegacy` and is
+  rewritten in the versioned format in place;
+- **corrupt** — a present-but-unreadable file is `.unreadable`: it is copied to
+  `garage-unreadable-<timestamp>.json` and surfaced via `GarageStore.loadFailureBackupURL`
+  rather than silently discarded. The app then continues empty (restoring from iCloud or seed)
+  instead of overwriting the bad file blindly.
 
-Until that exists, treat rule 1 above as mandatory, not merely preferred.
+The **CloudKit** payload is still a bare `[Vehicle]` array (unchanged, for compatibility). A
+non-additive change there would need the same versioning applied to the cloud asset.

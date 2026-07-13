@@ -250,18 +250,41 @@ public final class GarageStore: ObservableObject {
         return dir.appendingPathComponent("garage.json")
     }
 
+    /// Set when a present-but-corrupt garage file was found on load. The unreadable bytes are
+    /// preserved at this URL rather than discarded, so nothing is lost silently.
+    @Published public private(set) var loadFailureBackupURL: URL?
+
     public func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        vehicles = (try? decoder.decode([Vehicle].self, from: data)) ?? []
+        switch GaragePersistence.decode(data) {
+        case .empty:
+            break
+        case .ok(let loaded):
+            vehicles = loaded
+        case .migratedLegacy(let loaded):
+            vehicles = loaded
+            // Rewrite in the versioned format in place (guard bypassed — this is migration).
+            if let migrated = try? GaragePersistence.encode(loaded) {
+                try? migrated.write(to: fileURL, options: .atomic)
+            }
+        case .unreadable:
+            // Never silently wipe. Preserve the unreadable file, then continue with an empty
+            // garage (which will restore from iCloud or the seed rather than overwrite blindly).
+            loadFailureBackupURL = backUpUnreadableFile(data)
+            vehicles = []
+        }
+    }
+
+    private func backUpUnreadableFile(_ data: Data) -> URL? {
+        let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+        let url = fileURL.deletingLastPathComponent().appendingPathComponent("garage-unreadable-\(stamp).json")
+        try? data.write(to: url, options: .atomic)
+        return url
     }
 
     public func save() {
         guard !isLoading else { return }
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        guard let data = try? encoder.encode(vehicles) else { return }
+        guard let data = try? GaragePersistence.encode(vehicles) else { return }
         try? data.write(to: fileURL, options: .atomic)
     }
 
