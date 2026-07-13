@@ -39,6 +39,15 @@ final class BriefingServiceSummaryTests: XCTestCase {
         let oil = MaintenanceItem(name: "Oil", intervalMonths: 6, lastServiced: monthsAgo(12))
         let brief = StewardBriefingBuilder.build(for: [car("S2K", [oil])])
         XCTAssertNotNil(brief.serviceSummary)
+        XCTAssertEqual(brief.headline, "1 thing for your attention.")
+        XCTAssertTrue(brief.spokenScript.contains("overdue for oil"), brief.spokenScript)
+    }
+
+    func testServiceOnlyBriefingHasServiceHeadline() {
+        let oil = MaintenanceItem(name: "Oil", intervalMonths: 6, lastServiced: monthsAgo(12))
+        let brief = StewardBriefingBuilder.build(for: [car("S2K", [oil])], limit: 0)
+        XCTAssertEqual(brief.items.count, 0)
+        XCTAssertNotNil(brief.serviceSummary)
         XCTAssertEqual(brief.headline, "Service needs attention.")
         XCTAssertTrue(brief.spokenScript.contains("overdue for oil"), brief.spokenScript)
     }
