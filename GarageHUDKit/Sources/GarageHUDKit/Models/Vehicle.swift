@@ -90,6 +90,11 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         parts.filter { $0.status == .installed }.count
     }
 
+    /// Parts flagged for attention in a rebuild — inspection, replacement, or reorder.
+    public var partsFlaggedForRebuild: [Part] {
+        parts.filter { $0.flaggedForRebuild && $0.status != .removed }
+    }
+
     public var wishlistPartsCount: Int {
         parts.filter { $0.status == .wishlist }.count
     }

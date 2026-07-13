@@ -206,6 +206,21 @@ struct VehicleDashboardView: View {
                     }
                     .padding(.top, HUDTheme.space1)
 
+                    let flagged = vehicle.partsFlaggedForRebuild
+                    if !flagged.isEmpty {
+                        Divider().overlay(HUDTheme.hairline)
+                        Text("FLAGGED FOR REPLACEMENT")
+                            .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.amber).tracking(1)
+                        ForEach(flagged) { part in
+                            HStack(spacing: HUDTheme.space2) {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .font(.system(size: 10)).foregroundStyle(HUDTheme.amber)
+                                Text(part.name)
+                                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                            }
+                        }
+                    }
+
                     Button { attemptReturn() } label: {
                         HStack(spacing: HUDTheme.space2) {
                             Image(systemName: "checkmark.seal")

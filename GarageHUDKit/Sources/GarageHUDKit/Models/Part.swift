@@ -13,6 +13,8 @@ public struct Part: Identifiable, Codable, Hashable, Sendable {
     public var vendor: String = ""
     public var notes: String = ""
     public var photos: [Photo] = []
+    /// Flagged for attention during a rebuild — needs inspection, replacement, or reorder.
+    public var flaggedForRebuild: Bool = false
 
     public init(
         id: UUID = UUID(),
@@ -26,7 +28,8 @@ public struct Part: Identifiable, Codable, Hashable, Sendable {
         cost: Double? = nil,
         vendor: String = "",
         notes: String = "",
-        photos: [Photo] = []
+        photos: [Photo] = [],
+        flaggedForRebuild: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -40,5 +43,6 @@ public struct Part: Identifiable, Codable, Hashable, Sendable {
         self.vendor = vendor
         self.notes = notes
         self.photos = photos
+        self.flaggedForRebuild = flaggedForRebuild
     }
 }

@@ -14,6 +14,7 @@ struct AddEditPartView: View {
     @State private var costText = ""
     @State private var vendor = ""
     @State private var notes = ""
+    @State private var flaggedForRebuild = false
 
     var body: some View {
         NavigationStack {
@@ -33,6 +34,9 @@ struct AddEditPartView: View {
                     DatePicker("Install Date", selection: $installDate, displayedComponents: .date)
                     TextField("Cost", text: $costText)
                     TextField("Vendor", text: $vendor)
+                }
+                Section("Rebuild") {
+                    Toggle("Flag for replacement / reorder", isOn: $flaggedForRebuild)
                 }
                 Section("Notes") {
                     TextEditor(text: $notes).frame(minHeight: 80)
@@ -65,6 +69,7 @@ struct AddEditPartView: View {
         costText = part.cost.map { String($0) } ?? ""
         vendor = part.vendor
         notes = part.notes
+        flaggedForRebuild = part.flaggedForRebuild
     }
 
     private func save() {
@@ -79,6 +84,7 @@ struct AddEditPartView: View {
         part.cost = cost
         part.vendor = vendor
         part.notes = notes
+        part.flaggedForRebuild = flaggedForRebuild
 
         if let index = vehicle.parts.firstIndex(where: { $0.id == part.id }) {
             vehicle.parts[index] = part
