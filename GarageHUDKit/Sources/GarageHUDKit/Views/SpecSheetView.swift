@@ -35,7 +35,7 @@ struct SpecSheetView: View {
                         TextField("Engine", text: $vehicle.engineDescription)
                         TextField("Drivetrain", text: $vehicle.drivetrainDescription)
                     }
-                    .font(HUDTheme.monoFont(12))
+                    .font(HUDTheme.body())
                     .textFieldStyle(.roundedBorder)
                     .padding(.top, 4)
                 }
@@ -48,7 +48,7 @@ struct SpecSheetView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         editableStat(label: "Documented Total", value: $vehicle.documentedTotalInvestment, unit: "USD", color: HUDTheme.textPrimary)
                         Text("Use this for a known lump-sum figure from a build sheet — it overrides the sum of itemized part costs below wherever \"Total Invested\" is shown.")
-                            .font(HUDTheme.monoFont(9))
+                            .font(HUDTheme.label())
                             .foregroundStyle(HUDTheme.textSecondary)
                         if vehicle.itemizedPartsCost > 0 {
                             StatReadout(label: "Itemized Parts Cost", value: vehicle.itemizedPartsCost.formatted(.currency(code: "USD")), color: HUDTheme.textSecondary)
@@ -79,7 +79,7 @@ struct SpecSheetView: View {
                     }
                     if vehicle.costPerHorsepowerGained == nil && vehicle.costPerInstalledPart == nil {
                         Text("Set a factory horsepower baseline, log a dyno pull, and a documented total to see cost-efficiency numbers here.")
-                            .font(HUDTheme.monoFont(10))
+                            .font(HUDTheme.label())
                             .foregroundStyle(HUDTheme.textSecondary)
                     }
                 }
@@ -100,10 +100,10 @@ struct SpecSheetView: View {
                     confirmingDelete = true
                 } label: {
                     Label("Delete Vehicle", systemImage: "trash")
-                        .font(HUDTheme.monoFont(12, weight: .semibold))
+                        .font(HUDTheme.body(.semibold))
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(HUDButtonStyle(color: HUDTheme.danger))
+                .buttonStyle(.destructiveAction)
                 .padding(.top, 8)
             }
             .padding(24)
@@ -142,7 +142,7 @@ struct SpecSheetView: View {
                         }
                     }
                     Text("Itemized part prices — undocumented-price parts aren't counted here.")
-                        .font(HUDTheme.monoFont(9)).foregroundStyle(HUDTheme.textSecondary)
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 }
             }
         }
@@ -160,22 +160,22 @@ struct SpecSheetView: View {
                         if on && vehicle.serviceStatus.since == nil { vehicle.serviceStatus.since = Date() }
                     })) {
                     Text("Out of service (teardown / rebuild)")
-                        .font(HUDTheme.monoFont(11))
+                        .font(HUDTheme.label())
                 }
                 .hudCheckboxStyle()
                 if vehicle.serviceStatus.isInService {
                     TextField("Reason — e.g. engine teardown", text: $vehicle.serviceStatus.reason)
-                        .font(HUDTheme.monoFont(11))
+                        .font(HUDTheme.label())
                         .textFieldStyle(.roundedBorder)
                     Text("Steward won't flag an out-of-service car as neglected.")
-                        .font(HUDTheme.monoFont(9)).foregroundStyle(HUDTheme.textSecondary)
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 }
                 Divider().overlay(HUDTheme.hairline)
 
                 pickerRow("Drivetrain", selection: $vehicle.drivetrain,
                           options: Drivetrain.allCases, label: { $0.displayName })
                 Text("Used to estimate driveline loss so cost-per-hp compares wheel-to-wheel.")
-                    .font(HUDTheme.monoFont(9)).foregroundStyle(HUDTheme.textSecondary)
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
 
                 pickerRow("Factory HP basis", selection: $vehicle.factoryPowerBasis,
                           options: PowerBasis.allCases, label: { $0.displayName })
@@ -183,13 +183,13 @@ struct SpecSheetView: View {
                 Divider().overlay(HUDTheme.cyan.opacity(0.2))
 
                 Text("CONFIRMED FACTORY-STOCK SYSTEMS")
-                    .font(HUDTheme.monoFont(9, weight: .semibold)).foregroundStyle(HUDTheme.cyan).tracking(1)
+                    .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.cyan).tracking(1)
                 Text("Confirm a system is still stock so Steward can tell a real gap from a merely undocumented one — a confirmed gap is a firm caution; an undocumented one stays weak.")
-                    .font(HUDTheme.monoFont(9)).foregroundStyle(HUDTheme.textSecondary)
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 ForEach([PartCategory.fueling, .cooling, .brakes]) { category in
                     Toggle(isOn: stockBinding(category)) {
                         Text("\(category.rawValue) is factory-stock")
-                            .font(HUDTheme.monoFont(11))
+                            .font(HUDTheme.label())
                     }
                     .hudCheckboxStyle()
                 }
@@ -201,7 +201,7 @@ struct SpecSheetView: View {
         HUDPanel(title: "Live Envelope & Tune") {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Per-vehicle live limits. Boost rules only apply where boost means something.")
-                    .font(HUDTheme.monoFont(9)).foregroundStyle(HUDTheme.textSecondary)
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 16)], spacing: 12) {
                     envField("Coolant caution °F", get: { $0.coolantCautionF }, set: { $0.coolantCautionF = $1 }, color: HUDTheme.amber)
                     envField("Coolant critical °F", get: { $0.coolantCriticalF }, set: { $0.coolantCriticalF = $1 }, color: HUDTheme.danger)
@@ -217,7 +217,7 @@ struct SpecSheetView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("RPM-BANDED BOOST TARGETS")
-                    .font(HUDTheme.monoFont(9, weight: .semibold)).foregroundStyle(HUDTheme.cyan).tracking(1)
+                    .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.cyan).tracking(1)
                 Spacer()
                 Button {
                     var env = vehicle.operatingEnvelope
@@ -229,7 +229,7 @@ struct SpecSheetView: View {
             let bands = vehicle.operatingEnvelope.expectedBoostByRPM
             if bands.isEmpty {
                 Text("Optional. Add rows to judge boost against your tune at each RPM instead of one threshold.")
-                    .font(HUDTheme.monoFont(9)).foregroundStyle(HUDTheme.textSecondary)
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
             } else {
                 ForEach(bands.indices, id: \.self) { i in
                     HStack(spacing: 6) {
@@ -240,7 +240,7 @@ struct SpecSheetView: View {
                         Button { removeBand(i) } label: { Image(systemName: "minus.circle").foregroundStyle(HUDTheme.danger) }
                             .buttonStyle(.plain)
                     }
-                    .font(HUDTheme.monoFont(11))
+                    .font(HUDTheme.label())
                 }
             }
         }
@@ -252,7 +252,7 @@ struct SpecSheetView: View {
     private func pickerRow<T: Hashable & Identifiable>(_ title: String, selection: Binding<T>,
                                                        options: [T], label: @escaping (T) -> String) -> some View {
         HStack {
-            Text(title.uppercased()).font(HUDTheme.monoFont(9)).foregroundStyle(HUDTheme.textSecondary)
+            Text(title.uppercased()).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
             Spacer()
             Picker(title, selection: selection) {
                 ForEach(options) { Text(label($0)).tag($0) }
@@ -277,24 +277,24 @@ struct SpecSheetView: View {
     private func envField(_ label: String, get: @escaping (OperatingEnvelope) -> Double,
                           set: @escaping (inout OperatingEnvelope, Double) -> Void, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label.uppercased()).font(HUDTheme.monoFont(9)).foregroundStyle(HUDTheme.textSecondary)
+            Text(label.uppercased()).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
             TextField("", text: Binding(
                 get: { String(format: "%g", get(vehicle.operatingEnvelope)) },
                 set: { var env = vehicle.operatingEnvelope; if let v = Double($0) { set(&env, v); vehicle.operatingEnvelopeOverride = env } }
             ))
-            .font(HUDTheme.monoFont(15, weight: .semibold)).foregroundStyle(color).textFieldStyle(.plain)
+            .font(HUDTheme.body(.semibold)).foregroundStyle(color).textFieldStyle(.plain)
         }
     }
 
     private func envOptField(_ label: String, get: @escaping (OperatingEnvelope) -> Double?,
                              set: @escaping (inout OperatingEnvelope, Double?) -> Void, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label.uppercased()).font(HUDTheme.monoFont(9)).foregroundStyle(HUDTheme.textSecondary)
+            Text(label.uppercased()).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
             TextField("—", text: Binding(
                 get: { get(vehicle.operatingEnvelope).map { String(format: "%g", $0) } ?? "" },
                 set: { var env = vehicle.operatingEnvelope; set(&env, Double($0)); vehicle.operatingEnvelopeOverride = env }
             ))
-            .font(HUDTheme.monoFont(15, weight: .semibold)).foregroundStyle(color).textFieldStyle(.plain)
+            .font(HUDTheme.body(.semibold)).foregroundStyle(color).textFieldStyle(.plain)
         }
     }
 
@@ -336,10 +336,10 @@ struct SpecSheetView: View {
     private func labeledField(_ label: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label.uppercased())
-                .font(HUDTheme.monoFont(9))
+                .font(HUDTheme.label())
                 .foregroundStyle(HUDTheme.textSecondary)
             TextField(label, text: text)
-                .font(HUDTheme.monoFont(13, weight: .medium))
+                .font(HUDTheme.body(.medium))
                 .foregroundStyle(HUDTheme.textPrimary)
                 .textFieldStyle(.roundedBorder)
         }
@@ -349,7 +349,7 @@ struct SpecSheetView: View {
     private var yearField: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("YEAR")
-                .font(HUDTheme.monoFont(9))
+                .font(HUDTheme.label())
                 .foregroundStyle(HUDTheme.textSecondary)
             Picker("Year", selection: $vehicle.year) {
                 ForEach(years, id: \.self) { Text(String($0)).tag($0) }
@@ -367,13 +367,13 @@ struct SpecSheetView: View {
     private func editableStat(label: String, value: Binding<Double?>, unit: String, color: Color = HUDTheme.cyan) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label.uppercased())
-                .font(HUDTheme.monoFont(9))
+                .font(HUDTheme.label())
                 .foregroundStyle(HUDTheme.textSecondary)
             TextField(unit, text: Binding(
                 get: { value.wrappedValue.map { String(format: "%g", $0) } ?? "" },
                 set: { value.wrappedValue = Double($0) }
             ))
-            .font(HUDTheme.monoFont(16, weight: .semibold))
+            .font(HUDTheme.body(.semibold))
             .foregroundStyle(color)
             .textFieldStyle(.plain)
         }

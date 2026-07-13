@@ -59,18 +59,18 @@ struct LiveSessionView: View {
                 Button(isRunning ? "Stop Session" : "Start Session") {
                     isRunning ? stop() : start()
                 }
-                .buttonStyle(HUDButtonStyle(color: isRunning ? HUDTheme.danger : HUDTheme.cyan))
+                .buttonStyle(ActionButton(isRunning ? .destructive : .primary))
 
                 if !captured.isEmpty && !isRunning {
                     Button("Save as Performance Record") { saveRecord() }
-                        .buttonStyle(HUDButtonStyle(color: HUDTheme.amber))
+                        .buttonStyle(.attentionAction)
                 }
             }
 
             Text(feed == .adapter
                  ? "Reading a Bluetooth ELM327 adapter (experimental). Only values decoded live are tagged MEASURED; anything that stops responding drops out rather than freezing."
                  : "Simulated feed — plausible wandering values, always tagged ESTIMATED.")
-                .font(HUDTheme.monoFont(10))
+                .font(HUDTheme.label())
                 .foregroundStyle(HUDTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
@@ -91,14 +91,14 @@ struct LiveSessionView: View {
     private var statusIndicator: some View {
         HStack(spacing: 8) {
             if isRunning {
-                Circle().fill(statusColor).frame(width: 8, height: 8).hudGlow(statusColor, radius: 3)
+                Circle().fill(statusColor).frame(width: 8, height: 8)
                 Text(statusText).foregroundStyle(statusColor)
             } else {
                 Circle().fill(HUDTheme.textSecondary).frame(width: 8, height: 8)
                 Text("SESSION IDLE").foregroundStyle(HUDTheme.textSecondary)
             }
         }
-        .font(HUDTheme.monoFont(11, weight: .semibold))
+        .font(HUDTheme.label(.semibold))
         .tracking(1.5)
     }
 

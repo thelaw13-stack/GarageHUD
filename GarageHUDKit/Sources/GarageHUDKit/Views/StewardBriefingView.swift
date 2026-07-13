@@ -41,12 +41,12 @@ struct StewardBriefingView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 if let name = item.vehicleName {
                                     Text(name.uppercased())
-                                        .font(HUDTheme.monoFont(9, weight: .semibold))
+                                        .font(HUDTheme.label(.semibold))
                                         .foregroundStyle(HUDTheme.cyan.opacity(0.8))
                                         .tracking(1)
                                 } else {
                                     Text("FLEET")
-                                        .font(HUDTheme.monoFont(9, weight: .semibold))
+                                        .font(HUDTheme.label(.semibold))
                                         .foregroundStyle(HUDTheme.amber.opacity(0.9))
                                         .tracking(1)
                                 }
@@ -74,11 +74,11 @@ struct StewardBriefingView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text("GARAGE BRIEFING")
-                    .font(HUDTheme.monoFont(13, weight: .bold))
-                    .foregroundStyle(HUDTheme.cyan)
+                    .font(HUDTheme.body(.bold))
+                    .foregroundStyle(HUDTheme.textSecondary)
                     .tracking(1.5)
                 Text(brief.headline)
-                    .font(HUDTheme.monoFont(11))
+                    .font(HUDTheme.label())
                     .foregroundStyle(HUDTheme.textSecondary)
             }
             Spacer()
@@ -96,7 +96,7 @@ struct StewardBriefingView: View {
                 .font(.system(size: 30))
                 .foregroundStyle(HUDTheme.cyan.opacity(0.7))
             Text("Nothing pressing across the garage. Steward is watching.")
-                .font(HUDTheme.monoFont(12))
+                .font(HUDTheme.body())
                 .foregroundStyle(HUDTheme.textSecondary)
                 .multilineTextAlignment(.center)
         }
@@ -106,19 +106,14 @@ struct StewardBriefingView: View {
     @ViewBuilder
     private func playBar(_ brief: StewardBriefing) -> some View {
         #if canImport(Speech)
-        Button { voice.isSpeaking ? voice.stopSpeaking() : voice.speak(brief.spokenScript) } label: {
-            HStack(spacing: 8) {
-                Image(systemName: voice.isSpeaking ? "stop.fill" : "play.fill")
-                Text(voice.isSpeaking ? "STOP" : "READ IT TO ME")
-                    .font(HUDTheme.monoFont(11, weight: .semibold))
-                    .tracking(1.5)
-            }
-            .foregroundStyle(HUDTheme.cyan)
-            .padding(.horizontal, 14).padding(.vertical, 10)
-            .frame(maxWidth: .infinity)
-            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(HUDTheme.cyan.opacity(0.4), lineWidth: 1))
+        Button {
+            voice.isSpeaking ? voice.stopSpeaking() : voice.speak(brief.spokenScript)
+        } label: {
+            Label(voice.isSpeaking ? "Stop" : "Read it to me",
+                  systemImage: voice.isSpeaking ? "stop.fill" : "play.fill")
+                .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.primaryAction)
         .disabled(brief.items.isEmpty)
         #else
         EmptyView()

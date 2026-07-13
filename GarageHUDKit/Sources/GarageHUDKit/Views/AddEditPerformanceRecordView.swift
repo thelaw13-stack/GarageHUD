@@ -65,7 +65,7 @@ struct AddEditPerformanceRecordView: View {
                 #if os(iOS)
                 .keyboardType(.decimalPad)
                 #endif
-            Text(unit).font(HUDTheme.monoFont(10)).foregroundStyle(HUDTheme.textSecondary)
+            Text(unit).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
         }
     }
 

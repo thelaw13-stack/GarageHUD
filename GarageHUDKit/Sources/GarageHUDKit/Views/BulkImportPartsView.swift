@@ -72,11 +72,11 @@ struct BulkImportPartsView: View {
     private var editorPane: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("PASTE BUILD SHEET")
-                .font(HUDTheme.monoFont(11, weight: .semibold))
-                .foregroundStyle(HUDTheme.cyan)
+                .font(HUDTheme.label(.semibold))
+                .foregroundStyle(HUDTheme.textSecondary)
                 .tracking(1.5)
             Text("Paste the whole thing — section headers, \"Label: value\" lines, plain bullets, alignment specs, everything. Lines that look like specs or narrative (not physical parts) are pre-unchecked on the right instead of being dropped, so you can still opt them in.")
-                .font(HUDTheme.monoFont(10))
+                .font(HUDTheme.label())
                 .foregroundStyle(HUDTheme.textSecondary)
             TextEditor(text: $pastedText)
                 .font(.system(size: 13, design: .monospaced))
@@ -86,14 +86,14 @@ struct BulkImportPartsView: View {
 
             Toggle(isOn: $keepFullSheetAsNote) {
                 Text("Keep the full pasted sheet as a note (nothing is lost)")
-                    .font(HUDTheme.monoFont(10))
+                    .font(HUDTheme.label())
             }
             .hudCheckboxStyle()
 
             if detectedInvestmentText != nil {
                 Toggle(isOn: $setDocumentedTotal) {
                     Text("Set documented total investment — \(detectedInvestmentText ?? "")")
-                        .font(HUDTheme.monoFont(10))
+                        .font(HUDTheme.label())
                         .foregroundStyle(HUDTheme.green)
                 }
                 .hudCheckboxStyle()
@@ -102,7 +102,7 @@ struct BulkImportPartsView: View {
             Picker("Unknown lines →", selection: $fallbackCategory) {
                 ForEach(PartCategory.allCases) { Text($0.rawValue).tag($0) }
             }
-            .font(HUDTheme.monoFont(10))
+            .font(HUDTheme.label())
         }
         .padding()
     }
@@ -111,19 +111,19 @@ struct BulkImportPartsView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("PREVIEW — \(includedCount) OF \(rows.count) PARTS")
-                    .font(HUDTheme.monoFont(11, weight: .semibold))
-                    .foregroundStyle(HUDTheme.cyan)
+                    .font(HUDTheme.label(.semibold))
+                    .foregroundStyle(HUDTheme.textSecondary)
                     .tracking(1.5)
                 Spacer()
                 if !rows.isEmpty {
-                    Button("All") { setAllIncluded(true) }.buttonStyle(.plain).font(HUDTheme.monoFont(10)).foregroundStyle(HUDTheme.cyan)
-                    Button("None") { setAllIncluded(false) }.buttonStyle(.plain).font(HUDTheme.monoFont(10)).foregroundStyle(HUDTheme.textSecondary)
+                    Button("All") { setAllIncluded(true) }.buttonStyle(.plain).font(HUDTheme.label()).foregroundStyle(HUDTheme.cyan)
+                    Button("None") { setAllIncluded(false) }.buttonStyle(.plain).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 }
             }
 
             if rows.isEmpty {
                 Text("Nothing parsed yet — paste a build sheet on the left.")
-                    .font(HUDTheme.monoFont(11))
+                    .font(HUDTheme.label())
                     .foregroundStyle(HUDTheme.textSecondary)
                 Spacer()
             } else {
@@ -136,11 +136,11 @@ struct BulkImportPartsView: View {
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(row.name)
-                                    .font(HUDTheme.monoFont(12, weight: .medium))
+                                    .font(HUDTheme.body(.medium))
                                     .foregroundStyle(HUDTheme.textPrimary)
                                 if !row.notes.isEmpty {
                                     Text(row.notes)
-                                        .font(HUDTheme.monoFont(10))
+                                        .font(HUDTheme.label())
                                         .foregroundStyle(HUDTheme.textSecondary)
                                         .lineLimit(2)
                                 }
@@ -148,7 +148,7 @@ struct BulkImportPartsView: View {
                                     ForEach(PartCategory.allCases) { Text($0.rawValue).tag($0) }
                                 }
                                 .labelsHidden()
-                                .font(HUDTheme.monoFont(9))
+                                .font(HUDTheme.label())
                                 #if os(macOS)
                                 .pickerStyle(.menu)
                                 .frame(maxWidth: 180)

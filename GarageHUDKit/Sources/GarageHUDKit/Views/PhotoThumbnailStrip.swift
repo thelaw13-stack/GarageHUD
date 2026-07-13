@@ -20,7 +20,7 @@ struct PhotoAddButton: View {
         Button(action: pickFiles) {
             Label("Add Photos", systemImage: "plus")
         }
-        .buttonStyle(HUDButtonStyle())
+        .buttonStyle(.primaryAction)
         #else
         PhotosPicker(selection: $selection, matching: .images) {
             Label("Add Photos", systemImage: "plus")

@@ -35,7 +35,7 @@ struct GarageListView: View {
                 if !query.isEmpty {
                     Section("RESULTS") {
                         if searchResults.isEmpty {
-                            Text("No matches").font(HUDTheme.monoFont(11)).foregroundStyle(HUDTheme.textSecondary)
+                            Text("No matches").font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                         } else {
                             ForEach(searchResults) { result in
                                 Button {
@@ -43,9 +43,9 @@ struct GarageListView: View {
                                     query = ""
                                 } label: {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(result.title).font(HUDTheme.monoFont(12, weight: .medium)).foregroundStyle(HUDTheme.textPrimary)
+                                        Text(result.title).font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
                                         Text("\(result.kind) · \(result.vehicleName)")
-                                            .font(HUDTheme.monoFont(9)).foregroundStyle(HUDTheme.textSecondary)
+                                            .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                                     }
                                 }
                                 .buttonStyle(.plain)
@@ -75,7 +75,7 @@ struct GarageListView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "lock.open").foregroundStyle(HUDTheme.amber)
                                 Text("UNLOCK 4 MORE BAYS")
-                                    .font(HUDTheme.monoFont(11, weight: .semibold))
+                                    .font(HUDTheme.label(.semibold))
                                     .foregroundStyle(HUDTheme.amber)
                             }
                             .padding(.vertical, 6)
@@ -84,7 +84,7 @@ struct GarageListView: View {
                     }
                 } header: {
                     Text("\(maxSlots)-BAY GARAGE")
-                        .font(HUDTheme.monoFont(10, weight: .semibold))
+                        .font(HUDTheme.label(.semibold))
                         .foregroundStyle(HUDTheme.textSecondary)
                         .tracking(1.5)
                 }
@@ -98,11 +98,11 @@ struct GarageListView: View {
     private var commandBar: some View {
         HStack(spacing: 8) {
             Text(">")
-                .font(HUDTheme.monoFont(13, weight: .bold))
+                .font(HUDTheme.body(.bold))
                 .foregroundStyle(HUDTheme.cyan)
             TextField("search parts, notes, events...", text: $query)
                 .textFieldStyle(.plain)
-                .font(HUDTheme.monoFont(12))
+                .font(HUDTheme.body())
                 .foregroundStyle(HUDTheme.textPrimary)
             SyncStatusBadge(status: store.syncStatus)
         }
@@ -169,10 +169,10 @@ private struct GarageSlotRow: View {
                 .frame(width: 6, height: 6)
             VStack(alignment: .leading, spacing: 4) {
                 Text(vehicle.displayName)
-                    .font(HUDTheme.monoFont(13, weight: .semibold))
+                    .font(HUDTheme.body(.semibold))
                     .foregroundStyle(isSelected ? HUDTheme.cyan : HUDTheme.textPrimary)
                 Text(vehicle.subtitle)
-                    .font(HUDTheme.monoFont(10))
+                    .font(HUDTheme.label())
                     .foregroundStyle(HUDTheme.textSecondary)
             }
             Spacer(minLength: 0)
@@ -195,7 +195,7 @@ private struct EmptySlotRow: View {
             Image(systemName: "plus.circle")
                 .foregroundStyle(HUDTheme.cyan.opacity(0.6))
             Text("ADD VEHICLE — BAY \(slot)")
-                .font(HUDTheme.monoFont(11, weight: .medium))
+                .font(HUDTheme.label(.medium))
                 .foregroundStyle(HUDTheme.textSecondary)
         }
         .padding(.vertical, 6)

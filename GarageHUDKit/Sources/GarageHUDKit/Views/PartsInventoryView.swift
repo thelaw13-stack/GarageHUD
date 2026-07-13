@@ -47,7 +47,7 @@ struct PartsInventoryView: View {
                         ForEach(groupedParts, id: \.0) { category, parts in
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("\(category.rawValue.uppercased()) (\(parts.count))")
-                                    .font(HUDTheme.monoFont(10, weight: .semibold))
+                                    .font(HUDTheme.label(.semibold))
                                     .foregroundStyle(HUDTheme.amber)
                                     .tracking(1.5)
                                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 12)], spacing: 12) {
@@ -90,7 +90,7 @@ struct PartsInventoryView: View {
                     .foregroundStyle(HUDTheme.textSecondary)
                 TextField("Search parts by name, brand, or notes...", text: $searchText)
                     .textFieldStyle(.plain)
-                    .font(HUDTheme.monoFont(12))
+                    .font(HUDTheme.body())
             }
             .padding(8)
             .background(HUDTheme.panelBackground)
@@ -109,7 +109,7 @@ struct PartsInventoryView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                         Text(filterStatus?.rawValue ?? "All Parts")
-                            .font(HUDTheme.monoFont(11, weight: .medium))
+                            .font(HUDTheme.label(.medium))
                     }
                     .foregroundStyle(HUDTheme.cyan)
                     .padding(.horizontal, 10).padding(.vertical, 7)
@@ -121,7 +121,7 @@ struct PartsInventoryView: View {
                 } label: {
                     Label("Paste Build Sheet", systemImage: "doc.text.below.ecg")
                 }
-                .buttonStyle(HUDButtonStyle(color: HUDTheme.amber))
+                .buttonStyle(.attentionAction)
             }
         }
         .padding([.horizontal, .top])
@@ -152,7 +152,7 @@ struct PartsInventoryView: View {
                 .foregroundStyle(color)
                 .fixedSize()
             Text(label)
-                .font(HUDTheme.monoFont(9))
+                .font(HUDTheme.label())
                 .foregroundStyle(HUDTheme.textSecondary)
                 .tracking(1)
                 .fixedSize()
@@ -164,15 +164,15 @@ struct PartsInventoryView: View {
             Image(systemName: "plus.circle").foregroundStyle(HUDTheme.cyan)
             TextField("Quick add a part by name, press Return...", text: $quickAddName)
                 .textFieldStyle(.plain)
-                .font(HUDTheme.monoFont(12))
+                .font(HUDTheme.body())
                 .onSubmit(quickAdd)
             if !quickAddName.isEmpty {
                 Text("→ \(detectedQuickAddCategory.rawValue)")
-                    .font(HUDTheme.monoFont(10))
+                    .font(HUDTheme.label())
                     .foregroundStyle(detectedQuickAddCategory == .uncategorized ? HUDTheme.textSecondary : HUDTheme.amber)
             }
             Button("Add", action: quickAdd)
-                .buttonStyle(HUDButtonStyle())
+                .buttonStyle(.primaryAction)
                 .disabled(quickAddName.isEmpty)
             Divider().frame(height: 16)
             Button {
@@ -181,7 +181,7 @@ struct PartsInventoryView: View {
                 Label("Full Form", systemImage: "list.bullet.rectangle")
             }
             .buttonStyle(.plain)
-            .font(HUDTheme.monoFont(10))
+            .font(HUDTheme.label())
             .foregroundStyle(HUDTheme.textSecondary)
         }
         .padding(8)
@@ -210,7 +210,7 @@ struct PartsInventoryView: View {
                 .font(.system(size: 32))
                 .foregroundStyle(HUDTheme.textSecondary)
             Text(searchText.isEmpty ? "No parts logged yet" : "No parts match \"\(searchText)\"")
-                .font(HUDTheme.monoFont(13))
+                .font(HUDTheme.body())
                 .foregroundStyle(HUDTheme.textSecondary)
             Spacer()
         }
@@ -234,11 +234,11 @@ private struct PartCard: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(part.name)
-                        .font(HUDTheme.monoFont(14, weight: .bold))
+                        .font(HUDTheme.body(.bold))
                         .foregroundStyle(HUDTheme.textPrimary)
                     if !part.brand.isEmpty || !part.partNumber.isEmpty {
                         Text([part.brand, part.partNumber].filter { !$0.isEmpty }.joined(separator: " · "))
-                            .font(HUDTheme.monoFont(11))
+                            .font(HUDTheme.label())
                             .foregroundStyle(HUDTheme.cyan)
                     }
                 }
@@ -246,17 +246,17 @@ private struct PartCard: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     if let cost = part.cost {
                         Text(cost.formatted(.currency(code: "USD")))
-                            .font(HUDTheme.monoFont(17, weight: .bold))
+                            .font(HUDTheme.section(.bold))
                             .foregroundStyle(HUDTheme.green)
                     } else {
                         Text("no cost")
-                            .font(HUDTheme.monoFont(10))
+                            .font(HUDTheme.label())
                             .foregroundStyle(HUDTheme.textSecondary.opacity(0.6))
                     }
                     HStack(spacing: 4) {
                         Circle().fill(statusColor).frame(width: 6, height: 6)
                         Text(part.status.rawValue.uppercased())
-                            .font(HUDTheme.monoFont(9, weight: .medium))
+                            .font(HUDTheme.label(.medium))
                             .foregroundStyle(HUDTheme.textSecondary)
                     }
                 }
@@ -264,7 +264,7 @@ private struct PartCard: View {
 
             if !part.notes.isEmpty {
                 Text(part.notes)
-                    .font(HUDTheme.monoFont(11.5))
+                    .font(HUDTheme.label())
                     .foregroundStyle(HUDTheme.textSecondary)
                     .lineLimit(3)
             }

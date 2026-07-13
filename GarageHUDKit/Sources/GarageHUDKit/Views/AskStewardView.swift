@@ -68,15 +68,15 @@ struct AskStewardView: View {
             HStack(spacing: 8) {
                 Image(systemName: "waveform").foregroundStyle(HUDTheme.cyan)
                 Text("ASK STEWARD")
-                    .font(HUDTheme.monoFont(13, weight: .bold))
-                    .foregroundStyle(HUDTheme.cyan)
+                    .font(HUDTheme.body(.bold))
+                    .foregroundStyle(HUDTheme.textSecondary)
                     .tracking(1.5)
             }
             Spacer()
             #if canImport(Speech)
             if voice.isSpeaking {
                 Label("speaking", systemImage: "speaker.wave.2.fill")
-                    .font(HUDTheme.monoFont(9, weight: .semibold))
+                    .font(HUDTheme.label(.semibold))
                     .foregroundStyle(HUDTheme.cyan)
             }
             #endif
@@ -93,17 +93,17 @@ struct AskStewardView: View {
             VStack(alignment: .leading, spacing: 10) {
                 if !question.isEmpty {
                     Text("“\(question)”")
-                        .font(HUDTheme.monoFont(11))
+                        .font(HUDTheme.label())
                         .foregroundStyle(HUDTheme.textSecondary)
                 }
                 Text(reply?.text ?? "")
-                    .font(HUDTheme.monoFont(15, weight: .medium))
+                    .font(HUDTheme.body(.medium))
                     .foregroundStyle(HUDTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 if let confidence = reply?.confidence {
                     Text(confidence.label)
-                        .font(HUDTheme.monoFont(9, weight: .semibold))
-                        .foregroundStyle(HUDTheme.cyan)
+                        .font(HUDTheme.label(.semibold))
+                        .foregroundStyle(HUDTheme.textSecondary)
                         .tracking(0.5)
                 }
             }
@@ -114,14 +114,7 @@ struct AskStewardView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(quickAsks, id: \.self) { q in
-                    Button { ask(q) } label: {
-                        Text(q)
-                            .font(HUDTheme.monoFont(10, weight: .medium))
-                            .foregroundStyle(HUDTheme.cyan)
-                            .padding(.horizontal, 10).padding(.vertical, 6)
-                            .overlay(Capsule().strokeBorder(HUDTheme.cyan.opacity(0.4), lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
+                    Button(q) { ask(q) }.buttonStyle(.compactAction)
                 }
             }
         }
@@ -133,11 +126,11 @@ struct AskStewardView: View {
             micButton
             #endif
             Text("Steward…")
-                .font(HUDTheme.monoFont(11, weight: .semibold))
+                .font(HUDTheme.label(.semibold))
                 .foregroundStyle(HUDTheme.cyan)
             TextField(micPlaceholder, text: $input)
                 .textFieldStyle(.plain)
-                .font(HUDTheme.monoFont(13))
+                .font(HUDTheme.body())
                 .onSubmit { ask(input) }
             Button { ask(input) } label: {
                 Image(systemName: "arrow.up.circle.fill").foregroundStyle(HUDTheme.cyan)
@@ -147,7 +140,7 @@ struct AskStewardView: View {
         }
         .padding(10)
         .background(HUDTheme.panelBackground)
-        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(HUDTheme.cyan.opacity(0.3), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: HUDTheme.space2).strokeBorder(HUDTheme.hairline, lineWidth: 1))
     }
 
     private var micPlaceholder: String {

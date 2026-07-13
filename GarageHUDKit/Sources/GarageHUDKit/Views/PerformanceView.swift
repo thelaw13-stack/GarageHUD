@@ -66,8 +66,8 @@ struct PerformanceView: View {
     private var header: some View {
         HStack {
             Text("PERFORMANCE")
-                .font(HUDTheme.monoFont(11, weight: .semibold))
-                .foregroundStyle(HUDTheme.cyan)
+                .font(HUDTheme.label(.semibold))
+                .foregroundStyle(HUDTheme.textSecondary)
                 .tracking(2)
             Spacer()
             Button {
@@ -75,7 +75,7 @@ struct PerformanceView: View {
             } label: {
                 Label("Add Record", systemImage: "plus")
             }
-            .buttonStyle(HUDButtonStyle())
+            .buttonStyle(.primaryAction)
         }
         .padding()
     }
@@ -114,19 +114,19 @@ struct PerformanceView: View {
     private func heroTile(_ label: String, value: String, unit: String, secondary: String?, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
-                .font(HUDTheme.monoFont(9, weight: .semibold))
+                .font(HUDTheme.label(.semibold))
                 .foregroundStyle(HUDTheme.textSecondary)
                 .tracking(1.5)
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(value)
-                    .font(HUDTheme.monoFont(30, weight: .bold))
+                    .font(HUDTheme.title(.bold))
                     .foregroundStyle(color)
                 Text(unit)
-                    .font(HUDTheme.monoFont(12))
+                    .font(HUDTheme.body())
                     .foregroundStyle(HUDTheme.textSecondary)
             }
             Text(secondary ?? " ")
-                .font(HUDTheme.monoFont(10))
+                .font(HUDTheme.label())
                 .foregroundStyle(HUDTheme.textSecondary)
         }
         .padding(14)
@@ -150,7 +150,7 @@ struct PerformanceView: View {
     private func filterChip(_ label: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(HUDTheme.monoFont(10, weight: .medium))
+                .font(HUDTheme.label(.medium))
                 .foregroundStyle(isSelected ? HUDTheme.background : HUDTheme.textSecondary)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
@@ -190,13 +190,13 @@ struct PerformanceView: View {
                 .font(.system(size: 32))
                 .foregroundStyle(HUDTheme.textSecondary)
             Text("No performance records yet")
-                .font(HUDTheme.monoFont(13))
+                .font(HUDTheme.body())
                 .foregroundStyle(HUDTheme.textSecondary)
             Text("Log a dyno pull, 1/4 mile, 0-60, or lap time.")
-                .font(HUDTheme.monoFont(11))
+                .font(HUDTheme.label())
                 .foregroundStyle(HUDTheme.textSecondary.opacity(0.7))
             Button { showingAdd = true } label: { Label("Add First Record", systemImage: "plus") }
-                .buttonStyle(HUDButtonStyle())
+                .buttonStyle(.primaryAction)
                 .padding(.top, 4)
             Spacer()
         }
@@ -212,45 +212,45 @@ private struct RecordCard: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(record.type.rawValue.uppercased())
-                    .font(HUDTheme.monoFont(9, weight: .semibold))
-                    .foregroundStyle(HUDTheme.cyan)
+                    .font(HUDTheme.label(.semibold))
+                    .foregroundStyle(HUDTheme.textSecondary)
                     .tracking(1.5)
                 Spacer()
                 if isPersonalBest {
                     Label("PR", systemImage: "trophy.fill")
-                        .font(HUDTheme.monoFont(8, weight: .bold))
+                        .font(HUDTheme.label(.bold))
                         .foregroundStyle(HUDTheme.amber)
                         .labelStyle(.titleAndIcon)
                 }
             }
 
             Text(record.summary)
-                .font(HUDTheme.monoFont(20, weight: .bold))
+                .font(HUDTheme.section(.bold))
                 .foregroundStyle(record.isFromLiveSession ? HUDTheme.amber : HUDTheme.textPrimary)
 
             // Surface the second dyno metric that summary alone hides.
             ForEach(secondaryMetrics, id: \.self) { line in
                 Text(line)
-                    .font(HUDTheme.monoFont(10))
+                    .font(HUDTheme.label())
                     .foregroundStyle(HUDTheme.textSecondary)
             }
 
             HStack {
                 if !record.location.isEmpty {
                     Text(record.location)
-                        .font(HUDTheme.monoFont(10))
+                        .font(HUDTheme.label())
                         .foregroundStyle(HUDTheme.textSecondary)
                         .lineLimit(1)
                     Spacer()
                 }
                 Text(record.date.formatted(date: .abbreviated, time: .omitted))
-                    .font(HUDTheme.monoFont(9))
+                    .font(HUDTheme.label())
                     .foregroundStyle(HUDTheme.textSecondary)
             }
 
             if record.isFromLiveSession {
                 Text("\(record.capturedPoints.count) live samples captured")
-                    .font(HUDTheme.monoFont(9))
+                    .font(HUDTheme.label())
                     .foregroundStyle(HUDTheme.amber)
             }
         }

@@ -13,8 +13,8 @@ struct NotesView: View {
         VStack(spacing: 0) {
             HStack {
                 Text("NOTES")
-                    .font(HUDTheme.monoFont(11, weight: .semibold))
-                    .foregroundStyle(HUDTheme.cyan)
+                    .font(HUDTheme.label(.semibold))
+                    .foregroundStyle(HUDTheme.textSecondary)
                     .tracking(2)
                 Spacer()
                 Button {
@@ -22,14 +22,14 @@ struct NotesView: View {
                 } label: {
                     Label("New Note", systemImage: "plus")
                 }
-                .buttonStyle(HUDButtonStyle())
+                .buttonStyle(.primaryAction)
             }
             .padding()
 
             if notes.isEmpty {
                 Spacer()
                 Text("No notes yet.")
-                    .font(HUDTheme.monoFont(12))
+                    .font(HUDTheme.body())
                     .foregroundStyle(HUDTheme.textSecondary)
                 Spacer()
             } else {
@@ -38,16 +38,16 @@ struct NotesView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
                                 Text(note.title)
-                                    .font(HUDTheme.monoFont(13, weight: .medium))
+                                    .font(HUDTheme.body(.medium))
                                     .foregroundStyle(HUDTheme.textPrimary)
                                 Spacer()
                                 Text(note.date.formatted(date: .abbreviated, time: .omitted))
-                                    .font(HUDTheme.monoFont(9))
+                                    .font(HUDTheme.label())
                                     .foregroundStyle(HUDTheme.textSecondary)
                             }
                             if !note.body.isEmpty {
                                 Text(note.body)
-                                    .font(HUDTheme.monoFont(11))
+                                    .font(HUDTheme.label())
                                     .foregroundStyle(HUDTheme.textSecondary)
                             }
                         }

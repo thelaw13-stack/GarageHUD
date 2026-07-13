@@ -17,8 +17,8 @@ struct GalleryView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("GALLERY")
-                        .font(HUDTheme.monoFont(11, weight: .semibold))
-                        .foregroundStyle(HUDTheme.cyan)
+                        .font(HUDTheme.label(.semibold))
+                        .foregroundStyle(HUDTheme.textSecondary)
                         .tracking(2)
                     Spacer()
                     PhotoAddButton { data in addPhoto(data) }
@@ -31,7 +31,7 @@ struct GalleryView: View {
                         Image(systemName: "photo.on.rectangle.angled")
                             .font(.system(size: 30)).foregroundStyle(HUDTheme.textSecondary)
                         Text("No photos yet — tap Add Photos above.")
-                            .font(HUDTheme.monoFont(12))
+                            .font(HUDTheme.body())
                             .foregroundStyle(HUDTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
@@ -131,7 +131,7 @@ private struct PhotoDetailView: View {
                     saveAndClose()
                 } label: {
                     Label("Close", systemImage: "xmark.circle.fill")
-                        .font(HUDTheme.monoFont(12, weight: .medium))
+                        .font(HUDTheme.body(.medium))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(HUDTheme.textSecondary)
@@ -147,7 +147,7 @@ private struct PhotoDetailView: View {
                         .font(.system(size: 40))
                         .foregroundStyle(HUDTheme.textSecondary)
                     Text("Image file could not be loaded.")
-                        .font(HUDTheme.monoFont(11))
+                        .font(HUDTheme.label())
                         .foregroundStyle(HUDTheme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -157,7 +157,7 @@ private struct PhotoDetailView: View {
                 Image(systemName: "textformat").foregroundStyle(HUDTheme.textSecondary)
                 TextField("Name this photo…", text: $caption)
                     .textFieldStyle(.plain)
-                    .font(HUDTheme.monoFont(13))
+                    .font(HUDTheme.body())
                     .onSubmit { onRename(caption) }
             }
             .padding(10)

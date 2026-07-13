@@ -18,8 +18,8 @@ struct BuildTimelineView: View {
         VStack(spacing: 0) {
             HStack {
                 Text(showFullHistory ? "FULL HISTORY" : "BUILD PROGRESSION")
-                    .font(HUDTheme.monoFont(11, weight: .semibold))
-                    .foregroundStyle(HUDTheme.cyan)
+                    .font(HUDTheme.label(.semibold))
+                    .foregroundStyle(HUDTheme.textSecondary)
                     .tracking(2)
                 Spacer()
                 Picker("", selection: $showFullHistory) {
@@ -33,7 +33,7 @@ struct BuildTimelineView: View {
                 } label: {
                     Label("Log Event", systemImage: "plus")
                 }
-                .buttonStyle(HUDButtonStyle())
+                .buttonStyle(.primaryAction)
             }
             .padding()
 
@@ -57,7 +57,7 @@ struct BuildTimelineView: View {
         if events.isEmpty {
             Spacer()
             Text("No build events yet — log your first mod or milestone.")
-                .font(HUDTheme.monoFont(12))
+                .font(HUDTheme.body())
                 .foregroundStyle(HUDTheme.textSecondary)
             Spacer()
         } else {
@@ -79,7 +79,7 @@ struct BuildTimelineView: View {
         if spine.isEmpty {
             Spacer()
             Text("Nothing dated yet — install dates, dyno pulls, and events all land here.")
-                .font(HUDTheme.monoFont(12))
+                .font(HUDTheme.body())
                 .foregroundStyle(HUDTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -136,16 +136,16 @@ private struct SpineRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(entry.title)
-                        .font(HUDTheme.monoFont(13, weight: .semibold))
+                        .font(HUDTheme.body(.semibold))
                         .foregroundStyle(HUDTheme.textPrimary)
                     Spacer()
                     Text(entry.date.formatted(date: .abbreviated, time: .omitted))
-                        .font(HUDTheme.monoFont(10))
+                        .font(HUDTheme.label())
                         .foregroundStyle(HUDTheme.textSecondary)
                 }
                 if !entry.detail.isEmpty {
                     Text(entry.detail)
-                        .font(HUDTheme.monoFont(11))
+                        .font(HUDTheme.label())
                         .foregroundStyle(HUDTheme.textSecondary)
                         .lineLimit(2)
                 }
@@ -162,7 +162,7 @@ private struct TimelineRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
             VStack(spacing: 0) {
-                Circle().fill(HUDTheme.cyan).frame(width: 10, height: 10).hudGlow(HUDTheme.cyan, radius: 3)
+                Circle().fill(HUDTheme.cyan).frame(width: 10, height: 10)
                 if !isLast {
                     Rectangle().fill(HUDTheme.cyan.opacity(0.25)).frame(width: 2).frame(maxHeight: .infinity)
                 }
@@ -170,21 +170,21 @@ private struct TimelineRow: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(event.title)
-                        .font(HUDTheme.monoFont(13, weight: .semibold))
+                        .font(HUDTheme.body(.semibold))
                         .foregroundStyle(HUDTheme.textPrimary)
                     Spacer()
                     Text(event.date.formatted(date: .abbreviated, time: .omitted))
-                        .font(HUDTheme.monoFont(10))
+                        .font(HUDTheme.label())
                         .foregroundStyle(HUDTheme.textSecondary)
                 }
                 if !event.eventDescription.isEmpty {
                     Text(event.eventDescription)
-                        .font(HUDTheme.monoFont(11))
+                        .font(HUDTheme.label())
                         .foregroundStyle(HUDTheme.textSecondary)
                 }
                 if let mileage = event.mileage {
                     Text("\(mileage) mi")
-                        .font(HUDTheme.monoFont(10))
+                        .font(HUDTheme.label())
                         .foregroundStyle(HUDTheme.amber)
                 }
                 if !event.photos.isEmpty {
