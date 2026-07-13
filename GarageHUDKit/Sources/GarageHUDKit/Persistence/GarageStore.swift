@@ -64,16 +64,36 @@ public final class GarageStore: ObservableObject {
         // Apply the bundled seed exactly once per install: fill a bare matching vehicle in
         // place, and add any seed vehicle that isn't present into a free bay. Gated by a flag so
         // an intentionally-emptied garage isn't re-seeded later.
+        var changed = false
         if !UserDefaults.standard.bool(forKey: seedAppliedKey) {
-            if applyInitialSeed() { seededThisLaunch = true }
+            if applyInitialSeed() { changed = true }
             UserDefaults.standard.set(true, forKey: seedAppliedKey)
         }
+        // Pack vehicles into contiguous low bays so none is ever stranded in a hidden slot
+        // beyond the visible range (which happened when a stray vehicle occupied a bay).
+        if normalizeGarageSlots() { changed = true }
+        seededThisLaunch = changed
         if cloud != nil {
             Task { await initialSync() }
         }
     }
 
-    private let seedAppliedKey = "GHUD.didApplyInitialSeed.v4"
+    /// Reassign garage slots to 1…N (ordered by current slot) so every vehicle sits in a visible
+    /// bay. Returns true if anything moved.
+    @discardableResult
+    private func normalizeGarageSlots() -> Bool {
+        let order = vehicles.sorted { $0.garageSlot < $1.garageSlot }.map(\.id)
+        var changed = false
+        for (i, id) in order.enumerated() {
+            if let idx = vehicles.firstIndex(where: { $0.id == id }), vehicles[idx].garageSlot != i + 1 {
+                vehicles[idx].garageSlot = i + 1
+                changed = true
+            }
+        }
+        return changed
+    }
+
+    private let seedAppliedKey = "GHUD.didApplyInitialSeed.v5"
     /// True when this launch merged/added seed data — so the local (now-superset) garage is
     /// pushed authoritatively rather than risk a smaller cloud record overwriting the addition.
     private var seededThisLaunch = false
