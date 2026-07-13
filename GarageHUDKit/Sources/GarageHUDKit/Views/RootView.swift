@@ -60,6 +60,17 @@ public struct RootView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { store.syncNow() }
+            // Refresh maintenance reminders whenever the app foregrounds or backgrounds, so the
+            // schedule tracks edits and marked-done items.
+            #if canImport(UserNotifications)
+            MaintenanceNotifier.sync(for: store.vehicles)
+            #endif
+        }
+        .onAppear {
+            #if canImport(UserNotifications)
+            MaintenanceNotifier.requestAuthorization()
+            MaintenanceNotifier.sync(for: store.vehicles)
+            #endif
         }
     }
 
