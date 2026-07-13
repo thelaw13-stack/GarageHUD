@@ -60,7 +60,9 @@ struct BuildTimelineView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
+                    // Key on the row position, not the record id: an imported/merged history can
+                    // carry a duplicate id, and a duplicate ForEach id is a hard SwiftUI crash.
+                    ForEach(Array(events.enumerated()), id: \.offset) { index, event in
                         TimelineRow(event: event, isLast: index == events.count - 1)
                             .contentShape(Rectangle())
                             .onTapGesture { editingEvent = event }
@@ -84,7 +86,7 @@ struct BuildTimelineView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(spine.enumerated()), id: \.element.id) { index, entry in
+                    ForEach(Array(spine.enumerated()), id: \.offset) { index, entry in
                         SpineRow(entry: entry, isLast: index == spine.count - 1)
                     }
                 }

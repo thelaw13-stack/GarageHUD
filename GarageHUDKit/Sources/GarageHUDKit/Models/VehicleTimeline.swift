@@ -13,7 +13,11 @@ public struct TimelineEntry: Identifiable, Hashable, Sendable {
         case note
     }
 
-    public let id: UUID
+    /// Stable across rebuilds: derived from the source record and the kind of moment, so the same
+    /// install/removal/event always keeps the same identity. (A part contributes both an install and
+    /// a removal entry off one sourceID, so the kind tag keeps them distinct.) Regenerating this per
+    /// render — as it used to with a fresh UUID — churned SwiftUI's ForEach identity every frame.
+    public let id: String
     public let date: Date
     public let title: String
     public let detail: String
@@ -33,14 +37,14 @@ public extension Vehicle {
         for part in parts {
             if let installed = part.installDate {
                 entries.append(TimelineEntry(
-                    id: UUID(), date: installed,
+                    id: "install-\(part.id.uuidString)", date: installed,
                     title: "Installed \(part.name)",
                     detail: part.category.rawValue,
                     kind: .partInstalled(part.category), sourceID: part.id))
             }
             if let removed = part.removeDate {
                 entries.append(TimelineEntry(
-                    id: UUID(), date: removed,
+                    id: "remove-\(part.id.uuidString)", date: removed,
                     title: "Removed \(part.name)",
                     detail: part.category.rawValue,
                     kind: .partRemoved(part.category), sourceID: part.id))
@@ -49,7 +53,7 @@ public extension Vehicle {
 
         for record in performanceRecords {
             entries.append(TimelineEntry(
-                id: UUID(), date: record.date,
+                id: "perf-\(record.id.uuidString)", date: record.date,
                 title: record.type.rawValue,
                 detail: record.summary,
                 kind: .performance(record.type), sourceID: record.id))
@@ -57,7 +61,7 @@ public extension Vehicle {
 
         for event in buildEvents {
             entries.append(TimelineEntry(
-                id: UUID(), date: event.date,
+                id: "event-\(event.id.uuidString)", date: event.date,
                 title: event.title,
                 detail: event.eventDescription,
                 kind: .buildEvent, sourceID: event.id))
@@ -65,7 +69,7 @@ public extension Vehicle {
 
         for note in notes {
             entries.append(TimelineEntry(
-                id: UUID(), date: note.date,
+                id: "note-\(note.id.uuidString)", date: note.date,
                 title: note.title,
                 detail: note.body,
                 kind: .note, sourceID: note.id))
