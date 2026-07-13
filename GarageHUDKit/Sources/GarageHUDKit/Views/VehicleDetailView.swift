@@ -136,7 +136,9 @@ struct VehicleDetailView: View {
     @ViewBuilder
     private func tabContent(for tab: DetailTab) -> some View {
         switch tab {
-        case .dashboard: VehicleDashboardView(vehicle: $vehicle)
+        case .dashboard: VehicleDashboardView(vehicle: $vehicle, onNavigate: { tab in
+            withAnimation(.easeOut(duration: 0.15)) { selectedTab = tab }
+        })
         case .parts: PartsInventoryView(vehicle: $vehicle)
         case .timeline: BuildTimelineView(vehicle: $vehicle)
         case .performance: PerformanceView(vehicle: $vehicle)

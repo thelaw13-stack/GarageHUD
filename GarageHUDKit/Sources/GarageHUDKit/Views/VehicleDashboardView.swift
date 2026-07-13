@@ -2,12 +2,16 @@ import SwiftUI
 
 struct VehicleDashboardView: View {
     @Binding var vehicle: Vehicle
+    /// Route a resolution that lives on another tab (parts, performance, timeline, specs) up to the
+    /// detail view. When nil (e.g. previews) those options simply aren't offered.
+    var onNavigate: ((VehicleDetailView.DetailTab) -> Void)? = nil
     @State private var showingAsk = false
     @State private var showingAllObservations = false
     @State private var newTask = ""
     @State private var confirmingReturn = false
     @State private var editingPart: Part?
     @State private var editingMaintenance: MaintenanceItem?
+    @State private var resolving: StewardObservation?
 
     var body: some View {
         ScrollView {
@@ -30,6 +34,13 @@ struct VehicleDashboardView: View {
         .sheet(item: $editingPart) { part in AddEditPartView(vehicle: $vehicle, partID: part.id) }
         .sheet(item: $editingMaintenance) { item in
             MaintenanceEditorView(vehicle: $vehicle, itemID: item.id)
+        }
+        .confirmationDialog(resolving?.statement ?? "Resolve",
+                            isPresented: Binding(get: { resolving != nil },
+                                                 set: { if !$0 { resolving = nil } }),
+                            titleVisibility: .visible,
+                            presenting: resolving) { observation in
+            resolutionButtons(for: observation)
         }
         .confirmationDialog("Mark \(vehicle.displayName) back in service?",
                             isPresented: $confirmingReturn, titleVisibility: .visible) {
@@ -145,10 +156,7 @@ struct VehicleDashboardView: View {
                         .font(HUDTheme.body()).foregroundStyle(HUDTheme.textSecondary)
                 } else {
                     ForEach(observations.prefix(2)) { observation in
-                        VStack(alignment: .leading, spacing: HUDTheme.space2) {
-                            StewardObservationRow(observation)
-                            resolveAction(for: observation)
-                        }
+                        observationRow(observation)
                     }
                     if observations.count > 2 {
                         Button("View all \(observations.count)") { showingAllObservations = true }
@@ -170,10 +178,7 @@ struct VehicleDashboardView: View {
             VStack(alignment: .leading, spacing: HUDTheme.space4) {
                 Text("STEWARD").font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textSecondary).tracking(1.5)
                 ForEach(Steward.observe(vehicle)) { observation in
-                    VStack(alignment: .leading, spacing: HUDTheme.space2) {
-                        StewardObservationRow(observation)
-                        resolveAction(for: observation)
-                    }
+                    observationRow(observation)
                 }
             }
             .padding(HUDTheme.space4)
@@ -181,22 +186,45 @@ struct VehicleDashboardView: View {
         .background(HUDTheme.background)
     }
 
-    /// Resolve an undocumented gap in place — compact, shared action styling.
+    /// A Steward note; when it has a concrete fix, the whole row is tappable and opens the options.
     @ViewBuilder
-    private func resolveAction(for observation: StewardObservation) -> some View {
-        if let category = gapCategory(observation), vehicle.knowledge(of: category) == .undocumented {
-            Button("Confirm \(category.rawValue.lowercased()) is factory-stock") {
-                vehicle.confirmedStockSystems.insert(category)
+    private func observationRow(_ observation: StewardObservation) -> some View {
+        let actionable = StewardResolution.isActionable(observation, in: vehicle)
+        HStack(alignment: .top, spacing: HUDTheme.space2) {
+            StewardObservationRow(observation)
+            if actionable {
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(HUDTheme.textTertiary)
+                    .padding(.top, 3)
             }
-            .buttonStyle(.attentionAction)
-            .padding(.leading, HUDTheme.space4)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { if actionable { resolving = observation } }
+        .accessibilityHint(actionable ? "Double tap for ways to resolve this" : "")
+    }
+
+    @ViewBuilder
+    private func resolutionButtons(for observation: StewardObservation) -> some View {
+        ForEach(StewardResolution.options(for: observation, in: vehicle)) { option in
+            Button(option.title) { perform(option.action) }
+        }
+        Button("Not now", role: .cancel) {}
+    }
+
+    private func perform(_ action: ResolutionAction) {
+        switch action {
+        case .markServiced(let id):      vehicle.markMaintenanceDone(id)
+        case .editSchedule(let id):      editingMaintenance = vehicle.maintenance.first { $0.id == id }
+        case .markBackInService:         confirmingReturn = true
+        case .confirmStock(let cat):     vehicle.confirmedStockSystems.insert(cat)
+        case .addPart:                   onNavigate?(.parts)
+        case .reviewParts:               onNavigate?(.parts)
+        case .logPerformance:            onNavigate?(.performance)
+        case .logActivity:               onNavigate?(.timeline)
+        case .editEnvelope:              onNavigate?(.specs)
         }
     }
 
-    private func gapCategory(_ observation: StewardObservation) -> PartCategory? {
-        guard observation.ruleID.hasPrefix("gap.") else { return nil }
-        return PartCategory(rawValue: String(observation.ruleID.dropFirst("gap.".count)))
-    }
 
     // MARK: synthesis — Build Assessment
 
