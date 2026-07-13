@@ -41,8 +41,22 @@ struct GalleryView: View {
                             thumbnail(photo)
                                 .onTapGesture { selectedPhoto = photo }
                                 .contextMenu {
+                                    if vehicle.coverPhotoID == photo.id {
+                                        Button("Remove as Cover") { vehicle.setCover(nil) }
+                                    } else {
+                                        Button("Set as Cover") { vehicle.setCover(photo.id) }
+                                    }
                                     if vehicle.photos.contains(where: { $0.id == photo.id }) {
                                         Button("Delete Photo", role: .destructive) { removePhoto(photo) }
+                                    }
+                                }
+                                .overlay(alignment: .topLeading) {
+                                    if vehicle.coverPhotoID == photo.id {
+                                        Image(systemName: "star.fill")
+                                            .font(.system(size: 11)).foregroundStyle(.white)
+                                            .padding(4)
+                                            .background(HUDTheme.cyan, in: Circle())
+                                            .padding(6)
                                     }
                                 }
                         }

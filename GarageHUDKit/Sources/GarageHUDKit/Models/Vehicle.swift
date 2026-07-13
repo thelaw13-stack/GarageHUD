@@ -46,6 +46,9 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     public var notes: [Note] = []
     public var photos: [Photo] = []
     public var maintenance: [MaintenanceItem] = []
+    /// The photo the owner chose to represent this car on the garage grid. When nil (or pointing at
+    /// a photo that no longer exists) the hero falls back to the first available photo.
+    public var coverPhotoID: UUID? = nil
 
     public init(
         id: UUID = UUID(),
@@ -110,6 +113,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         notes = try c.decodeIfPresent([Note].self, forKey: .notes) ?? []
         photos = try c.decodeIfPresent([Photo].self, forKey: .photos) ?? []
         maintenance = try c.decodeIfPresent([MaintenanceItem].self, forKey: .maintenance) ?? []
+        coverPhotoID = try c.decodeIfPresent(UUID.self, forKey: .coverPhotoID)
     }
 
     /// Title prefix marking a build event as a completed service, so the service log can be
@@ -130,11 +134,21 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
                                       mileage: currentMileage))
     }
 
-    /// The card/hero photo: the vehicle's own first photo, else the most recent build-event photo,
-    /// so a car with any photography at all has a face on the garage grid.
-    public var heroPhoto: Photo? {
-        photos.first ?? buildEvents.sorted { $0.date > $1.date }.flatMap(\.photos).first
+    /// Every photo attached to the car — its own, plus any on build events and parts — as candidates
+    /// for the cover. Vehicle photos first, then event photos newest-first, then part photos.
+    public var allPhotos: [Photo] {
+        photos + buildEvents.sorted { $0.date > $1.date }.flatMap(\.photos) + parts.flatMap(\.photos)
     }
+
+    /// The card/hero photo: the owner's chosen cover if it still exists, else the first vehicle
+    /// photo, else the most recent build-event photo — so a car with any photography has a face.
+    public var heroPhoto: Photo? {
+        if let id = coverPhotoID, let chosen = allPhotos.first(where: { $0.id == id }) { return chosen }
+        return photos.first ?? buildEvents.sorted { $0.date > $1.date }.flatMap(\.photos).first
+    }
+
+    /// Choose the car's cover photo. Pass nil to clear back to the automatic default.
+    public mutating func setCover(_ photoID: UUID?) { coverPhotoID = photoID }
 
     /// Completed services, newest first — the maintenance record distilled from the biography.
     public var serviceLog: [BuildEvent] {
