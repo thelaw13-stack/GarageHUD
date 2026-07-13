@@ -2,22 +2,36 @@ import SwiftUI
 
 public struct HUDPanel<Content: View>: View {
     var title: String?
+    var caption: String?
     @ViewBuilder var content: Content
 
-    public init(title: String? = nil, @ViewBuilder content: () -> Content) {
+    public init(title: String? = nil, caption: String? = nil, @ViewBuilder content: () -> Content) {
         self.title = title
+        self.caption = caption
         self.content = content()
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: HUDTheme.space3) {
-            if let title {
+            if title != nil || caption != nil {
                 // Section header: restrained, not a glowing accent. Hierarchy comes from
-                // weight and the faint tint, not brightness.
-                Text(title.uppercased())
-                    .font(HUDTheme.label(.semibold))
-                    .foregroundStyle(HUDTheme.textSecondary)
-                    .tracking(1.5)
+                // weight and the faint tint, not brightness. Optional right-aligned caption
+                // states the panel's contract (e.g. "actions only when earned").
+                HStack(alignment: .firstTextBaseline) {
+                    if let title {
+                        Text(title.uppercased())
+                            .font(HUDTheme.label(.semibold))
+                            .foregroundStyle(HUDTheme.textSecondary)
+                            .tracking(1.5)
+                    }
+                    Spacer(minLength: HUDTheme.space2)
+                    if let caption {
+                        Text(caption.uppercased())
+                            .font(HUDTheme.label())
+                            .foregroundStyle(HUDTheme.textTertiary)
+                            .tracking(1)
+                    }
+                }
             }
             content
         }

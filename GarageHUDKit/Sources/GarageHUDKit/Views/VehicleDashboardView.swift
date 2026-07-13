@@ -16,15 +16,13 @@ struct VehicleDashboardView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HUDTheme.space4) {
-                identityAndStatus       // A — identity + current status
-                nextStep                // the single most useful thing to do next
-                primaryMetrics          // B — three primary metrics
-                stewardPanel            // C — required attention
+                commandSurface          // A — identity + status + next step + metrics, one object
+                stewardPanel            // C — required attention (quieter, supporting)
                 buildAssessment         // synthesis
                 rebuildChecklist        // D — contextual workflow
                 maintenancePanel
                 detailsPanel            // E — secondary specs / build detail
-                recentActivity          // F
+                recentActivity          // F — memory
             }
             .padding(HUDTheme.space4)
         }
@@ -56,150 +54,149 @@ struct VehicleDashboardView: View {
 
     // MARK: A — Identity + status
 
-    // The car is the hero: image, name, subtitle and status compose as one first-viewport object.
-    @ViewBuilder
-    private var identityAndStatus: some View {
-        VStack(alignment: .leading, spacing: HUDTheme.space2) {
-            if vehicle.heroPhoto != nil {
-                heroIdentityHeader
-            } else {
-                textIdentityHeader
-            }
-            // A compact reason line under the header — no boxed chrome — when out of service.
-            if vehicle.serviceStatus.isInService, !vehicle.serviceStatus.reason.isEmpty {
-                Text(vehicle.serviceStatus.reason)
-                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.amber.opacity(0.9))
-            }
-        }
-        .animation(.easeOut(duration: 0.25), value: vehicle.heroPhoto?.id)   // dissolve on identity change
-    }
-
-    // Name + status laid over the car photo — the identity reads as one object, not a photo
-    // attachment above a title.
-    private var heroIdentityHeader: some View {
-        HeroBannerView(photo: vehicle.heroPhoto, height: 210)
-            .overlay(alignment: .bottomLeading) {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(vehicle.displayName.uppercased())
-                        .font(HUDTheme.title()).foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.6), radius: 6, y: 1)
-                    Text(vehicle.subtitle)
-                        .font(HUDTheme.label()).foregroundStyle(.white.opacity(0.85))
-                        .shadow(color: .black.opacity(0.6), radius: 4, y: 1)
-                }
-                .padding(HUDTheme.space3)
-            }
-            .overlay(alignment: .topTrailing) { statusBadge.padding(HUDTheme.space2) }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(identityAccessibilityLabel)
-    }
-
-    private var textIdentityHeader: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 1) {
+    // One composed command surface: status line, identity, next step, state pills, and primary
+    // metrics read as a single object — the car's cockpit — over a faint silhouette (or its own
+    // photo when it has one). Everything below is quieter supporting material.
+    private var commandSurface: some View {
+        VStack(alignment: .leading, spacing: HUDTheme.space3) {
+            surfaceStatusLine
+            VStack(alignment: .leading, spacing: 2) {
                 Text(vehicle.displayName.uppercased())
                     .font(HUDTheme.title()).foregroundStyle(HUDTheme.textPrimary)
-                Text(vehicle.subtitle)
+                Text(surfaceSubtitle)
                     .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
             }
-            Spacer(minLength: 0)
-            statusBadge
+            Rectangle().fill(HUDTheme.hairline).frame(height: 1)
+            surfaceNextStep
+            statePills
+            surfaceMetrics
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(identityAccessibilityLabel)
+        .padding(HUDTheme.panelPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(commandSurfaceBackground)
+        .overlay(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).strokeBorder(HUDTheme.hairline, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius))
+        .animation(.easeOut(duration: 0.25), value: vehicle.id)
     }
 
-    // Quiet status pill: out-of-service, else service urgency — solid enough to read over any photo.
+    // The car's own photo (faint, so data stays legible) if it has one, else a silhouette watermark.
+    // Sizes to the surface content — no fixed height — and uses the cached thumbnail (soft is fine
+    // at this opacity).
     @ViewBuilder
-    private var statusBadge: some View {
-        if vehicle.serviceStatus.isInService {
-            badgePill("OUT OF SERVICE", HUDTheme.amber)
-        } else {
-            switch vehicle.maintenanceDue() {
-            case .overdue: badgePill("SERVICE OVERDUE", HUDTheme.danger)
-            case .dueSoon: badgePill("SERVICE DUE SOON", HUDTheme.amber)
-            case .ok: EmptyView()
+    private var commandSurfaceBackground: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.panelBackground)
+            if let photo = vehicle.heroPhoto, let image = ImageStore.thumbnailImage(for: photo) {
+                #if canImport(AppKit)
+                Image(nsImage: image).resizable().scaledToFill().opacity(0.20).allowsHitTesting(false)
+                #else
+                Image(uiImage: image).resizable().scaledToFill().opacity(0.20).allowsHitTesting(false)
+                #endif
+            } else {
+                Image(systemName: "car.side.fill")
+                    .resizable().scaledToFit()
+                    .frame(width: 320)
+                    .foregroundStyle(HUDTheme.textPrimary.opacity(0.05))
+                    .offset(x: 90, y: 10)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .allowsHitTesting(false)
             }
         }
     }
 
-    private func badgePill(_ text: String, _ color: Color) -> some View {
-        Text(text)
-            .font(HUDTheme.label(.semibold)).tracking(1).foregroundStyle(.white)
-            .padding(.horizontal, HUDTheme.space2).padding(.vertical, 4)
-            .background(Capsule().fill(color.opacity(0.9)))
+    // "OPERATIONAL · CONFIDENCE STRONG" — state and how well-grounded the data is.
+    private var surfaceStatusLine: some View {
+        let inService = !vehicle.serviceStatus.isInService
+        let dot = vehicle.serviceStatus.isInService ? HUDTheme.amber
+            : (vehicle.maintenanceDue() == .overdue ? HUDTheme.danger : HUDTheme.green)
+        let state = inService ? "OPERATIONAL" : "OUT OF SERVICE"
+        let confidence = vehicle.isWellDocumented ? "CONFIDENCE STRONG" : "CONFIDENCE BUILDING"
+        return HStack(spacing: HUDTheme.space2) {
+            Circle().fill(dot).frame(width: 7, height: 7)
+            Text("\(state) · \(confidence)")
+                .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textSecondary).tracking(1.5)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(state), \(confidence)")
     }
 
-    private var identityAccessibilityLabel: String {
-        var s = "\(vehicle.displayName), \(vehicle.subtitle)"
-        if vehicle.serviceStatus.isInService { s += ", out of service" }
-        return s
+    private var surfaceSubtitle: String {
+        vehicle.currentMileage.map { "\(vehicle.subtitle) · \($0.formatted(.number.grouping(.automatic))) mi" }
+            ?? vehicle.subtitle
     }
 
-    // The Steward's single recommended next step, when there is one.
     @ViewBuilder
-    private var nextStep: some View {
+    private var surfaceNextStep: some View {
         if let step = Steward.nextStep(vehicle) {
-            HUDPanel(title: "Next Step") {
-                VStack(alignment: .leading, spacing: HUDTheme.space2) {
-                    Text(step.action)
-                        .font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(step.rationale)
-                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+            HStack(alignment: .top, spacing: HUDTheme.space2) {
+                Rectangle().fill(HUDTheme.green).frame(width: 3).cornerRadius(1.5)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("NEXT STEP").font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textSecondary).tracking(1.5)
+                    Text(step.action).font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("Next step: \(step.action). \(step.rationale)")
             }
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Next step: \(step.action)")
         }
     }
 
-    // MARK: B — Three primary metrics
-
-    // A flat metric band — not three boxed panels. Metadata reads as a quiet row so the panels
-    // below (Next Step, Steward) carry the visual weight.
-    private var primaryMetrics: some View {
-        HStack(spacing: 0) {
-            metric("POWER", vehicle.currentHorsepowerEstimate.map { "\(Int($0))" } ?? "—", "whp")
-            metricDivider
-            if let miles = vehicle.currentMileage {
-                metric("ODOMETER", miles.formatted(.number.grouping(.automatic)), "mi")
+    // A row of quiet state pills: service urgency, items to review, sync state.
+    private var statePills: some View {
+        let review = Steward.observe(vehicle).filter { $0.tone != .informational }.count
+        return HStack(spacing: HUDTheme.space2) {
+            if vehicle.serviceStatus.isInService {
+                pill("OUT OF SERVICE", HUDTheme.amber, filled: true)
             } else {
-                metric("LATEST TEST", vehicle.latestPerformance?.summary ?? "—", "")
+                switch vehicle.maintenanceDue() {
+                case .overdue: pill("SERVICE OVERDUE", HUDTheme.danger, filled: true)
+                case .dueSoon: pill("SERVICE DUE SOON", HUDTheme.amber, filled: true)
+                case .ok: EmptyView()
+                }
             }
-            metricDivider
-            metric("LAST ACTIVITY",
-                   vehicle.lastActivityDate.map { $0.formatted(.dateTime.month(.abbreviated).day()) } ?? "—", "")
+            if review > 0 { pill("\(review) TO REVIEW", HUDTheme.cyan, filled: false) }
+            pill("SYNCED", HUDTheme.textTertiary, filled: false)
         }
-        .padding(.vertical, HUDTheme.space2)
-        .overlay(Rectangle().frame(height: 1).foregroundStyle(HUDTheme.hairline), alignment: .top)
-        .overlay(Rectangle().frame(height: 1).foregroundStyle(HUDTheme.hairline), alignment: .bottom)
     }
 
-    private var metricDivider: some View {
-        Rectangle().fill(HUDTheme.hairline).frame(width: 1, height: 28)
+    private func pill(_ text: String, _ color: Color, filled: Bool) -> some View {
+        Text(text)
+            .font(HUDTheme.label(.semibold)).tracking(1)
+            .foregroundStyle(filled ? color : HUDTheme.textSecondary)
+            .padding(.horizontal, HUDTheme.space2).padding(.vertical, 5)
+            .background(Capsule().strokeBorder(color.opacity(filled ? 0.7 : 0.35), lineWidth: 1))
     }
 
-    private func metric(_ label: String, _ value: String, _ unit: String) -> some View {
+    // Flat metric rows inside the surface — quiet metadata, hairline-separated.
+    private var surfaceMetrics: some View {
+        VStack(spacing: 0) {
+            metricRow("POWER", vehicle.currentHorsepowerEstimate.map { "\(Int($0)) whp" } ?? "—")
+            Rectangle().fill(HUDTheme.hairline).frame(height: 1)
+            metricRow("LAST SERVICE", vehicle.serviceLog.first.map {
+                "\($0.title.replacingOccurrences(of: Vehicle.servicePrefix, with: "")) · \($0.date.formatted(.dateTime.month(.abbreviated).day()))"
+            } ?? "—")
+            Rectangle().fill(HUDTheme.hairline).frame(height: 1)
+            metricRow("ACTIVITY", vehicle.lastActivityDate.map { $0.formatted(.relative(presentation: .named)) } ?? "—")
+        }
+    }
+
+    private func metricRow(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: HUDTheme.space1) {
             Text(label).font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textSecondary).tracking(1)
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text(value).font(HUDTheme.section()).foregroundStyle(HUDTheme.textPrimary)
-                if !unit.isEmpty { Text(unit).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary) }
-            }
+            Text(value).font(HUDTheme.body()).foregroundStyle(HUDTheme.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, HUDTheme.space3)
+        .padding(.vertical, HUDTheme.space2)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label), \(value) \(unit)")
+        .accessibilityLabel("\(label), \(value)")
     }
 
     // MARK: C — Steward (top two + view all)
 
     private var stewardPanel: some View {
         let observations = Steward.observe(vehicle)
-        return HUDPanel(title: "Steward") {
+        return HUDPanel(title: "Steward", caption: "Actions only when earned") {
             VStack(alignment: .leading, spacing: HUDTheme.space3) {
                 if observations.isEmpty {
                     Text("Steward is watching. Nothing stands out yet.")
@@ -552,7 +549,7 @@ struct VehicleDashboardView: View {
     // MARK: F — Recent activity
 
     private var recentActivity: some View {
-        HUDPanel(title: "Recent Activity") {
+        HUDPanel(title: "Memory", caption: "Recent") {
             let events = Array(vehicle.buildEvents.sorted { $0.date > $1.date }.prefix(5))
             if events.isEmpty {
                 Text("No build events logged yet.")
