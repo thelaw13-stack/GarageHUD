@@ -263,8 +263,30 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
             guard let self, !self.stopped, self.central?.state == .poweredOn else { return }
             self.resetMeasurements()
             self.connectionState = .scanning
-            self.central?.scanForPeripherals(withServices: self.serviceUUIDs)
+            // Unfiltered scan: many BLE OBD adapters don't advertise their service UUID, so a
+            // service-filtered scan never sees them. We filter by advertised name in didDiscover.
+            self.central?.scanForPeripherals(withServices: nil)
         }
+    }
+
+    /// Whether a discovered peripheral is plausibly an OBD adapter, so an unfiltered scan can still
+    /// be safe. Accepts on: an advertised service UUID we know, a catalogued adapter name (OBDLink
+    /// CX, ELM327 clones…), or any local name containing "obd". Pure so it's unit-testable.
+    static func isLikelyOBDAdapter(advertisedName: String?, advertisedServiceUUIDs: [CBUUID],
+                                   serviceUUIDs: [CBUUID]) -> Bool {
+        if advertisedServiceUUIDs.contains(where: serviceUUIDs.contains) { return true }
+        if let name = advertisedName {
+            if KnownOBDAdapter.match(advertisedName: name)?.isBLE == true { return true }
+            if name.lowercased().contains("obd") { return true }
+        }
+        return false
+    }
+
+    private func looksLikeOBDAdapter(_ peripheral: CBPeripheral, _ advertisementData: [String: Any]) -> Bool {
+        let name = (advertisementData[CBAdvertisementDataLocalNameKey] as? String) ?? peripheral.name
+        let uuids = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
+        return Self.isLikelyOBDAdapter(advertisedName: name, advertisedServiceUUIDs: uuids,
+                                       serviceUUIDs: serviceUUIDs)
     }
 
     private func emitFrame() {
@@ -281,7 +303,9 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
         guard !stopped else { return }
         if central.state == .poweredOn {
             connectionState = .scanning
-            central.scanForPeripherals(withServices: serviceUUIDs)
+            // See scheduleReconnect: unfiltered so we don't miss adapters that omit their service
+            // UUID from the advertisement (common on BLE ELM327 clones).
+            central.scanForPeripherals(withServices: nil)
         } else {
             connectionState = .disconnected
         }
@@ -289,9 +313,15 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
 
     public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
                                advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        // Connect only to the validated device when we know which one we want; otherwise this
-        // is a fresh pairing and we take the first advertising a serial service.
-        if let known = knownPeripheralID, peripheral.identifier != known { return }
+        // Reconnecting to a validated device: only that exact peripheral.
+        if let known = knownPeripheralID {
+            guard peripheral.identifier == known else { return }
+        } else {
+            // Fresh pairing on an unfiltered scan: connect only to something that actually looks
+            // like an OBD adapter — by advertised service UUID, a known adapter name, or an
+            // OBD-ish local name — so we never grab an unrelated Bluetooth device (headphones etc.).
+            guard looksLikeOBDAdapter(peripheral, advertisementData) else { return }
+        }
         central.stopScan()
         self.peripheral = peripheral
         peripheral.delegate = self
