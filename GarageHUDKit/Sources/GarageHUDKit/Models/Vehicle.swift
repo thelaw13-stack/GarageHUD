@@ -116,6 +116,31 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         coverPhotoID = try c.decodeIfPresent(UUID.self, forKey: .coverPhotoID)
     }
 
+    /// Reassign a fresh id to any record that duplicates an earlier one's id, within each collection
+    /// (parts, build events, performance records, notes, maintenance). A duplicate id is a real
+    /// data hazard — a duplicate `ForEach` id is a hard SwiftUI crash, and it confuses `sheet(item:)`
+    /// and sync. Imports/merges can produce them; this heals the data at the source. Returns true if
+    /// anything changed. (Photos are left alone — `coverPhotoID` references them.)
+    @discardableResult
+    public mutating func dedupeRecordIDs() -> Bool {
+        var changed = false
+        func fix<T>(_ items: inout [T], id: (T) -> UUID, setID: (inout T, UUID) -> Void) {
+            var seen = Set<UUID>()
+            for i in items.indices {
+                if seen.contains(id(items[i])) {
+                    setID(&items[i], UUID()); changed = true
+                }
+                seen.insert(id(items[i]))
+            }
+        }
+        fix(&parts, id: { $0.id }, setID: { $0.id = $1 })
+        fix(&buildEvents, id: { $0.id }, setID: { $0.id = $1 })
+        fix(&performanceRecords, id: { $0.id }, setID: { $0.id = $1 })
+        fix(&notes, id: { $0.id }, setID: { $0.id = $1 })
+        fix(&maintenance, id: { $0.id }, setID: { $0.id = $1 })
+        return changed
+    }
+
     /// Title prefix marking a build event as a completed service, so the service log can be
     /// distinguished from the rest of the biography without a separate event type.
     public static let servicePrefix = "Serviced: "

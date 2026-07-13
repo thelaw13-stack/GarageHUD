@@ -72,7 +72,11 @@ public final class GarageStore: ObservableObject {
         // Pack vehicles into contiguous low bays so none is ever stranded in a hidden slot
         // beyond the visible range (which happened when a stray vehicle occupied a bay).
         if normalizeGarageSlots() { changed = true }
+        // Heal any duplicate record ids from past imports/merges — a duplicate id can hard-crash a
+        // ForEach and confuse sheet(item:)/sync.
+        for i in vehicles.indices where vehicles[i].dedupeRecordIDs() { changed = true }
         seededThisLaunch = changed
+        if changed { save() }   // persist the seeded/normalized/healed garage
         if cloud != nil {
             Task { await initialSync() }
         }
