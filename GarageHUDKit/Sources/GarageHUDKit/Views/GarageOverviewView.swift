@@ -150,21 +150,27 @@ private struct VehicleOverviewCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: HUDTheme.space2) {
-            Text(vehicle.displayName.uppercased())
-                .font(HUDTheme.body(.semibold)).foregroundStyle(HUDTheme.textPrimary)
-            Text(vehicle.subtitle)
-                .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+            HStack(alignment: .top, spacing: HUDTheme.space2) {
+                PhotoThumbnailView(photo: vehicle.heroPhoto, size: 52)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(vehicle.displayName.uppercased())
+                        .font(HUDTheme.body(.semibold)).foregroundStyle(HUDTheme.textPrimary)
+                    Text(vehicle.subtitle)
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
 
-            if vehicle.serviceStatus.isInService {
-                Text("OUT OF SERVICE")
-                    .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.amber).tracking(1)
-                    .padding(.top, HUDTheme.space1)
-            } else if let service = serviceBadge {
-                HStack(spacing: HUDTheme.space1) {
-                    Circle().fill(service.color).frame(width: 6, height: 6)
-                    Text(service.label).font(HUDTheme.label(.semibold)).foregroundStyle(service.color).tracking(1)
+                    if vehicle.serviceStatus.isInService {
+                        Text("OUT OF SERVICE")
+                            .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.amber).tracking(1)
+                            .padding(.top, HUDTheme.space1)
+                    } else if let service = serviceBadge {
+                        HStack(spacing: HUDTheme.space1) {
+                            Circle().fill(service.color).frame(width: 6, height: 6)
+                            Text(service.label).font(HUDTheme.label(.semibold)).foregroundStyle(service.color).tracking(1)
+                        }
+                        .padding(.top, HUDTheme.space1)
+                    }
                 }
-                .padding(.top, HUDTheme.space1)
+                Spacer(minLength: 0)
             }
 
             HStack(spacing: HUDTheme.space2) {

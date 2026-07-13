@@ -130,6 +130,12 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
                                       mileage: currentMileage))
     }
 
+    /// The card/hero photo: the vehicle's own first photo, else the most recent build-event photo,
+    /// so a car with any photography at all has a face on the garage grid.
+    public var heroPhoto: Photo? {
+        photos.first ?? buildEvents.sorted { $0.date > $1.date }.flatMap(\.photos).first
+    }
+
     /// Completed services, newest first — the maintenance record distilled from the biography.
     public var serviceLog: [BuildEvent] {
         buildEvents.filter { $0.title.hasPrefix(Vehicle.servicePrefix) }
