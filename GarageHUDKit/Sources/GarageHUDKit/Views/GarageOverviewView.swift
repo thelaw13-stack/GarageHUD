@@ -59,20 +59,29 @@ struct GarageOverviewView: View {
         let outOfService = store.vehicles.filter { $0.serviceStatus.isInService }.count
         let review = store.vehicles.reduce(0) { $0 + Steward.observe($1).filter { $0.tone != .informational }.count }
             + Steward.observeFleet(store.vehicles).filter { $0.tone != .informational }.count
-        let dot: Color = review > 0 ? HUDTheme.amber : (store.vehicles.isEmpty ? HUDTheme.textTertiary : HUDTheme.green)
+        let service = FleetHealth.serviceDue(for: store.vehicles)
+        // Overdue service is the most serious fleet state (red); anything else needing attention is amber.
+        let dot: Color = service.overdue > 0 ? HUDTheme.danger
+            : (review > 0 || service.dueSoon > 0) ? HUDTheme.amber
+            : (store.vehicles.isEmpty ? HUDTheme.textTertiary : HUDTheme.green)
+        let serviceColor: Color = service.overdue > 0 ? HUDTheme.danger
+            : (service.dueSoon > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
 
         return HStack(spacing: HUDTheme.space3) {
             Circle().fill(dot).frame(width: 8, height: 8)
             healthStat("\(store.vehicles.count)", "VEHICLES")
             healthStat("\(outOfService)", "OUT OF SERVICE", outOfService > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
             healthStat("\(review)", "TO REVIEW", review > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
+            if service.total > 0 {
+                healthStat("\(service.total)", "SERVICE DUE", serviceColor)
+            }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, HUDTheme.space3).padding(.vertical, HUDTheme.space2)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.panelBackground))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Fleet: \(store.vehicles.count) vehicles, \(outOfService) out of service, \(review) to review")
+        .accessibilityLabel("Fleet: \(store.vehicles.count) vehicles, \(outOfService) out of service, \(review) to review\(service.total > 0 ? ", \(service.total) needing service" : "")")
     }
 
     private func healthStat(_ value: String, _ label: String, _ color: Color = HUDTheme.textPrimary) -> some View {
