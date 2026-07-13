@@ -374,7 +374,31 @@ struct VehicleDashboardView: View {
                         TextField("Add an item (6-month interval)…", text: $newMaintName)
                             .font(HUDTheme.body()).textFieldStyle(.plain).onSubmit(addMaintenance)
                     }
+                    serviceHistory
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var serviceHistory: some View {
+        let log = vehicle.serviceLog
+        if !log.isEmpty {
+            Divider().overlay(HUDTheme.hairline).padding(.vertical, HUDTheme.space1)
+            Text("SERVICE HISTORY").font(HUDTheme.label(.semibold))
+                .foregroundStyle(HUDTheme.textSecondary).tracking(1)
+            ForEach(log.prefix(4)) { event in
+                HStack(spacing: HUDTheme.space2) {
+                    Text(event.title.replacingOccurrences(of: Vehicle.servicePrefix, with: ""))
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textPrimary)
+                    Spacer(minLength: 0)
+                    Text(event.date.formatted(date: .abbreviated, time: .omitted))
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                }
+            }
+            if log.count > 4 {
+                Text("+ \(log.count - 4) more in the timeline")
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textTertiary)
             }
         }
     }

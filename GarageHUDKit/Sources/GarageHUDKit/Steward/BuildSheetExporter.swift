@@ -76,12 +76,24 @@ public enum BuildSheetExporter {
             header("Maintenance")
             for item in vehicle.maintenance {
                 let status: String
-                switch item.due(now: context.now, calendar: context.calendar) {
+                switch item.due(now: context.now, calendar: context.calendar, currentMileage: vehicle.currentMileage) {
                 case .overdue: status = "OVERDUE"
                 case .dueSoon: status = "due soon"
                 case .ok: status = "ok"
                 }
-                line("  \(item.name): \(status) — every \(item.intervalMonths) mo, due \(short(item.dueDate(context.calendar)))")
+                var interval = "every \(item.intervalMonths) mo"
+                if let miles = item.intervalMiles { interval += " / \(miles) mi" }
+                line("  \(item.name): \(status) — \(interval), due \(short(item.dueDate(context.calendar)))")
+            }
+        }
+
+        // Service history (completed services)
+        let services = vehicle.serviceLog.prefix(8)
+        if !services.isEmpty {
+            header("Service History")
+            for event in services {
+                let name = event.title.replacingOccurrences(of: Vehicle.servicePrefix, with: "")
+                line("  \(short(event.date)) — \(name)")
             }
         }
 

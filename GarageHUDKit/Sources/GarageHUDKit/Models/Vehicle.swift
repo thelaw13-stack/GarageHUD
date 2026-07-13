@@ -112,6 +112,10 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         maintenance = try c.decodeIfPresent([MaintenanceItem].self, forKey: .maintenance) ?? []
     }
 
+    /// Title prefix marking a build event as a completed service, so the service log can be
+    /// distinguished from the rest of the biography without a separate event type.
+    public static let servicePrefix = "Serviced: "
+
     /// Record a maintenance item as done: reset its interval and log it to the biography so the
     /// service history is preserved (and shows on the timeline / in the export).
     public mutating func markMaintenanceDone(_ id: UUID, on date: Date = .now) {
@@ -122,8 +126,14 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
             maintenance[i].lastServicedMileage = odo
         }
         let odoNote = currentMileage.map { " @ \($0.formatted(.number.grouping(.automatic))) mi" } ?? ""
-        buildEvents.append(BuildEvent(date: date, title: "Serviced: \(maintenance[i].name)\(odoNote)",
+        buildEvents.append(BuildEvent(date: date, title: "\(Vehicle.servicePrefix)\(maintenance[i].name)\(odoNote)",
                                       mileage: currentMileage))
+    }
+
+    /// Completed services, newest first — the maintenance record distilled from the biography.
+    public var serviceLog: [BuildEvent] {
+        buildEvents.filter { $0.title.hasPrefix(Vehicle.servicePrefix) }
+            .sorted { $0.date > $1.date }
     }
 
     /// The most-pressing maintenance state across all items (worst wins), accounting for both the
