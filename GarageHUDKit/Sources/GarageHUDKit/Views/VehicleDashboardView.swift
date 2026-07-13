@@ -12,6 +12,7 @@ struct VehicleDashboardView: View {
                 header
                 keyMetrics
                 buildProgress
+                buildAssessment
                 nextSteps
                 rebuildChecklist
                 recentActivity
@@ -169,6 +170,54 @@ struct VehicleDashboardView: View {
     private func gapCategory(_ observation: StewardObservation) -> PartCategory? {
         guard observation.ruleID.hasPrefix("gap.") else { return nil }
         return PartCategory(rawValue: String(observation.ruleID.dropFirst("gap.".count)))
+    }
+
+    /// A synthesized read on whether the build's support scales with its power.
+    @ViewBuilder
+    private var buildAssessment: some View {
+        if let a = Steward.assess(vehicle) {
+            HUDPanel(title: "Build Assessment") {
+                VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                    Text(a.powerSummary)
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                    Text(a.headline)
+                        .font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Divider().overlay(HUDTheme.hairline)
+                    ForEach(a.subsystems) { sub in
+                        HStack(alignment: .top, spacing: HUDTheme.space3) {
+                            Circle().fill(assessmentColor(sub.status)).frame(width: 8, height: 8)
+                                .padding(.top, 4)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(sub.label)
+                                    .font(HUDTheme.body()).foregroundStyle(HUDTheme.textPrimary)
+                                Text("\(assessmentStatusText(sub.status)) · \(sub.role)")
+                                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                    }
+                    Text(a.confidence.label.uppercased())
+                        .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textTertiary).tracking(1)
+                }
+            }
+        }
+    }
+
+    private func assessmentColor(_ s: BuildAssessment.Status) -> Color {
+        switch s {
+        case .supported: return HUDTheme.green
+        case .openItem: return HUDTheme.danger
+        case .undocumented: return HUDTheme.amber
+        }
+    }
+
+    private func assessmentStatusText(_ s: BuildAssessment.Status) -> String {
+        switch s {
+        case .supported: return "Covered"
+        case .openItem: return "Open item"
+        case .undocumented: return "Not documented"
+        }
     }
 
     /// Shown only while the car is out of service — what's left before it's back together.
