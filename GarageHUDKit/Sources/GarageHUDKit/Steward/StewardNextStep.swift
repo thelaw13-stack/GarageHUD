@@ -74,6 +74,9 @@ public extension Steward {
     }
 
     private static func advisoryAction(_ o: StewardObservation) -> String {
+        if o.ruleID.hasPrefix("maintenance.") {
+            return "Take care of the overdue \(o.statement.replacingOccurrences(of: " is overdue.", with: "").lowercased())"
+        }
         switch o.ruleID {
         case "build.quiet": return "Log some activity — a note, a drive, or a fresh pull"
         case "live.coolantCritical": return "Back off — coolant is at its limit"

@@ -45,6 +45,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     public var performanceRecords: [PerformanceRecord] = []
     public var notes: [Note] = []
     public var photos: [Photo] = []
+    public var maintenance: [MaintenanceItem] = []
 
     public init(
         id: UUID = UUID(),
@@ -108,6 +109,15 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         performanceRecords = try c.decodeIfPresent([PerformanceRecord].self, forKey: .performanceRecords) ?? []
         notes = try c.decodeIfPresent([Note].self, forKey: .notes) ?? []
         photos = try c.decodeIfPresent([Photo].self, forKey: .photos) ?? []
+        maintenance = try c.decodeIfPresent([MaintenanceItem].self, forKey: .maintenance) ?? []
+    }
+
+    /// The most-pressing maintenance state across all items (worst wins).
+    public func maintenanceDue(now: Date = .now, calendar: Calendar = .current) -> MaintenanceItem.Due {
+        let states = maintenance.map { $0.due(now: now, calendar: calendar) }
+        if states.contains(.overdue) { return .overdue }
+        if states.contains(.dueSoon) { return .dueSoon }
+        return .ok
     }
 
     public var displayName: String {

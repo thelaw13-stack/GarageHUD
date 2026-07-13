@@ -17,6 +17,7 @@ struct VehicleDashboardView: View {
                 stewardPanel            // C — required attention
                 buildAssessment         // synthesis
                 rebuildChecklist        // D — contextual workflow
+                maintenancePanel
                 detailsPanel            // E — secondary specs / build detail
                 recentActivity          // F
             }
@@ -325,6 +326,60 @@ struct VehicleDashboardView: View {
     }
     private func deleteTask(_ id: UUID) {
         vehicle.serviceStatus.checklist.removeAll { $0.id == id }
+    }
+
+    // MARK: Maintenance
+
+    @State private var newMaintName = ""
+
+    private var maintenancePanel: some View {
+        HUDPanel(title: "Maintenance") {
+            VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                if vehicle.maintenance.isEmpty {
+                    Text("No scheduled maintenance yet — add oil, fluids, or filters to track them.")
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                }
+                Group {
+                    ForEach(vehicle.maintenance) { item in
+                        HStack(alignment: .top, spacing: HUDTheme.space3) {
+                            Circle().fill(maintenanceColor(item.due())).frame(width: 8, height: 8).padding(.top, 4)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(item.name).font(HUDTheme.body()).foregroundStyle(HUDTheme.textPrimary)
+                                Text("\(maintenanceStatusText(item.due())) · every \(item.intervalMonths) mo · due \(item.dueDate().formatted(date: .abbreviated, time: .omitted))")
+                                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                            }
+                            Spacer(minLength: 0)
+                            Button("Mark done") { markServiced(item.id) }.buttonStyle(.compactAction)
+                        }
+                        .contextMenu { Button("Remove", role: .destructive) { removeMaintenance(item.id) } }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("\(item.name): \(maintenanceStatusText(item.due()))")
+                    }
+                    HStack(spacing: HUDTheme.space2) {
+                        Image(systemName: "plus").foregroundStyle(HUDTheme.cyan).font(.system(size: 12))
+                        TextField("Add an item (6-month interval)…", text: $newMaintName)
+                            .font(HUDTheme.body()).textFieldStyle(.plain).onSubmit(addMaintenance)
+                    }
+                }
+            }
+        }
+    }
+
+    private func maintenanceColor(_ d: MaintenanceItem.Due) -> Color {
+        switch d { case .overdue: return HUDTheme.danger; case .dueSoon: return HUDTheme.amber; case .ok: return HUDTheme.green }
+    }
+    private func maintenanceStatusText(_ d: MaintenanceItem.Due) -> String {
+        switch d { case .overdue: return "Overdue"; case .dueSoon: return "Due soon"; case .ok: return "OK" }
+    }
+    private func markServiced(_ id: UUID) {
+        if let i = vehicle.maintenance.firstIndex(where: { $0.id == id }) { vehicle.maintenance[i].lastServiced = .now }
+    }
+    private func removeMaintenance(_ id: UUID) { vehicle.maintenance.removeAll { $0.id == id } }
+    private func addMaintenance() {
+        let n = newMaintName.trimmingCharacters(in: .whitespaces)
+        guard !n.isEmpty else { return }
+        vehicle.maintenance.append(MaintenanceItem(name: n, intervalMonths: 6, lastServiced: .now))
+        newMaintName = ""
     }
 
     // MARK: E — Secondary detail

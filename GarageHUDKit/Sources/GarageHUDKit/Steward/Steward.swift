@@ -95,6 +95,26 @@ public enum Steward {
                 confidence: .confirmed, tone: .informational, provenance: .recorded))
         }
 
+        // 3f. Upkeep — overdue or soon-due scheduled maintenance. A confirmed date fact.
+        for item in vehicle.maintenance {
+            switch item.due(now: context.now, calendar: context.calendar) {
+            case .overdue:
+                out.append(StewardObservation(
+                    ruleID: "maintenance.overdue.\(item.id.uuidString)", subjectID: vid,
+                    statement: "\(item.name) is overdue.",
+                    evidence: "Due \(short(item.dueDate(context.calendar))); last done \(short(item.lastServiced)) on a \(item.intervalMonths)-month interval.",
+                    confidence: .confirmed, tone: .advisory, provenance: .derived))
+            case .dueSoon:
+                out.append(StewardObservation(
+                    ruleID: "maintenance.dueSoon.\(item.id.uuidString)", subjectID: vid,
+                    statement: "\(item.name) is due soon.",
+                    evidence: "Due \(short(item.dueDate(context.calendar))).",
+                    confidence: .confirmed, tone: .caution, provenance: .derived))
+            case .ok:
+                break
+            }
+        }
+
         // 4. Surface when the biography goes quiet — but never for a car that's deliberately in
         //    service. The elapsed time is a confirmed fact.
         if !vehicle.serviceStatus.isInService, let last = vehicle.lastActivityDate {
