@@ -268,6 +268,21 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
             .1
     }
 
+    /// The car's average driving rate in miles/day, learned from odometer-stamped build events —
+    /// the span between the earliest and latest readings. Nil until there are at least two readings
+    /// on different days showing forward motion (so it can't divide by zero or invent a rate from a
+    /// single point). This is what lets the Steward project *when* mileage-based service comes due.
+    public var milesPerDay: Double? {
+        let readings = buildEvents
+            .compactMap { e in e.mileage.map { (date: e.date, miles: $0) } }
+            .sorted { $0.date < $1.date }
+        guard let first = readings.first, let last = readings.last else { return nil }
+        let miles = Double(last.miles - first.miles)
+        let days = last.date.timeIntervalSince(first.date) / 86_400
+        guard days >= 1, miles > 0 else { return nil }
+        return miles / days
+    }
+
     public var lastActivityDate: Date? {
         let dates = buildEvents.map(\.date) + performanceRecords.map(\.date) + notes.map(\.date)
         return dates.max()

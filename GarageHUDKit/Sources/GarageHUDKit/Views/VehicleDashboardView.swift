@@ -446,6 +446,11 @@ struct VehicleDashboardView: View {
             detail += remaining > 0
                 ? " or in \(remaining.formatted(.number.grouping(.automatic))) mi"
                 : " · \((-remaining).formatted(.number.grouping(.automatic))) mi over"
+            // If we've learned a driving rate, project that mileage into plain English.
+            if remaining > 0, let projected = item.projectedMileageDueDate(
+                currentMileage: vehicle.currentMileage, milesPerDay: vehicle.milesPerDay) {
+                detail += " (~\(projected.formatted(.relative(presentation: .named))) at your pace)"
+            }
         }
         return detail
     }

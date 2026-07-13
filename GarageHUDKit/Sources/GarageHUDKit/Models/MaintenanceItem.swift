@@ -56,6 +56,27 @@ public struct MaintenanceItem: Identifiable, Codable, Hashable, Sendable {
         return target - odo
     }
 
+    /// When the mileage interval is projected to come due, given a driving rate (miles/day). Uses
+    /// the miles remaining and the rate to convert distance into a calendar date. Already-overdue
+    /// returns `now`. Nil when there's no mileage interval, no current odometer, or no rate.
+    public func projectedMileageDueDate(currentMileage: Int?, milesPerDay: Double?,
+                                        now: Date = .now) -> Date? {
+        guard let remaining = milesUntilDue(currentMileage: currentMileage) else { return nil }
+        if remaining <= 0 { return now }
+        guard let rate = milesPerDay, rate > 0 else { return nil }
+        return now.addingTimeInterval(Double(remaining) / rate * 86_400)
+    }
+
+    /// The soonest this item is expected to come due — the earlier of its time interval and its
+    /// projected mileage date (when a rate is known). This is the honest "next due" for scheduling.
+    public func expectedDueDate(currentMileage: Int?, milesPerDay: Double?,
+                                now: Date = .now, calendar: Calendar = .current) -> Date {
+        let timeDue = dueDate(calendar)
+        guard let mileDue = projectedMileageDueDate(currentMileage: currentMileage,
+                                                    milesPerDay: milesPerDay, now: now) else { return timeDue }
+        return min(timeDue, mileDue)
+    }
+
     /// Time-only due state. `dueSoon` within 30 days of the due date; `overdue` once passed.
     public func due(now: Date = .now, calendar: Calendar = .current) -> Due {
         let due = dueDate(calendar)

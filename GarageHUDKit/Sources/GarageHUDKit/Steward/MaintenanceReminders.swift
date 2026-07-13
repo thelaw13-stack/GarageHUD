@@ -23,21 +23,27 @@ public enum MaintenanceReminders {
         var reminders: [MaintenanceReminder] = []
         for vehicle in vehicles where !vehicle.serviceStatus.isInService {
             let odo = vehicle.currentMileage
+            let rate = vehicle.milesPerDay
             for item in vehicle.maintenance {
-                let due = item.dueDate(calendar)
-                // Mileage can't predict a calendar fire date (we don't know how fast miles accrue),
-                // so a mileage-overdue item is nudged shortly — same as a time-overdue one.
+                let timeDue = item.dueDate(calendar)
                 let milesRemaining = item.milesUntilDue(currentMileage: odo)
                 let mileOverdue = (milesRemaining ?? .max) <= 0
-                let overdue = now >= due || mileOverdue
-                let fire = overdue ? now.addingTimeInterval(60) : due
+                // With a learned driving rate we can project a real fire date for a future mileage
+                // interval; otherwise mileage can only nudge once it's already overdue.
+                let expected = item.expectedDueDate(currentMileage: odo, milesPerDay: rate,
+                                                    now: now, calendar: calendar)
+                let overdue = now >= timeDue || mileOverdue
+                let fire = overdue ? now.addingTimeInterval(60) : max(expected, now.addingTimeInterval(60))
                 let body: String
                 if mileOverdue, let target = item.dueMileage {
                     body = "Overdue — due at \(target.formatted(.number.grouping(.automatic))) mi."
                 } else if overdue {
                     body = "Overdue — last done \(short(item.lastServiced, calendar)) on a \(item.intervalMonths)-month interval."
+                } else if expected < timeDue, let remaining = milesRemaining {
+                    // Mileage projection beats the calendar — say so in miles.
+                    body = "Projected in ~\(remaining.formatted(.number.grouping(.automatic))) mi (\(short(expected, calendar)))."
                 } else {
-                    body = "Due \(short(due, calendar))."
+                    body = "Due \(short(timeDue, calendar))."
                 }
                 reminders.append(MaintenanceReminder(
                     id: "maint.\(vehicle.id.uuidString).\(item.id.uuidString)",
