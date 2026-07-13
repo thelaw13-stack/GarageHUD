@@ -96,15 +96,20 @@ struct SpecSheetView: View {
                     }
                 }
 
+                ShareLink(item: BuildSheetExporter.text(for: vehicle),
+                          preview: SharePreview("\(vehicle.displayName) build sheet")) {
+                    Label("Share build sheet", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.secondaryAction)
+                .padding(.top, HUDTheme.space2)
+
                 Button(role: .destructive) {
                     confirmingDelete = true
                 } label: {
-                    Label("Delete Vehicle", systemImage: "trash")
-                        .font(HUDTheme.body(.semibold))
-                        .frame(maxWidth: .infinity)
+                    Label("Delete Vehicle", systemImage: "trash").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.destructiveAction)
-                .padding(.top, 8)
+                .padding(.top, HUDTheme.space2)
             }
             .padding(24)
         }
