@@ -68,12 +68,20 @@ struct LiveSessionView: View {
             }
 
             Text(feed == .adapter
-                 ? "Reading a Bluetooth ELM327 adapter (experimental). Only values decoded live are tagged MEASURED; anything that stops responding drops out rather than freezing."
+                 ? "Reading a Bluetooth LE ELM327 adapter (experimental). Only values decoded live are tagged MEASURED; anything that stops responding drops out rather than freezing."
                  : "Simulated feed — plausible wandering values, always tagged ESTIMATED.")
                 .font(HUDTheme.label())
                 .foregroundStyle(HUDTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
+
+            if feed == .adapter {
+                Text("Recommended: OBDLink CX (Bluetooth LE). The OBDLink MX+ is MFi/Bluetooth Classic and won't appear in a Bluetooth LE scan.")
+                    .font(HUDTheme.label())
+                    .foregroundStyle(HUDTheme.textTertiary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
         }
         .padding(24)
         .frame(maxWidth: .infinity)

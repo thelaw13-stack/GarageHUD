@@ -195,9 +195,12 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     /// and reconnect only to this validated device next time.
     private func captureProfile() {
         guard let peripheral, let writeChar, let notifyChar, let service = pairedServiceUUID else { return }
+        // Prefer a clean catalog name (e.g. "OBDLink CX") over whatever the peripheral advertises.
+        let name = KnownOBDAdapter.match(advertisedName: peripheral.name)?.displayName
+            ?? peripheral.name ?? "OBD-II Adapter"
         discoveredProfile = OBDAdapterProfile(
             peripheralID: peripheral.identifier,
-            name: peripheral.name ?? "OBD-II Adapter",
+            name: name,
             serviceUUID: service,
             writeCharUUID: writeChar.uuid.uuidString,
             notifyCharUUID: notifyChar.uuid.uuidString,
