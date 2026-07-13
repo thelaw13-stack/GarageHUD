@@ -138,6 +138,21 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         fix(&performanceRecords, id: { $0.id }, setID: { $0.id = $1 })
         fix(&notes, id: { $0.id }, setID: { $0.id = $1 })
         fix(&maintenance, id: { $0.id }, setID: { $0.id = $1 })
+        fix(&serviceStatus.checklist, id: { $0.id }, setID: { $0.id = $1 })
+
+        // Photos must be unique across the *whole* vehicle — the gallery shows the vehicle's own,
+        // its events', and its parts' photos in one ForEach, so a collision anywhere crashes it.
+        // Vehicle photos are visited first, so `coverPhotoID` (which points at one) keeps its id.
+        var seenPhoto = Set<UUID>()
+        func fixPhotos(_ photos: inout [Photo]) {
+            for i in photos.indices {
+                if seenPhoto.contains(photos[i].id) { photos[i].id = UUID(); changed = true }
+                seenPhoto.insert(photos[i].id)
+            }
+        }
+        fixPhotos(&photos)
+        for i in buildEvents.indices { fixPhotos(&buildEvents[i].photos) }
+        for i in parts.indices { fixPhotos(&parts[i].photos) }
         return changed
     }
 

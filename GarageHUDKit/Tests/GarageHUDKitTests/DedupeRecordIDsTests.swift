@@ -30,4 +30,31 @@ final class DedupeRecordIDsTests: XCTestCase {
         v.buildEvents = [BuildEvent(title: "A"), BuildEvent(title: "B")]
         XCTAssertFalse(v.dedupeRecordIDs())
     }
+
+    func testPhotosAreUniqueAcrossTheWholeVehicleAndCoverSurvives() {
+        var v = Vehicle(make: "Honda", model: "S2000", year: 2006, garageSlot: 1)
+        let shared = UUID()
+        let cover = Photo(id: shared, filename: "cover.jpg")
+        v.photos = [cover]                                             // vehicle photo (the cover)
+        v.buildEvents = [BuildEvent(title: "Dyno", photos: [Photo(id: shared, filename: "dyno.jpg")])]
+        v.setCover(shared)                                            // cover points at the vehicle photo
+
+        XCTAssertTrue(v.dedupeRecordIDs())
+        // All photo ids across the vehicle are now unique — the gallery ForEach can't collide.
+        let allIDs = v.allPhotos.map(\.id)
+        XCTAssertEqual(Set(allIDs).count, allIDs.count)
+        // The vehicle photo (visited first) kept its id, so the chosen cover still resolves.
+        XCTAssertEqual(v.coverPhotoID, shared)
+        XCTAssertEqual(v.heroPhoto?.filename, "cover.jpg")
+    }
+
+    func testChecklistTaskIDsAreHealed() {
+        var v = Vehicle(make: "Toyota", model: "Tundra", year: 2021, garageSlot: 1)
+        let dup = UUID()
+        v.serviceStatus = ServiceStatus(isInService: true, reason: "build",
+                                        checklist: [ServiceTask(id: dup, title: "A"),
+                                                    ServiceTask(id: dup, title: "B")])
+        XCTAssertTrue(v.dedupeRecordIDs())
+        XCTAssertEqual(Set(v.serviceStatus.checklist.map(\.id)).count, 2)
+    }
 }
