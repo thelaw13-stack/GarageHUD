@@ -120,10 +120,26 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// distinguished from the rest of the biography without a separate event type.
     public static let servicePrefix = "Serviced: "
 
+    /// True when this item already has a service logged for the given day *at the current odometer*
+    /// — so a repeat "mark done" would be an impossible duplicate (you can't service the same thing
+    /// twice at the same moment and mileage). The UI uses this to stop the button churning history.
+    public func maintenanceAlreadyDone(_ id: UUID, on date: Date = .now, calendar: Calendar = .current) -> Bool {
+        guard let item = maintenance.first(where: { $0.id == id }) else { return false }
+        return serviceLog.contains { e in
+            e.title.hasPrefix("\(Vehicle.servicePrefix)\(item.name)")
+                && calendar.isDate(e.date, inSameDayAs: date)
+                && e.mileage == currentMileage
+        }
+    }
+
     /// Record a maintenance item as done: reset its interval and log it to the biography so the
-    /// service history is preserved (and shows on the timeline / in the export).
-    public mutating func markMaintenanceDone(_ id: UUID, on date: Date = .now) {
-        guard let i = maintenance.firstIndex(where: { $0.id == id }) else { return }
+    /// service history is preserved (and shows on the timeline / in the export). No-ops on an
+    /// impossible duplicate (already done today at this odometer) so repeated taps can't manufacture
+    /// a service history that never happened.
+    @discardableResult
+    public mutating func markMaintenanceDone(_ id: UUID, on date: Date = .now) -> Bool {
+        guard let i = maintenance.firstIndex(where: { $0.id == id }) else { return false }
+        guard !maintenanceAlreadyDone(id, on: date) else { return false }
         maintenance[i].lastServiced = date
         // Re-baseline the mileage interval too, so "every 5,000 mi" counts from the current odometer.
         if maintenance[i].intervalMiles != nil, let odo = currentMileage {
@@ -132,6 +148,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         let odoNote = currentMileage.map { " @ \($0.formatted(.number.grouping(.automatic))) mi" } ?? ""
         buildEvents.append(BuildEvent(date: date, title: "\(Vehicle.servicePrefix)\(maintenance[i].name)\(odoNote)",
                                       mileage: currentMileage))
+        return true
     }
 
     /// Every photo attached to the car — its own, plus any on build events and parts — as candidates

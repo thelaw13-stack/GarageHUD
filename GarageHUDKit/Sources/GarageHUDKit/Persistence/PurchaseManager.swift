@@ -81,4 +81,9 @@ public final class PurchaseManager: ObservableObject {
         isEightBayUnlocked = value
         UserDefaults.standard.set(value, forKey: Self.unlockKey)
     }
+
+    /// TESTING ONLY — grant/revoke the 8-bay unlock without a real purchase, so the paid state
+    /// (bays 5–8, a 5th vehicle) can be exercised on-device before the IAP is live in App Store
+    /// Connect. Remove or gate behind a build flag before an App Store submission.
+    public func setUnlockedForTesting(_ value: Bool) { setUnlocked(value) }
 }

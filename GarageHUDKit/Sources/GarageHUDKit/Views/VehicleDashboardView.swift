@@ -440,7 +440,10 @@ struct VehicleDashboardView: View {
                                     .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                             }
                             Spacer(minLength: 0)
-                            Button("Mark done") { markServiced(item.id) }.buttonStyle(.compactAction)
+                            let done = vehicle.maintenanceAlreadyDone(item.id)
+                            Button(done ? "Done ✓" : "Mark done") { markServiced(item.id) }
+                                .buttonStyle(.compactAction)
+                                .disabled(done)
                         }
                         .contentShape(Rectangle())
                         .onTapGesture { editingMaintenance = item }
