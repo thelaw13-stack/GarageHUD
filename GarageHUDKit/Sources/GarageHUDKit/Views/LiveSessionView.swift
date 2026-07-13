@@ -13,6 +13,10 @@ struct LiveSessionView: View {
     @State private var captured: [LiveMetrics] = []
     @State private var streamTask: Task<Void, Never>?
 
+    // Pull Guardian — detects a genuine WOT pull in the stream and grades what it saw.
+    @State private var detector: PullDetector?
+    @State private var sessionPulls: [PullReport] = []
+
     var body: some View {
         ScrollView {
             content
@@ -50,6 +54,18 @@ struct LiveSessionView: View {
                     HUDPanel(title: "Steward — Live") {
                         VStack(alignment: .leading, spacing: 12) {
                             ForEach(live) { StewardObservationRow($0) }
+                        }
+                    }
+                }
+            }
+
+            // Pull Guardian: pulls auto-captured this session, each graded by how much of its
+            // boost claim was actually measured — not just detected, but honestly scored.
+            if !sessionPulls.isEmpty {
+                HUDPanel(title: "Pulls This Session") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(sessionPulls.reversed(), id: \.id) { pull in
+                            pullRow(pull)
                         }
                     }
                 }
@@ -131,6 +147,8 @@ struct LiveSessionView: View {
         captured = []
         displayed = nil
         frame = nil
+        sessionPulls = []
+        detector = PullDetector(feedLabel: feed.rawValue, envelope: vehicle.operatingEnvelope)
         let newSource: LiveDataSource = makeSource()
         source = newSource
         newSource.start()
@@ -142,8 +160,30 @@ struct LiveSessionView: View {
                 displayed = snapshot
                 // Only bank a sample when the frame actually carries fresh data.
                 if incoming.hasAnyFresh() { captured.append(snapshot) }
+                // Pull Guardian sees every frame regardless of freshness — it needs stale/dropped
+                // throttle to know a run just ended, not only fresh samples.
+                if let report = detector?.ingest(incoming) {
+                    sessionPulls.append(report)
+                    vehicle.recordPullReport(report)
+                }
             }
         }
+    }
+
+    private func pullRow(_ pull: PullReport) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(pull.headline)
+                    .font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
+                Spacer(minLength: 0)
+                Text(pull.confidence.label)
+                    .font(HUDTheme.label(.semibold))
+                    .foregroundStyle(pull.boostBreachedCeiling ? HUDTheme.danger : HUDTheme.textSecondary)
+            }
+            Text(pull.verdictStatement)
+                .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+        }
+        .padding(.vertical, 2)
     }
 
     private func makeSource() -> LiveDataSource {

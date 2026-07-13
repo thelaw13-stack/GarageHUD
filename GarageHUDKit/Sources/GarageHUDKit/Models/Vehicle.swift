@@ -46,6 +46,9 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     public var notes: [Note] = []
     public var photos: [Photo] = []
     public var maintenance: [MaintenanceItem] = []
+    /// Wide-open-throttle pulls the Pull Guardian auto-captured from a live session — the run,
+    /// graded by how much of its boost claims were actually measured.
+    public var pullReports: [PullReport] = []
     /// The photo the owner chose to represent this car on the garage grid. When nil (or pointing at
     /// a photo that no longer exists) the hero falls back to the first available photo.
     public var coverPhotoID: UUID? = nil
@@ -113,6 +116,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         notes = try c.decodeIfPresent([Note].self, forKey: .notes) ?? []
         photos = try c.decodeIfPresent([Photo].self, forKey: .photos) ?? []
         maintenance = try c.decodeIfPresent([MaintenanceItem].self, forKey: .maintenance) ?? []
+        pullReports = try c.decodeIfPresent([PullReport].self, forKey: .pullReports) ?? []
         coverPhotoID = try c.decodeIfPresent(UUID.self, forKey: .coverPhotoID)
     }
 
@@ -138,6 +142,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         fix(&performanceRecords, id: { $0.id }, setID: { $0.id = $1 })
         fix(&notes, id: { $0.id }, setID: { $0.id = $1 })
         fix(&maintenance, id: { $0.id }, setID: { $0.id = $1 })
+        fix(&pullReports, id: { $0.id }, setID: { $0.id = $1 })
         fix(&serviceStatus.checklist, id: { $0.id }, setID: { $0.id = $1 })
 
         // Photos must be unique across the *whole* vehicle — the gallery shows the vehicle's own,
@@ -158,6 +163,13 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
 
     /// Title prefix marking a build event as a completed service, so the service log can be
     /// distinguished from the rest of the biography without a separate event type.
+    /// Records an auto-captured pull and logs a compact entry to the biography, so it's part of the
+    /// car's memory spine — not a hidden report only the Live tab knows about.
+    public mutating func recordPullReport(_ report: PullReport) {
+        pullReports.append(report)
+        buildEvents.append(BuildEvent(date: report.endedAt, title: "Pull captured: \(report.headline)"))
+    }
+
     public static let servicePrefix = "Serviced: "
 
     /// True when this item already has a service logged for the given day *at the current odometer*

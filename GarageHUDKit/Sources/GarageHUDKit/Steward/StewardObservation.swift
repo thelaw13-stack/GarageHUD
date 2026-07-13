@@ -4,7 +4,7 @@ import Foundation
 /// Per the review: hand-authored percentages like "88%" imply a statistical rigor the system
 /// doesn't have. A band says only what we can honestly stand behind, and is derived from how
 /// complete the underlying evidence is.
-public enum ConfidenceBand: Int, Sendable, Equatable, CaseIterable, Comparable {
+public enum ConfidenceBand: Int, Sendable, Equatable, CaseIterable, Comparable, Codable {
     case insufficient = 0   // not enough recorded to say anything
     case weak = 1           // a hint; could easily be an incomplete record
     case moderate = 2       // reasonable inference, not confirmed

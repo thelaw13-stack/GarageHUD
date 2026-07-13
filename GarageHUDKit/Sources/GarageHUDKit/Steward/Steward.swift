@@ -115,6 +115,20 @@ public enum Steward {
             }
         }
 
+        // 3g. Pull Guardian — a recently captured pull went over the boost ceiling or ran heavily
+        //     over target. Only recent pulls stay actionable; the confidence carries forward from
+        //     the run itself, so a mostly-simulated capture never reads as more certain than it was.
+        if let flagged = vehicle.pullReports
+            .filter({ $0.boostBreachedCeiling || ($0.overTargetFraction ?? 0) >= 0.5 })
+            .max(by: { $0.endedAt < $1.endedAt }),
+           context.days(from: flagged.endedAt, to: context.now) <= 14 {
+            out.append(StewardObservation(
+                ruleID: "live.pullFlagged.\(flagged.id.uuidString)", subjectID: vid,
+                statement: flagged.verdictStatement,
+                evidence: "\(flagged.verdictEvidence) Captured \(short(flagged.endedAt)) (\(flagged.feedLabel)).",
+                confidence: flagged.confidence, tone: .caution, provenance: .recorded))
+        }
+
         // 4. Note when the record — not necessarily the car — has gone quiet. Never for a car that's
         //    deliberately in service. `lastActivityDate` is nil until something is logged, so a
         //    freshly-added car is never called "neglected". Stays informational: not logging isn't
