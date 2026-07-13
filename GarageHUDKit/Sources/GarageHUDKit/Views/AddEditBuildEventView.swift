@@ -17,7 +17,10 @@ struct AddEditBuildEventView: View {
                 Section("Event") {
                     TextField("Title", text: $title)
                     DatePicker("Date", selection: $date, displayedComponents: .date)
-                    TextField("Mileage", text: $mileageText)
+                    TextField("Mileage (odometer)", text: $mileageText)
+                        #if os(iOS)
+                        .keyboardType(.numberPad)
+                        #endif
                     TextEditor(text: $eventDescription).frame(minHeight: 80)
                 }
                 Section("Photos") {

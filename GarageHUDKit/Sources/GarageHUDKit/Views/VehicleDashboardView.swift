@@ -101,7 +101,11 @@ struct VehicleDashboardView: View {
     private var primaryMetrics: some View {
         HStack(spacing: HUDTheme.space3) {
             metric("POWER", vehicle.currentHorsepowerEstimate.map { "\(Int($0))" } ?? "—", "whp")
-            metric("LATEST TEST", vehicle.latestPerformance?.summary ?? "—", "")
+            if let miles = vehicle.currentMileage {
+                metric("ODOMETER", miles.formatted(.number.grouping(.automatic)), "mi")
+            } else {
+                metric("LATEST TEST", vehicle.latestPerformance?.summary ?? "—", "")
+            }
             metric("LAST ACTIVITY",
                    vehicle.lastActivityDate.map { $0.formatted(.dateTime.month(.abbreviated).day()) } ?? "—", "")
         }

@@ -220,6 +220,16 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         return weight / hp
     }
 
+    /// The odometer as of the most recent event that recorded one — the vehicle's current mileage,
+    /// derived from build history rather than stored separately (so it can't drift out of sync).
+    /// Ties break toward the larger reading, since two events on the same day can't lower the odo.
+    public var currentMileage: Int? {
+        buildEvents
+            .compactMap { e in e.mileage.map { (e.date, $0) } }
+            .max { $0.0 != $1.0 ? $0.0 < $1.0 : $0.1 < $1.1 }?
+            .1
+    }
+
     public var lastActivityDate: Date? {
         let dates = buildEvents.map(\.date) + performanceRecords.map(\.date) + notes.map(\.date)
         return dates.max()

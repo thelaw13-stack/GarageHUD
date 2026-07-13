@@ -1,7 +1,7 @@
 import Foundation
 
 #if canImport(UserNotifications)
-import UserNotifications
+@preconcurrency import UserNotifications
 
 /// Delivers `MaintenanceReminders` as local notifications. Thin over the pure scheduling logic:
 /// it asks permission once, then mirrors the computed reminder set into the notification center,
