@@ -16,26 +16,23 @@ struct BuildTimelineView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text(showFullHistory ? "FULL HISTORY" : "BUILD PROGRESSION")
-                    .font(HUDTheme.label(.semibold))
-                    .foregroundStyle(HUDTheme.textSecondary)
-                    .tracking(2)
-                Spacer()
-                Picker("", selection: $showFullHistory) {
+            HStack(spacing: HUDTheme.space3) {
+                // The picker already names the mode (Milestones / Full history), so it stands in
+                // for a section heading and flexes to fill the width instead of colliding.
+                Picker("Timeline mode", selection: $showFullHistory) {
                     Text("Milestones").tag(false)
                     Text("Full history").tag(true)
                 }
                 .pickerStyle(.segmented)
-                .fixedSize()
-                Button {
-                    showingAdd = true
-                } label: {
-                    Label("Log Event", systemImage: "plus")
+                .labelsHidden()
+                .layoutPriority(1)
+                Button { showingAdd = true } label: {
+                    Image(systemName: "plus")
                 }
                 .buttonStyle(.primaryAction)
+                .accessibilityLabel("Log event")
             }
-            .padding()
+            .padding(HUDTheme.space3)
 
             if showFullHistory {
                 fullHistory
