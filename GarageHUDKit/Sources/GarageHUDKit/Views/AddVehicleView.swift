@@ -44,7 +44,10 @@ struct AddVehicleView: View {
     }
 
     private func save() {
-        let vehicle = Vehicle(make: make, model: model, year: year, trim: trim, nickname: nickname, garageSlot: garageSlot)
+        var vehicle = Vehicle(make: make, model: model, year: year, trim: trim, nickname: nickname, garageSlot: garageSlot)
+        // Auto-populate drivetrain from the identifiers just entered; owner can override in Specs.
+        // Stays .unknown when genuinely ambiguous (e.g. a truck with no 4x4/2wd trim).
+        vehicle.drivetrain = Drivetrain.inferred(make: make, model: model, trim: trim)
         onSave(vehicle)
         dismiss()
     }

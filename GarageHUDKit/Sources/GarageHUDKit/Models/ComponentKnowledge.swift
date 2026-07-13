@@ -45,31 +45,62 @@ public enum PowerBasis: String, Sendable, Codable, Equatable, Hashable, CaseIter
 /// wheel-to-wheel instead of wheel-to-crank. The fractions are typical rule-of-thumb losses,
 /// not measured for a specific car, so any result stays explicitly an estimate.
 public enum Drivetrain: String, Sendable, Codable, Equatable, Hashable, CaseIterable, Identifiable {
-    case fwd, rwd, awd, unknown
+    case fwd, rwd, awd, fourWD, twoWD, unknown
 
     public var id: String { rawValue }
 
     /// Typical driveline loss as a fraction of crank power. `unknown` uses a conservative
-    /// middle assumption so an estimate is still possible, flagged as assumed.
+    /// middle assumption so an estimate is still possible, flagged as assumed. 4x4 carries a
+    /// transfer case (more loss than a 2x4).
     public var typicalLossFraction: Double {
         switch self {
         case .fwd: return 0.10
         case .rwd: return 0.15
+        case .twoWD: return 0.15
         case .awd: return 0.20
+        case .fourWD: return 0.20
         case .unknown: return 0.15
         }
     }
 
     public var label: String {
         switch self {
-        case .fwd: return "FWD"; case .rwd: return "RWD"; case .awd: return "AWD"; case .unknown: return "drivetrain"
+        case .fwd: return "FWD"; case .rwd: return "RWD"; case .awd: return "AWD"
+        case .fourWD: return "4X4"; case .twoWD: return "2X4"; case .unknown: return "drivetrain"
         }
     }
 
     public var displayName: String {
         switch self {
-        case .fwd: return "FWD"; case .rwd: return "RWD"; case .awd: return "AWD"; case .unknown: return "Unspecified"
+        case .fwd: return "FWD"; case .rwd: return "RWD"; case .awd: return "AWD"
+        case .fourWD: return "4x4 (4WD)"; case .twoWD: return "2x4 (2WD)"; case .unknown: return "Unspecified"
         }
+    }
+
+    /// Best-effort drivetrain from a vehicle's identifiers. Scans the trim/model for explicit
+    /// drive markers first (4x4, AWD, quattro, 2WD…), then falls back to well-known models. Returns
+    /// `.unknown` when it's genuinely ambiguous (e.g. a truck with no 4x4/2wd trim) rather than
+    /// guessing — the honest default the owner can override.
+    public static func inferred(make: String, model: String, trim: String = "") -> Drivetrain {
+        let text = "\(make) \(model) \(trim)".lowercased()
+        func has(_ needles: [String]) -> Bool { needles.contains { text.contains($0) } }
+
+        // Explicit drive markers win.
+        if has(["4x4", "4wd", "four wheel", "four-wheel"]) { return .fourWD }
+        if has(["2x4", "2wd", "two wheel", "two-wheel"]) { return .twoWD }
+        if has(["awd", "quattro", "4matic", "xdrive", "4motion", "all wheel", "all-wheel", "sh-awd"]) { return .awd }
+        if has([" fwd", "fwd ", "front wheel", "front-wheel"]) { return .fwd }
+        if has([" rwd", "rwd ", "rear wheel", "rear-wheel"]) { return .rwd }
+
+        // Well-known models where the layout is unambiguous.
+        if has(["s2000", "miata", "mx-5", "mx5", "supra", "brz", "gr86", "frs", "fr-s", "corvette",
+                "mustang", "camaro", "challenger", "370z", "350z", "rx-7", "rx7", "rx-8", "rx8",
+                "beetle", "baja"]) { return .rwd }
+        if has(["subaru", "wrx", "sti", "forester", "outback", "crosstrek", "impreza", "audi"]) { return .awd }
+        if has(["civic", "integra", "prius", "golf gti", "gti", "focus", "fiesta"]) { return .fwd }
+
+        // Trucks/SUVs: 4x4 vs 2x4 is a trim/option, not derivable from the model — stay honest.
+        return .unknown
     }
 }
 
