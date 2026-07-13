@@ -138,6 +138,16 @@ private struct VehicleOverviewCard: View {
         Steward.observe(vehicle).filter { $0.tone != .informational }.count
     }
 
+    /// A compact service badge for the card — only when the car is due/overdue (nothing to show
+    /// when it's current or has no schedule; out-of-service cars are handled separately above).
+    private var serviceBadge: (label: String, color: Color)? {
+        switch vehicle.maintenanceDue() {
+        case .overdue: return ("SERVICE OVERDUE", HUDTheme.danger)
+        case .dueSoon: return ("SERVICE DUE SOON", HUDTheme.amber)
+        case .ok: return nil
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: HUDTheme.space2) {
             Text(vehicle.displayName.uppercased())
@@ -149,6 +159,12 @@ private struct VehicleOverviewCard: View {
                 Text("OUT OF SERVICE")
                     .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.amber).tracking(1)
                     .padding(.top, HUDTheme.space1)
+            } else if let service = serviceBadge {
+                HStack(spacing: HUDTheme.space1) {
+                    Circle().fill(service.color).frame(width: 6, height: 6)
+                    Text(service.label).font(HUDTheme.label(.semibold)).foregroundStyle(service.color).tracking(1)
+                }
+                .padding(.top, HUDTheme.space1)
             }
 
             HStack(spacing: HUDTheme.space2) {
@@ -180,7 +196,7 @@ private struct VehicleOverviewCard: View {
         .background(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.panelBackground))
         .overlay(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).strokeBorder(HUDTheme.hairline, lineWidth: 1))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(vehicle.displayName)\(vehicle.serviceStatus.isInService ? ", out of service" : ""), \(attentionCount) items to review\(vehicle.currentMileage.map { ", \($0) miles" } ?? "")")
+        .accessibilityLabel("\(vehicle.displayName)\(vehicle.serviceStatus.isInService ? ", out of service" : ""), \(attentionCount) items to review\(serviceBadge.map { ", \($0.label.lowercased())" } ?? "")\(vehicle.currentMileage.map { ", \($0) miles" } ?? "")")
     }
 }
 
