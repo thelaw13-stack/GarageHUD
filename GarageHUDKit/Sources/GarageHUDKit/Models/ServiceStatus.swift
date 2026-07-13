@@ -23,6 +23,14 @@ public struct ServiceStatus: Codable, Hashable, Sendable {
         self.checklist = checklist
     }
 
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        isInService = try c.decodeIfPresent(Bool.self, forKey: .isInService) ?? false
+        reason = try c.decodeIfPresent(String.self, forKey: .reason) ?? ""
+        since = try c.decodeIfPresent(Date.self, forKey: .since)
+        checklist = try c.decodeIfPresent([ServiceTask].self, forKey: .checklist) ?? []
+    }
+
     public static var operational: ServiceStatus { ServiceStatus() }
 
     /// Prominent headline for the status strip, e.g. "OUT OF SERVICE". Empty when operational.

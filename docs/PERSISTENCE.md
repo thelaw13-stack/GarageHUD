@@ -30,12 +30,12 @@ invisible data loss*. Rationale and future direction:
 There is **no explicit schema version** in the JSON today. The working strategy is
 **additive, default-valued fields**:
 
-- New fields are added as `Optional` or with a default value (e.g. `factoryPowerBasis` defaults
-  to `.factoryCrank`; `confirmedStockSystems` defaults to `[]`; `operatingEnvelopeOverride` is
-  optional). Because Swift's synthesized `Codable` treats a missing key with a default/optional
-  as absent-but-fine, **older `garage.json` files decode cleanly** into newer models. This is
-  how the round-2 review changes (power basis, knowledge confirmations, operating envelopes)
-  shipped without a migration step.
+- New fields are tolerated on decode. **Important:** Swift's *synthesized* `Decodable` does
+  NOT apply a property's default value for a missing key — it throws `keyNotFound`. So models
+  that gain fields (`Vehicle`, `Part`, `ServiceStatus`, `OperatingEnvelope`) implement a custom
+  `init(from:)` using `decodeIfPresent(...) ?? default`. That is what actually lets an older
+  `garage.json` (and the bundled seed) decode cleanly. Relying on property defaults alone is a
+  latent data-loss bug — it silently failed the seed once (see `SeedDecodeCheck`).
 
 ### Rules for changing the schema
 

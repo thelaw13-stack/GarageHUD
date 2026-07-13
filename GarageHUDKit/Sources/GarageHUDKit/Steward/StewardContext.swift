@@ -70,6 +70,15 @@ public struct OperatingEnvelope: Sendable, Equatable, Hashable, Codable {
         self.expectedBoostByRPM = expectedBoostByRPM
     }
 
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        coolantCautionF = try c.decodeIfPresent(Double.self, forKey: .coolantCautionF) ?? 215
+        coolantCriticalF = try c.decodeIfPresent(Double.self, forKey: .coolantCriticalF) ?? 235
+        boostCautionPsi = try c.decodeIfPresent(Double.self, forKey: .boostCautionPsi)
+        maxSustainedBoostPsi = try c.decodeIfPresent(Double.self, forKey: .maxSustainedBoostPsi)
+        expectedBoostByRPM = try c.decodeIfPresent([BoostBand].self, forKey: .expectedBoostByRPM) ?? []
+    }
+
     /// A sane default derived from the record: boost only matters if forced induction is
     /// confirmed present. Coolant limits are conservative street values; no tune profile is
     /// assumed (that must be entered by the owner).

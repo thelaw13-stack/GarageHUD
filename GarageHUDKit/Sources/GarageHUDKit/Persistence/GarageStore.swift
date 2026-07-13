@@ -61,16 +61,35 @@ public final class GarageStore: ObservableObject {
         isLoading = true
         load()
         isLoading = false
-        if vehicles.isEmpty {
-            // Empty garage — seed the whole thing (or a placeholder if there's no bundle seed).
-            if !seedFromBundle() { seedDefaults() }
-        } else {
-            // Fill any bare vehicle (e.g. a stripped cloud shell) from a matching seed, in place.
-            mergeSeedIntoBareMatches()
+        // Apply the bundled seed exactly once per install: fill a bare matching vehicle in
+        // place, and add any seed vehicle that isn't present into a free bay. Gated by a flag so
+        // an intentionally-emptied garage isn't re-seeded later.
+        if !UserDefaults.standard.bool(forKey: seedAppliedKey) {
+            applyInitialSeed()
+            UserDefaults.standard.set(true, forKey: seedAppliedKey)
         }
         if cloud != nil {
             Task { await initialSync() }
         }
+    }
+
+    private let seedAppliedKey = "GHUD.didApplyInitialSeed.v1"
+
+    /// One-time seed: merge into bare matches, then add any missing seed vehicles into free bays.
+    private func applyInitialSeed() {
+        guard let seeds = loadSeedVehicles() else { return }
+        mergeSeedIntoBareMatches()
+        for seed in seeds where !vehicles.contains(where: { $0.identityMatches(seed) }) {
+            guard let slot = firstFreeSlot() else { break }
+            var v = seed
+            v.garageSlot = slot
+            vehicles.append(v)
+        }
+    }
+
+    private func firstFreeSlot() -> Int? {
+        let used = Set(vehicles.map(\.garageSlot))
+        return (1...8).first { !used.contains($0) }
     }
 
     /// Fills any *bare* existing vehicle (no parts logged) with a matching seed vehicle's build —

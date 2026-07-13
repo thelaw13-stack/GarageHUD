@@ -78,6 +78,38 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         self.dateAdded = dateAdded
     }
 
+    // Tolerant decoding — missing keys fall back to defaults so older garage files and any
+    // later-added field decode cleanly (synthesized Decodable does NOT apply property defaults).
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        make = try c.decodeIfPresent(String.self, forKey: .make) ?? ""
+        model = try c.decodeIfPresent(String.self, forKey: .model) ?? ""
+        year = try c.decodeIfPresent(Int.self, forKey: .year) ?? 0
+        trim = try c.decodeIfPresent(String.self, forKey: .trim) ?? ""
+        nickname = try c.decodeIfPresent(String.self, forKey: .nickname) ?? ""
+        colorName = try c.decodeIfPresent(String.self, forKey: .colorName) ?? ""
+        garageSlot = try c.decodeIfPresent(Int.self, forKey: .garageSlot) ?? 1
+        dateAdded = try c.decodeIfPresent(Date.self, forKey: .dateAdded) ?? .now
+        coverImageFilename = try c.decodeIfPresent(String.self, forKey: .coverImageFilename)
+        engineDescription = try c.decodeIfPresent(String.self, forKey: .engineDescription) ?? ""
+        drivetrainDescription = try c.decodeIfPresent(String.self, forKey: .drivetrainDescription) ?? ""
+        factoryHorsepower = try c.decodeIfPresent(Double.self, forKey: .factoryHorsepower)
+        factoryTorque = try c.decodeIfPresent(Double.self, forKey: .factoryTorque)
+        factoryWeightLbs = try c.decodeIfPresent(Double.self, forKey: .factoryWeightLbs)
+        factoryPowerBasis = try c.decodeIfPresent(PowerBasis.self, forKey: .factoryPowerBasis) ?? .factoryCrank
+        drivetrain = try c.decodeIfPresent(Drivetrain.self, forKey: .drivetrain) ?? .unknown
+        documentedTotalInvestment = try c.decodeIfPresent(Double.self, forKey: .documentedTotalInvestment)
+        confirmedStockSystems = try c.decodeIfPresent(Set<PartCategory>.self, forKey: .confirmedStockSystems) ?? []
+        operatingEnvelopeOverride = try c.decodeIfPresent(OperatingEnvelope.self, forKey: .operatingEnvelopeOverride)
+        serviceStatus = try c.decodeIfPresent(ServiceStatus.self, forKey: .serviceStatus) ?? .operational
+        parts = try c.decodeIfPresent([Part].self, forKey: .parts) ?? []
+        buildEvents = try c.decodeIfPresent([BuildEvent].self, forKey: .buildEvents) ?? []
+        performanceRecords = try c.decodeIfPresent([PerformanceRecord].self, forKey: .performanceRecords) ?? []
+        notes = try c.decodeIfPresent([Note].self, forKey: .notes) ?? []
+        photos = try c.decodeIfPresent([Photo].self, forKey: .photos) ?? []
+    }
+
     public var displayName: String {
         nickname.isEmpty ? "\(year) \(make) \(model)" : nickname
     }

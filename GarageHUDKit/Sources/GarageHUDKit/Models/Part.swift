@@ -45,4 +45,24 @@ public struct Part: Identifiable, Codable, Hashable, Sendable {
         self.photos = photos
         self.flaggedForRebuild = flaggedForRebuild
     }
+
+    // Tolerant decoding: missing keys fall back to defaults so older records (and any field
+    // added over time) decode cleanly. Swift's *synthesized* Decodable does NOT apply property
+    // defaults for absent keys, so this must be explicit.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        name = try c.decodeIfPresent(String.self, forKey: .name) ?? ""
+        category = try c.decodeIfPresent(PartCategory.self, forKey: .category) ?? .uncategorized
+        brand = try c.decodeIfPresent(String.self, forKey: .brand) ?? ""
+        partNumber = try c.decodeIfPresent(String.self, forKey: .partNumber) ?? ""
+        status = try c.decodeIfPresent(PartStatus.self, forKey: .status) ?? .installed
+        installDate = try c.decodeIfPresent(Date.self, forKey: .installDate)
+        removeDate = try c.decodeIfPresent(Date.self, forKey: .removeDate)
+        cost = try c.decodeIfPresent(Double.self, forKey: .cost)
+        vendor = try c.decodeIfPresent(String.self, forKey: .vendor) ?? ""
+        notes = try c.decodeIfPresent(String.self, forKey: .notes) ?? ""
+        photos = try c.decodeIfPresent([Photo].self, forKey: .photos) ?? []
+        flaggedForRebuild = try c.decodeIfPresent(Bool.self, forKey: .flaggedForRebuild) ?? false
+    }
 }
