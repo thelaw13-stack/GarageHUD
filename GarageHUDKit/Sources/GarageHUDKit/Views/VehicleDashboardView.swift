@@ -22,6 +22,16 @@ struct VehicleDashboardView: View {
         .sheet(isPresented: $showingAsk) {
             AskStewardView(vehicle: vehicle)
         }
+        .confirmationDialog("Mark \(vehicle.displayName) back in service?",
+                            isPresented: $confirmingReturn, titleVisibility: .visible) {
+            Button("Back in service") { vehicle.markBackInService() }
+            Button("Keep working", role: .cancel) {}
+        } message: {
+            let remaining = vehicle.serviceStatus.checklist.count - vehicle.serviceStatus.completedCount
+            Text(remaining > 0
+                 ? "\(remaining) checklist item\(remaining == 1 ? "" : "s") still open. This logs a build event and clears the checklist."
+                 : "This logs a build event and clears the checklist.")
+        }
     }
 
     private var header: some View {
@@ -167,9 +177,11 @@ struct VehicleDashboardView: View {
         if vehicle.serviceStatus.isInService {
             HUDPanel(title: rebuildTitle) {
                 VStack(alignment: .leading, spacing: HUDTheme.space3) {
-                    ForEach($vehicle.serviceStatus.checklist) { $task in
+                    // Iterate by value + mutate by id — never ForEach($binding) alongside
+                    // deletion/clearing, which invalidates positional bindings and crashes.
+                    ForEach(vehicle.serviceStatus.checklist) { task in
                         HStack(alignment: .top, spacing: HUDTheme.space3) {
-                            Button { task.isDone.toggle() } label: {
+                            Button { toggleTask(task.id) } label: {
                                 Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
                                     .foregroundStyle(task.isDone ? HUDTheme.green : HUDTheme.textSecondary)
                             }
@@ -209,22 +221,18 @@ struct VehicleDashboardView: View {
                     .padding(.top, HUDTheme.space2)
                 }
             }
-            .confirmationDialog("Mark \(vehicle.displayName) back in service?",
-                                isPresented: $confirmingReturn, titleVisibility: .visible) {
-                Button("Back in service") { vehicle.markBackInService() }
-                Button("Keep working", role: .cancel) {}
-            } message: {
-                let remaining = vehicle.serviceStatus.checklist.count - vehicle.serviceStatus.completedCount
-                Text(remaining > 0
-                     ? "\(remaining) checklist item\(remaining == 1 ? "" : "s") still open. This logs a build event and clears the checklist."
-                     : "This logs a build event and clears the checklist.")
-            }
         }
     }
 
     private func attemptReturn() {
         let remaining = vehicle.serviceStatus.checklist.count - vehicle.serviceStatus.completedCount
         if remaining > 0 { confirmingReturn = true } else { vehicle.markBackInService() }
+    }
+
+    private func toggleTask(_ id: UUID) {
+        if let i = vehicle.serviceStatus.checklist.firstIndex(where: { $0.id == id }) {
+            vehicle.serviceStatus.checklist[i].isDone.toggle()
+        }
     }
 
     private var rebuildTitle: String {
