@@ -15,8 +15,10 @@ public final class PurchaseManager: ObservableObject {
     private var updatesTask: Task<Void, Never>?
 
     public init() {
-        // Optimistically restore the persisted unlock so bays don't collapse while offline.
-        isEightBayUnlocked = UserDefaults.standard.bool(forKey: Self.unlockKey)
+        // TEMP — hard-unlocked so all 8 bays (a 5th+ vehicle) are usable before the IAP is live in
+        // App Store Connect. Revert to `UserDefaults.standard.bool(forKey: Self.unlockKey)` and
+        // re-gate behind the real purchase before an App Store submission.
+        isEightBayUnlocked = true
         updatesTask = listenForTransactions()
         Task { await refresh() }
     }

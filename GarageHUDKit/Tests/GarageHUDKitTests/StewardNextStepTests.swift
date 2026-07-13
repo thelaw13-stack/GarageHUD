@@ -39,11 +39,11 @@ final class StewardNextStepTests: XCTestCase {
 
     func testAdvisoryOutranksSupportGap() {
         var v = boostedS2K()
-        // All activity old (incl. the dyno) so the quiet-build advisory actually fires.
-        v.performanceRecords = [PerformanceRecord(date: day(-300), type: .dyno, wheelHorsepower: 477)]
-        v.buildEvents = [BuildEvent(date: day(-300), title: "last")]
+        // A real advisory (overdue maintenance) must outrank the caution-level support gap. (Quiet
+        // build is only informational now — not logging isn't urgent, so it never wins the next step.)
+        v.maintenance = [MaintenanceItem(name: "Oil", intervalMonths: 6, lastServiced: day(-400))]
         let step = Steward.nextStep(v)!
-        XCTAssertTrue(step.action.localizedCaseInsensitiveContains("log some activity"))
+        XCTAssertTrue(step.action.localizedCaseInsensitiveContains("overdue"))
     }
 
     func testNilWhenNothingPressing() {

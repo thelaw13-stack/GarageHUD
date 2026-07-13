@@ -115,16 +115,18 @@ public enum Steward {
             }
         }
 
-        // 4. Surface when the biography goes quiet — but never for a car that's deliberately in
-        //    service. The elapsed time is a confirmed fact.
+        // 4. Note when the record — not necessarily the car — has gone quiet. Never for a car that's
+        //    deliberately in service. `lastActivityDate` is nil until something is logged, so a
+        //    freshly-added car is never called "neglected". Stays informational: not logging isn't
+        //    neglect, so Steward observes it plainly rather than scolding.
         if !vehicle.serviceStatus.isInService, let last = vehicle.lastActivityDate {
             let days = context.days(from: last, to: context.now)
-            if days >= 90 {
+            if days >= 180 {
                 out.append(StewardObservation(
                     ruleID: "build.quiet", subjectID: vid,
-                    statement: "Based on your history, this build has been quiet for a while.",
-                    evidence: "Last logged activity was \(days) days ago (\(short(last))).",
-                    confidence: .confirmed, tone: days >= 240 ? .advisory : .informational, provenance: .derived))
+                    statement: "The log for this car has been quiet for a while.",
+                    evidence: "Nothing new has been recorded in \(days) days (last was \(short(last))) — not necessarily inactivity, just an aging record.",
+                    confidence: .confirmed, tone: .informational, provenance: .derived))
             }
         }
 
@@ -142,16 +144,18 @@ public enum Steward {
 
         // 5. Cost-to-power — an approximation, and labeled as one. Comparing a measured wheel
         //    figure against a factory *crank* rating is not dyno-corrected truth.
+        // Only meaningful once real power has been added — a $/hp figure over a handful of wheel-hp
+        // is volatile noise (and pointless on a utility/OEM build), so require a genuine gain.
         if let costPerHp = vehicle.costPerHorsepowerGained,
-           let gained = vehicle.horsepowerGainedOverStock,
+           let gained = vehicle.horsepowerGainedOverStock, gained >= 25,
            let baseline = vehicle.estimatedStockWheelHP {
             let lossNote = vehicle.stockWheelBaselineIsAssumed
                 ? "assuming ~\(Int(Drivetrain.unknown.typicalLossFraction * 100))% driveline loss"
                 : "~\(Int(vehicle.drivetrain.typicalLossFraction * 100))% \(vehicle.drivetrain.label) driveline loss"
             out.append(StewardObservation(
                 ruleID: "efficiency.costPerHp", subjectID: vid,
-                statement: "I observed your approximate cost-to-power efficiency.",
-                evidence: "~\(dollars(costPerHp)) per wheel-hp gained (~\(Int(gained)) whp over an estimated \(Int(baseline)) whp stock baseline, \(dollars(vehicle.totalInvested)) invested). Wheel-to-wheel estimate, \(lossNote); not dyno-corrected.",
+                statement: "This build runs about \(dollars(costPerHp)) per wheel-hp gained.",
+                evidence: "~\(Int(gained)) whp over an estimated \(Int(baseline)) whp stock baseline, \(dollars(vehicle.totalInvested)) invested. Wheel-to-wheel estimate, \(lossNote); not dyno-corrected.",
                 confidence: .moderate, tone: .informational, provenance: .derived))
         }
 

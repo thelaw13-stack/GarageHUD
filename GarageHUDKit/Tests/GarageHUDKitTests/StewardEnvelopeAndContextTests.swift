@@ -143,15 +143,15 @@ final class StewardEnvelopeAndContextTests: XCTestCase {
         // A fixed context: "quiet build" depends on context.now, not wall-clock.
         let fixedNow = Date(timeIntervalSince1970: 1_700_000_000)
         var v = Vehicle(make: "T", model: "C", year: 2020, garageSlot: 1)
-        let hundredDaysBefore = fixedNow.addingTimeInterval(-100 * 86_400)
-        v.buildEvents = [BuildEvent(date: hundredDaysBefore, title: "last")]
+        let twoHundredDaysBefore = fixedNow.addingTimeInterval(-200 * 86_400)
+        v.buildEvents = [BuildEvent(date: twoHundredDaysBefore, title: "last")]
         var utc = Calendar(identifier: .gregorian)
         utc.timeZone = TimeZone(identifier: "UTC")!
         let ctx = StewardContext(now: fixedNow, calendar: utc)
         let first = Steward.observe(v, context: ctx).first { $0.ruleID == "build.quiet" }
         let second = Steward.observe(v, context: ctx).first { $0.ruleID == "build.quiet" }
         XCTAssertNotNil(first)
-        XCTAssertTrue(first!.evidence.contains("100 days ago"))     // exact and stable under a fixed clock
+        XCTAssertTrue(first!.evidence.contains("200 days"))         // exact and stable under a fixed clock
         XCTAssertEqual(first!.evidence, second!.evidence)           // same input → same output
     }
 }
