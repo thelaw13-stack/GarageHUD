@@ -73,7 +73,7 @@ public final class GarageStore: ObservableObject {
         }
     }
 
-    private let seedAppliedKey = "GHUD.didApplyInitialSeed.v2"
+    private let seedAppliedKey = "GHUD.didApplyInitialSeed.v3"
     /// True when this launch merged/added seed data — so the local (now-superset) garage is
     /// pushed authoritatively rather than risk a smaller cloud record overwriting the addition.
     private var seededThisLaunch = false
