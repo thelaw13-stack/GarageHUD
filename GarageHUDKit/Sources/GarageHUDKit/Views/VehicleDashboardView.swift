@@ -47,6 +47,10 @@ struct VehicleDashboardView: View {
 
     private var identityAndStatus: some View {
         VStack(alignment: .leading, spacing: HUDTheme.space2) {
+            if vehicle.heroPhoto != nil {
+                HeroBannerView(photo: vehicle.heroPhoto)
+                    .accessibilityHidden(true)
+            }
             Text(vehicle.displayName.uppercased())
                 .font(HUDTheme.title())
                 .foregroundStyle(HUDTheme.textPrimary)
