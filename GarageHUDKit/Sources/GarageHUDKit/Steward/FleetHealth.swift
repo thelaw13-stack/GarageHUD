@@ -10,6 +10,16 @@ public enum FleetHealth {
         public var total: Int { overdue + dueSoon }
     }
 
+    public struct ServiceFocus: Equatable, Sendable {
+        public var vehicleID: UUID
+        public var vehicleName: String
+        public var itemID: UUID
+        public var itemName: String
+        public var due: MaintenanceItem.Due
+        public var urgencyAnchor: Date
+        public var milesRemaining: Int?
+    }
+
     public static func serviceDue(for vehicles: [Vehicle], now: Date = .now,
                                   calendar: Calendar = .current) -> ServiceDue {
         var overdue = 0, dueSoon = 0
@@ -27,17 +37,74 @@ public enum FleetHealth {
     /// the most-pressing due-soon car. Out-of-service cars are skipped. Nil if nothing needs service.
     public static func mostUrgent(in vehicles: [Vehicle], now: Date = .now,
                                   calendar: Calendar = .current) -> Vehicle? {
-        // Rank: overdue (2) before dueSoon (1); within a rank, the earliest due date is most urgent.
-        func rank(_ v: Vehicle) -> Int {
-            switch v.maintenanceDue(now: now, calendar: calendar) {
-            case .overdue: return 2; case .dueSoon: return 1; case .ok: return 0
+        guard let focus = mostUrgentService(in: vehicles, now: now, calendar: calendar) else { return nil }
+        return vehicles.first { $0.id == focus.vehicleID }
+    }
+
+    /// The single most-pressing maintenance item across the fleet. This powers the Garage header's
+    /// service jump while keeping the reasoning pure and testable.
+    public static func mostUrgentService(in vehicles: [Vehicle], now: Date = .now,
+                                         calendar: Calendar = .current) -> ServiceFocus? {
+        struct Candidate {
+            var focus: ServiceFocus
+            var rank: Int
+        }
+
+        func rank(_ due: MaintenanceItem.Due) -> Int {
+            switch due {
+            case .overdue: return 2
+            case .dueSoon: return 1
+            case .ok: return 0
             }
         }
-        func soonestDue(_ v: Vehicle) -> Date {
-            v.maintenance.map { $0.dueDate(calendar) }.min() ?? .distantFuture
+
+        func urgencyAnchor(for item: MaintenanceItem, due: MaintenanceItem.Due) -> Date {
+            let dueDate = item.dueDate(calendar)
+            let timeDue = item.due(now: now, calendar: calendar)
+            switch due {
+            case .overdue:
+                return timeDue == .overdue ? dueDate : now
+            case .dueSoon:
+                if timeDue == .dueSoon { return dueDate }
+                return calendar.date(byAdding: .day, value: 30, to: now) ?? now
+            case .ok:
+                return .distantFuture
+            }
         }
-        return vehicles
-            .filter { !$0.serviceStatus.isInService && rank($0) > 0 }
-            .max { a, b in rank(a) != rank(b) ? rank(a) < rank(b) : soonestDue(a) > soonestDue(b) }
+
+        let candidates: [Candidate] = vehicles.flatMap { vehicle -> [Candidate] in
+            guard !vehicle.serviceStatus.isInService else { return [] }
+            let mileage = vehicle.currentMileage
+            return vehicle.maintenance.compactMap { item in
+                let due = item.due(now: now, calendar: calendar, currentMileage: mileage)
+                guard due != .ok else { return nil }
+                return Candidate(
+                    focus: ServiceFocus(
+                        vehicleID: vehicle.id,
+                        vehicleName: vehicle.displayName,
+                        itemID: item.id,
+                        itemName: item.name,
+                        due: due,
+                        urgencyAnchor: urgencyAnchor(for: item, due: due),
+                        milesRemaining: item.milesUntilDue(currentMileage: mileage)
+                    ),
+                    rank: rank(due)
+                )
+            }
+        }
+
+        return candidates.sorted { a, b in
+            if a.rank != b.rank { return a.rank > b.rank }
+            if a.focus.urgencyAnchor != b.focus.urgencyAnchor {
+                return a.focus.urgencyAnchor < b.focus.urgencyAnchor
+            }
+            let aMiles = a.focus.milesRemaining ?? .max
+            let bMiles = b.focus.milesRemaining ?? .max
+            if aMiles != bMiles { return aMiles < bMiles }
+            if a.focus.vehicleName != b.focus.vehicleName {
+                return a.focus.vehicleName.localizedStandardCompare(b.focus.vehicleName) == .orderedAscending
+            }
+            return a.focus.itemName.localizedStandardCompare(b.focus.itemName) == .orderedAscending
+        }.first?.focus
     }
 }

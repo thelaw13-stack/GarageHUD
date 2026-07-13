@@ -60,6 +60,7 @@ struct GarageOverviewView: View {
         let review = store.vehicles.reduce(0) { $0 + Steward.observe($1).filter { $0.tone != .informational }.count }
             + Steward.observeFleet(store.vehicles).filter { $0.tone != .informational }.count
         let service = FleetHealth.serviceDue(for: store.vehicles)
+        let urgentService = FleetHealth.mostUrgentService(in: store.vehicles)
         // Overdue service is the most serious fleet state (red); anything else needing attention is amber.
         let dot: Color = service.overdue > 0 ? HUDTheme.danger
             : (review > 0 || service.dueSoon > 0) ? HUDTheme.amber
@@ -76,12 +77,12 @@ struct GarageOverviewView: View {
                 healthStat("\(service.total)", "SERVICE DUE", serviceColor)
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        if let urgent = FleetHealth.mostUrgent(in: store.vehicles) {
-                            selectedVehicleID = urgent.id
+                        if let urgentService {
+                            selectedVehicleID = urgentService.vehicleID
                         }
                     }
                     .accessibilityAddTraits(.isButton)
-                    .accessibilityHint("Jump to the car most in need of service")
+                    .accessibilityHint(urgentService.map { "Jump to \($0.vehicleName) for \($0.itemName)" } ?? "Jump to the car most in need of service")
             }
             Spacer(minLength: 0)
         }
