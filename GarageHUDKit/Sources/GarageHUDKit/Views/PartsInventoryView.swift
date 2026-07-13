@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PartsInventoryView: View {
+    @EnvironmentObject private var store: GarageStore
     @Binding var vehicle: Vehicle
     @State private var showingAddPart = false
     @State private var showingBulkImport = false
@@ -56,6 +57,16 @@ struct PartsInventoryView: View {
                                             .contentShape(Rectangle())
                                             .onTapGesture { editingPart = part }
                                             .contextMenu {
+                                                let others = store.vehicles.filter { $0.id != vehicle.id }
+                                                if !others.isEmpty {
+                                                    Menu("Move to…") {
+                                                        ForEach(others) { dest in
+                                                            Button(dest.displayName) {
+                                                                store.moveParts(partID: part.id, from: vehicle.id, to: dest.id)
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                                 Button("Delete", role: .destructive) {
                                                     vehicle.parts.removeAll { $0.id == part.id }
                                                 }

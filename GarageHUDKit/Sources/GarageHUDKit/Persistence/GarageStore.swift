@@ -375,6 +375,35 @@ public final class GarageStore: ObservableObject {
         vehicles.removeAll { $0.id == id }
     }
 
+    /// Move a part from one vehicle to another — a real fleet workflow (e.g. pulling an amp out of
+    /// one build and installing it in another). The part keeps its identity and history-linkable id,
+    /// and a dated build event is logged on both cars so the transfer shows up in each timeline.
+    /// Returns true if the part was found on the source and moved.
+    @discardableResult
+    public func moveParts(partID: UUID, from sourceID: UUID, to destID: UUID) -> Bool {
+        guard sourceID != destID,
+              let si = vehicles.firstIndex(where: { $0.id == sourceID }),
+              let di = vehicles.firstIndex(where: { $0.id == destID }),
+              let pi = vehicles[si].parts.firstIndex(where: { $0.id == partID })
+        else { return false }
+
+        let part = vehicles[si].parts.remove(at: pi)
+        vehicles[di].parts.append(part)
+
+        let sourceName = vehicles[si].displayName
+        let destName = vehicles[di].displayName
+        vehicles[si].buildEvents.append(BuildEvent(
+            title: "Removed: \(part.name)",
+            eventDescription: "Moved to \(destName).",
+            relatedPartIDs: [part.id]))
+        vehicles[di].buildEvents.append(BuildEvent(
+            title: "Installed: \(part.name)",
+            eventDescription: "Moved from \(sourceName).",
+            relatedPartIDs: [part.id]))
+        save()
+        return true
+    }
+
     /// Clean-slate build: no seeded vehicles. A fresh install shows an empty 4-bay garage
     /// ready for the user to add/import their own cars.
     private func seedDefaults() {
