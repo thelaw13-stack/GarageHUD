@@ -150,6 +150,10 @@ private struct VehicleOverviewCard: View {
                 Text(vehicle.lastActivityDate.map { "Last activity \($0.formatted(date: .abbreviated, time: .omitted))" } ?? "No activity logged")
                     .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 Spacer(minLength: 0)
+                if let miles = vehicle.currentMileage {
+                    Text("\(miles.formatted(.number.grouping(.automatic))) mi")
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                }
                 Image(systemName: "chevron.right").font(.system(size: 10)).foregroundStyle(HUDTheme.textTertiary)
             }
         }
@@ -158,7 +162,7 @@ private struct VehicleOverviewCard: View {
         .background(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.panelBackground))
         .overlay(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).strokeBorder(HUDTheme.hairline, lineWidth: 1))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(vehicle.displayName)\(vehicle.serviceStatus.isInService ? ", out of service" : ""), \(attentionCount) items to review")
+        .accessibilityLabel("\(vehicle.displayName)\(vehicle.serviceStatus.isInService ? ", out of service" : ""), \(attentionCount) items to review\(vehicle.currentMileage.map { ", \($0) miles" } ?? "")")
     }
 }
 
