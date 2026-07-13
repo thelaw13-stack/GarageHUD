@@ -38,9 +38,6 @@ public final class GarageStore: ObservableObject {
     private let cloud: CloudSyncManager?
     private var isApplyingRemote = false
     private var initialSyncPending: Bool
-    /// True when this launch loaded the bundled seed into an empty garage; lets initial sync
-    /// prefer that fresh real data over an empty/stripped cloud record.
-    private var didSeedThisLaunch = false
     private var pushTask: Task<Void, Never>?
     private let appliedKey = "GHUD.appliedCloudUpdatedAt"
     private var appliedCloudUpdatedAt: Date? {
@@ -66,11 +63,10 @@ public final class GarageStore: ObservableObject {
         isLoading = false
         if vehicles.isEmpty {
             // Empty garage — seed the whole thing (or a placeholder if there's no bundle seed).
-            if seedFromBundle() { didSeedThisLaunch = true } else { seedDefaults() }
-        } else if mergeSeedIntoBareMatches() {
-            // A bare vehicle (e.g. a stripped cloud shell) matched a seed vehicle and was filled
-            // in place, keeping its id so sync doesn't fork it.
-            didSeedThisLaunch = true
+            if !seedFromBundle() { seedDefaults() }
+        } else {
+            // Fill any bare vehicle (e.g. a stripped cloud shell) from a matching seed, in place.
+            mergeSeedIntoBareMatches()
         }
         if cloud != nil {
             Task { await initialSync() }
@@ -114,10 +110,9 @@ public final class GarageStore: ObservableObject {
         }
         syncStatus = .syncing
         if let remote = await cloud.pull() {
-            let remoteHasRealData = remote.vehicles.contains { !$0.parts.isEmpty || !$0.performanceRecords.isEmpty }
-            if didSeedThisLaunch && !remoteHasRealData {
-                // We just seeded real data locally and the cloud only holds an empty/stripped
-                // record — make the seed authoritative instead of letting stale cloud clobber it.
+            if shouldPreferLocal(over: remote.vehicles) {
+                // Local holds a real build and the cloud is empty/stripped — never let stale
+                // cloud clobber it. Make local authoritative (repairs the cloud record too).
                 initialSyncPending = false
                 let stamp = Date()
                 if await cloud.push(vehicles: vehicles, updatedAt: stamp) {
@@ -141,6 +136,13 @@ public final class GarageStore: ObservableObject {
         syncStatus = .synced
     }
 
+    /// A pull must never replace a real local build with an empty/stripped cloud record. Guards
+    /// both initial sync and manual refresh against the whole-doc-sync data-loss path.
+    private func shouldPreferLocal(over remote: [Vehicle]) -> Bool {
+        func real(_ list: [Vehicle]) -> Bool { list.contains { !$0.parts.isEmpty || !$0.performanceRecords.isEmpty } }
+        return real(vehicles) && !real(remote)
+    }
+
     /// Pull-only refresh, safe to call on foreground / manual "sync now".
     public func syncNow() {
         guard let cloud else { return }
@@ -148,6 +150,7 @@ public final class GarageStore: ObservableObject {
             guard await cloud.accountAvailable() else { syncStatus = .offline; return }
             syncStatus = .syncing
             if let remote = await cloud.pull(),
+               !shouldPreferLocal(over: remote.vehicles),
                appliedCloudUpdatedAt == nil || remote.updatedAt > appliedCloudUpdatedAt! {
                 applyRemote(remote.vehicles)
                 appliedCloudUpdatedAt = remote.updatedAt

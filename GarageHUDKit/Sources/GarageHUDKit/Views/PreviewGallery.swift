@@ -100,7 +100,7 @@ private func liveFrame(coolant: Double?, boost: Double?, throttle: Double?, sour
                               connectionState: state, capturedAt: Date())
 }
 
-private func liveObservations(_ frame: LiveTelemetryFrame) -> some View {
+@MainActor private func liveObservations(_ frame: LiveTelemetryFrame) -> some View {
     let obs = Steward.observe(frame: frame, for: PreviewVehicles.normal)
     return ScrollView {
         VStack(alignment: .leading, spacing: HUDTheme.space3) {
