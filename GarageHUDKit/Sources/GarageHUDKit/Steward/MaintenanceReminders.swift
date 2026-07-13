@@ -22,15 +22,27 @@ public enum MaintenanceReminders {
                                 calendar: Calendar = .current) -> [MaintenanceReminder] {
         var reminders: [MaintenanceReminder] = []
         for vehicle in vehicles where !vehicle.serviceStatus.isInService {
+            let odo = vehicle.currentMileage
             for item in vehicle.maintenance {
                 let due = item.dueDate(calendar)
-                let fire = max(due, now.addingTimeInterval(60))    // overdue → nudge shortly
-                let overdue = now >= due
+                // Mileage can't predict a calendar fire date (we don't know how fast miles accrue),
+                // so a mileage-overdue item is nudged shortly — same as a time-overdue one.
+                let milesRemaining = item.milesUntilDue(currentMileage: odo)
+                let mileOverdue = (milesRemaining ?? .max) <= 0
+                let overdue = now >= due || mileOverdue
+                let fire = overdue ? now.addingTimeInterval(60) : due
+                let body: String
+                if mileOverdue, let target = item.dueMileage {
+                    body = "Overdue — due at \(target.formatted(.number.grouping(.automatic))) mi."
+                } else if overdue {
+                    body = "Overdue — last done \(short(item.lastServiced, calendar)) on a \(item.intervalMonths)-month interval."
+                } else {
+                    body = "Due \(short(due, calendar))."
+                }
                 reminders.append(MaintenanceReminder(
                     id: "maint.\(vehicle.id.uuidString).\(item.id.uuidString)",
                     title: "\(vehicle.displayName): \(item.name)",
-                    body: overdue ? "Overdue — last done \(short(item.lastServiced, calendar)) on a \(item.intervalMonths)-month interval."
-                                  : "Due \(short(due, calendar)).",
+                    body: body,
                     fireDate: fire))
             }
         }

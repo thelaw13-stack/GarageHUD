@@ -7,6 +7,7 @@ struct VehicleDashboardView: View {
     @State private var newTask = ""
     @State private var confirmingReturn = false
     @State private var editingPart: Part?
+    @State private var editingMaintenance: MaintenanceItem?
 
     var body: some View {
         ScrollView {
@@ -27,6 +28,9 @@ struct VehicleDashboardView: View {
         .sheet(isPresented: $showingAsk) { AskStewardView(vehicle: vehicle) }
         .sheet(isPresented: $showingAllObservations) { allObservationsSheet }
         .sheet(item: $editingPart) { part in AddEditPartView(vehicle: $vehicle, partID: part.id) }
+        .sheet(item: $editingMaintenance) { item in
+            MaintenanceEditorView(vehicle: $vehicle, itemID: item.id)
+        }
         .confirmationDialog("Mark \(vehicle.displayName) back in service?",
                             isPresented: $confirmingReturn, titleVisibility: .visible) {
             Button("Back in service") { vehicle.markBackInService() }
@@ -345,19 +349,25 @@ struct VehicleDashboardView: View {
                 }
                 Group {
                     ForEach(vehicle.maintenance) { item in
+                        let due = item.due(currentMileage: vehicle.currentMileage)
                         HStack(alignment: .top, spacing: HUDTheme.space3) {
-                            Circle().fill(maintenanceColor(item.due())).frame(width: 8, height: 8).padding(.top, 4)
+                            Circle().fill(maintenanceColor(due)).frame(width: 8, height: 8).padding(.top, 4)
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(item.name).font(HUDTheme.body()).foregroundStyle(HUDTheme.textPrimary)
-                                Text("\(maintenanceStatusText(item.due())) · every \(item.intervalMonths) mo · due \(item.dueDate().formatted(date: .abbreviated, time: .omitted))")
+                                Text(maintenanceDetail(item))
                                     .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                             }
                             Spacer(minLength: 0)
                             Button("Mark done") { markServiced(item.id) }.buttonStyle(.compactAction)
                         }
-                        .contextMenu { Button("Remove", role: .destructive) { removeMaintenance(item.id) } }
+                        .contentShape(Rectangle())
+                        .onTapGesture { editingMaintenance = item }
+                        .contextMenu {
+                            Button("Edit…") { editingMaintenance = item }
+                            Button("Remove", role: .destructive) { removeMaintenance(item.id) }
+                        }
                         .accessibilityElement(children: .combine)
-                        .accessibilityLabel("\(item.name): \(maintenanceStatusText(item.due()))")
+                        .accessibilityLabel("\(item.name): \(maintenanceStatusText(due))")
                     }
                     HStack(spacing: HUDTheme.space2) {
                         Image(systemName: "plus").foregroundStyle(HUDTheme.cyan).font(.system(size: 12))
@@ -367,6 +377,21 @@ struct VehicleDashboardView: View {
                 }
             }
         }
+    }
+
+    private func maintenanceDetail(_ item: MaintenanceItem) -> String {
+        let due = item.due(currentMileage: vehicle.currentMileage)
+        var interval = "every \(item.intervalMonths) mo"
+        if let miles = item.intervalMiles {
+            interval += " / \(miles.formatted(.number.grouping(.automatic))) mi"
+        }
+        var detail = "\(maintenanceStatusText(due)) · \(interval) · due \(item.dueDate().formatted(date: .abbreviated, time: .omitted))"
+        if let remaining = item.milesUntilDue(currentMileage: vehicle.currentMileage) {
+            detail += remaining > 0
+                ? " or in \(remaining.formatted(.number.grouping(.automatic))) mi"
+                : " · \((-remaining).formatted(.number.grouping(.automatic))) mi over"
+        }
+        return detail
     }
 
     private func maintenanceColor(_ d: MaintenanceItem.Due) -> Color {

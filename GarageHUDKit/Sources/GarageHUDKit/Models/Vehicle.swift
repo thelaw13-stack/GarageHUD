@@ -117,12 +117,20 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     public mutating func markMaintenanceDone(_ id: UUID, on date: Date = .now) {
         guard let i = maintenance.firstIndex(where: { $0.id == id }) else { return }
         maintenance[i].lastServiced = date
-        buildEvents.append(BuildEvent(date: date, title: "Serviced: \(maintenance[i].name)"))
+        // Re-baseline the mileage interval too, so "every 5,000 mi" counts from the current odometer.
+        if maintenance[i].intervalMiles != nil, let odo = currentMileage {
+            maintenance[i].lastServicedMileage = odo
+        }
+        let odoNote = currentMileage.map { " @ \($0.formatted(.number.grouping(.automatic))) mi" } ?? ""
+        buildEvents.append(BuildEvent(date: date, title: "Serviced: \(maintenance[i].name)\(odoNote)",
+                                      mileage: currentMileage))
     }
 
-    /// The most-pressing maintenance state across all items (worst wins).
+    /// The most-pressing maintenance state across all items (worst wins), accounting for both the
+    /// time interval and any mileage interval measured against the current odometer.
     public func maintenanceDue(now: Date = .now, calendar: Calendar = .current) -> MaintenanceItem.Due {
-        let states = maintenance.map { $0.due(now: now, calendar: calendar) }
+        let odo = currentMileage
+        let states = maintenance.map { $0.due(now: now, calendar: calendar, currentMileage: odo) }
         if states.contains(.overdue) { return .overdue }
         if states.contains(.dueSoon) { return .dueSoon }
         return .ok
