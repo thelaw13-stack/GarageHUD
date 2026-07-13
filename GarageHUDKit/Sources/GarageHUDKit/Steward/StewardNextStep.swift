@@ -35,9 +35,15 @@ public extension Steward {
                             rationale: advisory.evidence, confidence: advisory.confidence)
         }
 
-        // 3. The build's own open item — shore up support for the power it makes.
+        // 3. The build's own open item — shore up support for the power it makes. If a part is
+        //    already planned for it, the step is to install it, not to go find one.
         if let a = assess(vehicle),
            let open = a.subsystems.first(where: { $0.status != .supported }) {
+            if open.planned {
+                return NextStep(action: "Install the planned \(open.label.lowercased()) upgrade",
+                                rationale: "\(a.powerSummary); \(open.label.lowercased()) is on your wishlist but not yet installed.",
+                                confidence: .strong)
+            }
             let verb = open.status == .openItem ? "Address" : "Document"
             return NextStep(action: "\(verb) \(open.label.lowercased()) for this power level",
                             rationale: "\(a.powerSummary); \(open.label.lowercased()) "

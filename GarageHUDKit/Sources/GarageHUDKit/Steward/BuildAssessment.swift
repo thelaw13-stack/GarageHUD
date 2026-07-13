@@ -20,6 +20,8 @@ public struct BuildAssessment: Equatable, Sendable {
         public let label: String
         public let role: String          // why it's load-bearing, e.g. "hold cylinder pressure"
         public let status: Status
+        /// True when an unresolved subsystem has a part planned (wishlist) for it.
+        public let planned: Bool
     }
 
     /// e.g. "477 whp · +276 over an estimated stock wheel baseline".
@@ -61,7 +63,9 @@ public extension Steward {
             case .confirmedAbsent:  status = .openItem
             case .undocumented, .unknown: status = .undocumented
             }
-            return BuildAssessment.Subsystem(id: def.cat.rawValue, label: def.label, role: def.role, status: status)
+            let planned = status != .supported && vehicle.hasPlanned(in: def.cat)
+            return BuildAssessment.Subsystem(id: def.cat.rawValue, label: def.label, role: def.role,
+                                             status: status, planned: planned)
         }
         guard !subsystems.isEmpty else { return nil }
 

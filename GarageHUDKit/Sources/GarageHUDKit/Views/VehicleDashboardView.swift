@@ -205,6 +205,13 @@ struct VehicleDashboardView: View {
                                     .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                             }
                             Spacer(minLength: 0)
+                            if sub.planned {
+                                Text("PLANNED")
+                                    .font(HUDTheme.monoFont(8, weight: .semibold))
+                                    .foregroundStyle(HUDTheme.cyan)
+                                    .padding(.horizontal, 5).padding(.vertical, 1)
+                                    .overlay(Capsule().strokeBorder(HUDTheme.cyan.opacity(0.4), lineWidth: 1))
+                            }
                         }
                         .accessibilityElement(children: .combine)
                         .accessibilityLabel("\(sub.label): \(assessmentStatusText(sub.status))")

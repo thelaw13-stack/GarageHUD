@@ -161,6 +161,13 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         parts.filter { $0.status == .wishlist }.count
     }
 
+    /// Parts the owner has planned but not yet installed, and their recorded planned spend.
+    public var plannedParts: [Part] { parts.filter { $0.status == .wishlist } }
+    public var plannedSpend: Double { plannedParts.compactMap(\.cost).reduce(0, +) }
+    public func hasPlanned(in category: PartCategory) -> Bool {
+        parts.contains { $0.status == .wishlist && $0.category == category }
+    }
+
     public var buildCompletionPercent: Double {
         let total = installedPartsCount + wishlistPartsCount
         guard total > 0 else { return 0 }
