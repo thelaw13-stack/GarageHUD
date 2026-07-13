@@ -47,6 +47,8 @@ struct FleetComparisonView: View {
         let values: [String?]
         /// Index of the vehicle that "wins" this row, if any, to highlight.
         let bestIndex: Int?
+        /// Optional explicit color per cell (e.g. service urgency), overriding the default styling.
+        var colors: [Color?]? = nil
     }
 
     private var rows: [Row] {
@@ -58,10 +60,23 @@ struct FleetComparisonView: View {
                        format: { $0.formatted(.currency(code: "USD").precision(.fractionLength(0))) },
                        higherIsBetter: false),
             numericRow("PARTS", unit: "", { Double($0.parts.count) }, format: { "\(Int($0))" }),
+            Row(label: "SERVICE",
+                values: ordered.map { serviceLabel($0).text },
+                bestIndex: nil,
+                colors: ordered.map { serviceLabel($0).color }),
             Row(label: "STATUS",
                 values: ordered.map { $0.serviceStatus.isInService ? "Out of service" : "In service" },
                 bestIndex: nil),
         ]
+    }
+
+    private func serviceLabel(_ v: Vehicle) -> (text: String?, color: Color?) {
+        if v.maintenance.isEmpty { return (nil, nil) }
+        switch v.maintenanceDue() {
+        case .overdue: return ("Overdue", HUDTheme.danger)
+        case .dueSoon: return ("Due soon", HUDTheme.amber)
+        case .ok: return ("Current", HUDTheme.green)
+        }
     }
 
     private func numericRow(_ label: String, unit: String, _ value: (Vehicle) -> Double?,
@@ -103,10 +118,11 @@ struct FleetComparisonView: View {
                 .gridColumnAlignment(.leading)
             ForEach(Array(row.values.enumerated()), id: \.offset) { i, value in
                 let isBest = row.bestIndex == i
+                let explicit = row.colors?[i] ?? nil
                 Text(value ?? "—")
                     .font(HUDTheme.body(isBest ? .semibold : .regular))
-                    .foregroundStyle(value == nil ? HUDTheme.textTertiary
-                                     : (isBest ? HUDTheme.green : HUDTheme.textPrimary))
+                    .foregroundStyle(explicit ?? (value == nil ? HUDTheme.textTertiary
+                                     : (isBest ? HUDTheme.green : HUDTheme.textPrimary)))
                     .frame(minWidth: 96, alignment: .leading)
             }
         }
