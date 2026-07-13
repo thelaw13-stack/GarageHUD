@@ -85,7 +85,7 @@ struct VehicleDashboardView: View {
     @ViewBuilder
     private var commandSurfaceBackground: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.panelBackground)
+            RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.elevatedSurface)
             if let photo = vehicle.heroPhoto, let image = ImageStore.thumbnailImage(for: photo) {
                 #if canImport(AppKit)
                 Image(nsImage: image).resizable().scaledToFill().opacity(0.20).allowsHitTesting(false)

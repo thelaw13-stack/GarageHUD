@@ -1,25 +1,28 @@
 import SwiftUI
 
 public enum HUDTheme {
-    // MARK: Color roles (≈85% neutral / 10% accent / 5% warning)
-    public static let background = Color(red: 0.02, green: 0.04, blue: 0.06)
-    public static let panelBackground = Color(red: 0.055, green: 0.075, blue: 0.10)
-    /// A hairline used for containment — borders indicate interactivity/containment, not merely
-    /// the presence of information.
-    public static let hairline = Color(white: 1.0).opacity(0.08)
+    // MARK: Palette — dark neutral cockpit, restrained signal color, the car/photo as the
+    // emotional color. Exact values are the GarageHUD design-language spec (hex in comments).
+    // Rule: cyan is an instrument light, not wallpaper.
+    public static let background = Color(hex: 0x050A0F)        // Deep Garage — app background
+    public static let panelBackground = Color(hex: 0x0E131A)   // Instrument Black — quiet panels
+    public static let elevatedSurface = Color(hex: 0x141B24)   // Graphite Glass — identity/active surfaces
+    /// Ghost Line — a hairline for containment; borders indicate interactivity/containment, not
+    /// merely the presence of information.
+    public static let hairline = Color(white: 1.0).opacity(0x14 / 255.0)   // #FFFFFF14
 
-    public static let cyan = Color(red: 0.0, green: 0.85, blue: 1.0)     // interactive / selected
-    public static let amber = Color(red: 1.0, green: 0.66, blue: 0.15)   // attention required
-    public static let danger = Color(red: 1.0, green: 0.27, blue: 0.32)  // fault / safety / critical
-    public static let green = Color(red: 0.30, green: 0.82, blue: 0.50)  // financial (convention)
+    public static let cyan = Color(hex: 0x00D9FF)     // Electric Cyan — interactive / selected / measured
+    public static let amber = Color(hex: 0xFFA826)    // Service Amber — due soon / review needed
+    public static let danger = Color(hex: 0xFF454F)   // Fault Red — overdue / safety / critical
+    public static let green = Color(hex: 0x4DD17F)    // System Green — operational / synced / complete
 
     // Retained for existing call sites; prefer the roles above for new work.
     public static let blue = Color(red: 0.25, green: 0.55, blue: 1.0)
     public static let purple = Color(red: 0.68, green: 0.4, blue: 1.0)
 
-    public static let textPrimary = Color(white: 0.94)      // primary data
-    public static let textSecondary = Color(white: 0.56)    // secondary / history
-    public static let textTertiary = Color(white: 0.40)     // faint metadata
+    public static let textPrimary = Color(hex: 0xEFF2F4)    // Warm White — primary readable data
+    public static let textSecondary = Color(hex: 0x8D959E)  // Cool Gray — metadata / evidence / subtitles
+    public static let textTertiary = Color(hex: 0x666E78)   // Dim Steel — timestamps / quiet labels
 
     // MARK: Typography — a strict four-level scale. Use weight, not new sizes, for emphasis.
     public static func monoFont(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
@@ -39,4 +42,14 @@ public enum HUDTheme {
 
     public static let cornerRadius: CGFloat = 12
     public static let panelPadding: CGFloat = 20   // a touch more air than before
+}
+
+public extension Color {
+    /// Build a color from a 0xRRGGBB literal so the palette reads as the spec's hex values.
+    init(hex: UInt32) {
+        self.init(
+            red: Double((hex >> 16) & 0xFF) / 255.0,
+            green: Double((hex >> 8) & 0xFF) / 255.0,
+            blue: Double(hex & 0xFF) / 255.0)
+    }
 }
