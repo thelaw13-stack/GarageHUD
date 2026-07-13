@@ -12,12 +12,38 @@ public struct ServiceStatus: Codable, Hashable, Sendable {
     public var reason: String
     /// When the vehicle went out of service, if recorded.
     public var since: Date?
+    /// What's left to finish before the car is back on the road.
+    public var checklist: [ServiceTask]
 
-    public init(isInService: Bool = false, reason: String = "", since: Date? = nil) {
+    public init(isInService: Bool = false, reason: String = "", since: Date? = nil,
+                checklist: [ServiceTask] = []) {
         self.isInService = isInService
         self.reason = reason
         self.since = since
+        self.checklist = checklist
     }
 
     public static var operational: ServiceStatus { ServiceStatus() }
+
+    public var completedCount: Int { checklist.filter(\.isDone).count }
+    /// e.g. "2 of 5 done", or nil when there's no checklist.
+    public var progressText: String? {
+        guard !checklist.isEmpty else { return nil }
+        return "\(completedCount) of \(checklist.count) done"
+    }
+}
+
+/// One item on a rebuild/service checklist.
+public struct ServiceTask: Identifiable, Codable, Hashable, Sendable {
+    public var id: UUID = UUID()
+    public var title: String
+    public var isDone: Bool = false
+    public var note: String = ""
+
+    public init(id: UUID = UUID(), title: String, isDone: Bool = false, note: String = "") {
+        self.id = id
+        self.title = title
+        self.isDone = isDone
+        self.note = note
+    }
 }

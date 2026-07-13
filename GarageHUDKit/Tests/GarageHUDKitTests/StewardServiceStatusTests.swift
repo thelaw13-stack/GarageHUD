@@ -43,6 +43,15 @@ final class StewardServiceStatusTests: XCTestCase {
         XCTAssertFalse(Steward.observeFleet([quiet, active]).contains { $0.ruleID == "fleet.neglect" })
     }
 
+    func testChecklistProgressSurfacesInObservation() {
+        var v = longQuietCar("S2K", slot: 1)
+        v.serviceStatus = ServiceStatus(isInService: true, reason: "Teardown", since: day(-100),
+            checklist: [ServiceTask(title: "a", isDone: true), ServiceTask(title: "b"), ServiceTask(title: "c")])
+        XCTAssertEqual(v.serviceStatus.progressText, "1 of 3 done")
+        let svc = Steward.observe(v).first { $0.ruleID == "service.inService" }
+        XCTAssertTrue(svc!.evidence.contains("1 of 3 done"))
+    }
+
     func testServiceStatusDefaultsOperationalAndCodableRoundTrips() throws {
         var v = Vehicle(make: "T", model: "C", year: 2020, garageSlot: 1)
         XCTAssertFalse(v.serviceStatus.isInService)

@@ -512,6 +512,44 @@
     ],
     "photos": [],
     "serviceStatus": {
+      "checklist": [
+        {
+          "id": "EF778D58-CE88-45DC-9CD5-87C822F20420",
+          "isDone": true,
+          "note": "",
+          "title": "Inspect bottom end / measure bearing clearances"
+        },
+        {
+          "id": "FF6C2C36-FE31-4969-9D8E-6B5AB4751D32",
+          "isDone": false,
+          "note": "",
+          "title": "Replace King XP rod bearings"
+        },
+        {
+          "id": "D17D16A5-9D31-4E94-9C21-3858DA0547C1",
+          "isDone": false,
+          "note": "",
+          "title": "Replace King XP main bearings"
+        },
+        {
+          "id": "21B88A69-A05D-4DA4-B096-9FA44E2C9C75",
+          "isDone": false,
+          "note": "",
+          "title": "Reassemble short block & torque to spec"
+        },
+        {
+          "id": "F7F96DDB-4A70-40EC-A183-136947EAF57B",
+          "isDone": false,
+          "note": "",
+          "title": "Reinstall supercharger & fuel system"
+        },
+        {
+          "id": "2BA9EF8F-77CC-4C40-B74B-5244C3463080",
+          "isDone": false,
+          "note": "",
+          "title": "Re-tune on E85 (Hondata K-Pro)"
+        }
+      ],
       "isInService": true,
       "reason": "Engine teardown \u2014 bottom-end internals under inspection",
       "since": "2025-06-01T12:00:00Z"

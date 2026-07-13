@@ -85,10 +85,11 @@ public enum Steward {
         if vehicle.serviceStatus.isInService {
             let sinceNote = vehicle.serviceStatus.since.map { " since \(short($0))" } ?? ""
             let reason = vehicle.serviceStatus.reason.isEmpty ? "Out of service." : vehicle.serviceStatus.reason
+            let progress = vehicle.serviceStatus.progressText.map { " Rebuild checklist: \($0)." } ?? ""
             out.append(StewardObservation(
                 ruleID: "service.inService", subjectID: vid,
                 statement: "This car is currently out of service.",
-                evidence: "\(reason)\(sinceNote).",
+                evidence: "\(reason)\(sinceNote).\(progress)",
                 confidence: .confirmed, tone: .informational, provenance: .recorded))
         }
 

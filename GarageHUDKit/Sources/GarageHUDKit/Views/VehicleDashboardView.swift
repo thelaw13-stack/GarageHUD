@@ -3,6 +3,7 @@ import SwiftUI
 struct VehicleDashboardView: View {
     @Binding var vehicle: Vehicle
     @State private var showingAsk = false
+    @State private var newTask = ""
 
     var body: some View {
         ScrollView {
@@ -11,6 +12,7 @@ struct VehicleDashboardView: View {
                 keyMetrics
                 buildProgress
                 nextSteps
+                rebuildChecklist
                 recentActivity
             }
             .padding(24)
@@ -156,6 +158,59 @@ struct VehicleDashboardView: View {
     private func gapCategory(_ observation: StewardObservation) -> PartCategory? {
         guard observation.ruleID.hasPrefix("gap.") else { return nil }
         return PartCategory(rawValue: String(observation.ruleID.dropFirst("gap.".count)))
+    }
+
+    /// Shown only while the car is out of service — what's left before it's back together.
+    @ViewBuilder
+    private var rebuildChecklist: some View {
+        if vehicle.serviceStatus.isInService {
+            HUDPanel(title: rebuildTitle) {
+                VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                    ForEach($vehicle.serviceStatus.checklist) { $task in
+                        HStack(alignment: .top, spacing: HUDTheme.space3) {
+                            Button { task.isDone.toggle() } label: {
+                                Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(task.isDone ? HUDTheme.green : HUDTheme.textSecondary)
+                            }
+                            .buttonStyle(.plain)
+                            Text(task.title)
+                                .font(HUDTheme.body())
+                                .foregroundStyle(task.isDone ? HUDTheme.textSecondary : HUDTheme.textPrimary)
+                                .strikethrough(task.isDone, color: HUDTheme.textSecondary)
+                            Spacer(minLength: 0)
+                            Button { deleteTask(task.id) } label: {
+                                Image(systemName: "minus.circle").foregroundStyle(HUDTheme.textTertiary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    HStack(spacing: HUDTheme.space2) {
+                        Image(systemName: "plus").foregroundStyle(HUDTheme.cyan).font(.system(size: 12))
+                        TextField("Add a task…", text: $newTask)
+                            .font(HUDTheme.body())
+                            .textFieldStyle(.plain)
+                            .onSubmit(addTask)
+                    }
+                    .padding(.top, HUDTheme.space1)
+                }
+            }
+        }
+    }
+
+    private var rebuildTitle: String {
+        if let p = vehicle.serviceStatus.progressText { return "Rebuild Checklist · \(p)" }
+        return "Rebuild Checklist"
+    }
+
+    private func addTask() {
+        let t = newTask.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return }
+        vehicle.serviceStatus.checklist.append(ServiceTask(title: t))
+        newTask = ""
+    }
+
+    private func deleteTask(_ id: UUID) {
+        vehicle.serviceStatus.checklist.removeAll { $0.id == id }
     }
 
     private var recentActivity: some View {
