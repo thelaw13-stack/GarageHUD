@@ -19,6 +19,8 @@ final class OBDDiscoveryFilterTests: XCTestCase {
 
     func testAcceptsKnownAndObdNames() {
         XCTAssertTrue(likely(name: "OBDLink CX"))
+        XCTAssertTrue(likely(name: "VEEPEAK"))
+        XCTAssertTrue(likely(name: "Vgate iCar Pro"))
         XCTAssertTrue(likely(name: "Vgate vLinker"))
         XCTAssertTrue(likely(name: "OBDII"))
         XCTAssertTrue(likely(name: "My OBD Reader"))   // any "obd" name

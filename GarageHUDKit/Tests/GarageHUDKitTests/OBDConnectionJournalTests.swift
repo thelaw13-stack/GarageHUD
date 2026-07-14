@@ -58,4 +58,46 @@ final class OBDConnectionJournalTests: XCTestCase {
         XCTAssertEqual(entries.first?.message, "Attempt 18")
         XCTAssertEqual(entries.last?.message, "Attempt 49")
     }
+
+    func testDiagnosisIdentifiesDiscoveryAndChannelFailures() {
+        let notSeen = OBDConnectionJournal(adapterSelection: .otherBLE, entries: [
+            .init(stage: "SCANNING", message: "Searching")
+        ])
+        XCTAssertEqual(notSeen.diagnosis.title, "Adapter was not discovered")
+
+        let noChannel = OBDConnectionJournal(adapterSelection: .otherBLE, entries: [
+            .init(stage: "FOUND", message: "Saw adapter"),
+            .init(stage: "SERVICES", message: "Bluetooth linked"),
+            .init(stage: "CHANNELS", message: "Inspecting characteristics")
+        ])
+        XCTAssertEqual(noChannel.diagnosis.title, "No usable serial channel")
+        XCTAssertTrue(noChannel.diagnosis.nextAction.contains("Share this report"))
+    }
+
+    func testDiagnosisSeparatesHandshakeFromVehicleDataFailures() {
+        let handshake = OBDConnectionJournal(adapterSelection: .veepeakOBDCheckBLE, entries: [
+            .init(stage: "FOUND", message: "Saw adapter"),
+            .init(stage: "SERVICES", message: "Found FFF0"),
+            .init(stage: "CHANNELS", message: "Found FFF1 and FFF2"),
+            .init(stage: "WAKE-UP", message: "Sent ATZ")
+        ])
+        XCTAssertEqual(handshake.diagnosis.title, "OBD processor did not answer")
+
+        var vehicle = handshake
+        vehicle.entries.append(.init(stage: "READY", message: "Handshake complete"))
+        vehicle.entries.append(.init(stage: "POLLING", message: "Waiting for PID"))
+        XCTAssertEqual(vehicle.diagnosis.title, "Vehicle data did not answer")
+    }
+
+    func testSupportReportIsShareableAndContainsNoPeripheralIdentifier() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let journal = OBDConnectionJournal(startedAt: start, adapterSelection: .vgateICarProBLE, entries: [
+            .init(occurredAt: start.addingTimeInterval(1.25), stage: "FOUND", message: "Saw Vgate")
+        ])
+
+        XCTAssertTrue(journal.supportReport.contains("GarageHUD OBD-II Connection Report"))
+        XCTAssertTrue(journal.supportReport.contains("Selected adapter: Vgate iCar Pro BLE"))
+        XCTAssertTrue(journal.supportReport.contains("+1.2s  FOUND  Saw Vgate"))
+        XCTAssertFalse(journal.supportReport.contains("peripheralID"))
+    }
 }

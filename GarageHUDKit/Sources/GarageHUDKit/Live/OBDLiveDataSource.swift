@@ -42,11 +42,14 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private var writeChar: CBCharacteristic?
     private var notifyChar: CBCharacteristic?
     private var pairedServiceUUID: String?
-    private let serviceUUIDs: [CBUUID] = [CBUUID(string: "FFF0"), CBUUID(string: "FFE0")]
+    private let recognizedServiceUUIDs = KnownOBDAdapter.knownBLEServiceUUIDs.map { CBUUID(string: $0) }
+    private let preferredServiceUUIDs: [CBUUID]?
     private var adapterName: String?
     private let adapterSelection: OBDAdapterSelection
     private var scanToken = 0
     private var linkToken = 0
+    private var discoveryToken = 0
+    private var pendingCharacteristicServices: Set<ObjectIdentifier> = []
     private var discoveredPeripheralCount = 0
     private var observedPeripheralIDs: Set<UUID> = []
 
@@ -62,6 +65,13 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         self.knownPeripheralID = knownProfile?.peripheralID ?? knownPeripheralID
         self.adapterName = knownProfile?.name ?? adapterSelection.displayName
         self.adapterSelection = adapterSelection
+        if let savedService = knownProfile?.serviceUUID {
+            self.preferredServiceUUIDs = [CBUUID(string: savedService)]
+        } else if let selectedService = adapterSelection.knownAdapter?.serviceUUID {
+            self.preferredServiceUUIDs = [CBUUID(string: selectedService)]
+        } else {
+            self.preferredServiceUUIDs = nil
+        }
         var captured: AsyncStream<LiveTelemetryFrame>.Continuation!
         self.frames = AsyncStream { captured = $0 }
         self.continuation = captured
@@ -106,6 +116,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         central?.stopScan()
         scanToken += 1
         linkToken += 1
+        discoveryToken += 1
         transition(.disconnected, "Session stopped")
         // Stream stays open (reusable); deinit finishes it.
     }
@@ -114,6 +125,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         rpm = nil; speedMph = nil; coolant = nil; boost = nil; throttle = nil
         pidCursor = 0; consecutivePollTimeouts = 0; handshake = ELM327Handshake()
         hasRecordedFirstMeasurement = false
+        pendingCharacteristicServices = []
     }
 
     private func transition(_ state: OBDConnectionState, _ message: String,
@@ -156,7 +168,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
             if self.knownPeripheralID != nil {
                 self.knownPeripheralID = nil
                 guard let central = self.central else { return }
-                self.beginScan(central, message: "Saved adapter was not reachable. Searching for a fresh OBDLink…")
+                self.beginScan(central, message: "Saved adapter was not reachable. Searching for \(self.adapterSelection.displayName)…")
             } else {
                 let nearby = self.discoveredPeripheralCount == 1
                     ? "1 nearby BLE device"
@@ -164,8 +176,19 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
                 self.transition(.scanning, "No compatible adapter found among \(nearby)",
                                 recovery: adapterSelection == .obdLinkCX
                                     ? "Confirm the label says CX, power-cycle it, and close the OBDLink app. An MX+ cannot appear in this scan."
-                                    : "Confirm the adapter exposes a BLE FFF0 or FFE0 serial service, then power-cycle it.")
+                                    : "Confirm this is a Bluetooth LE adapter, connect inside GarageHUD, then power-cycle it.")
             }
+        }
+    }
+
+    private func armDiscoveryTimeout(for state: OBDConnectionState, seconds: TimeInterval,
+                                     message: String, recovery: String) {
+        discoveryToken += 1
+        let token = discoveryToken
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { [weak self] in
+            guard let self, !self.stopped, token == self.discoveryToken,
+                  self.connectionState == state else { return }
+            self.degrade(message, recovery: recovery)
         }
     }
 
@@ -384,8 +407,20 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private func looksLikeOBDAdapter(_ peripheral: CBPeripheral, _ advertisementData: [String: Any]) -> Bool {
         let name = (advertisementData[CBAdvertisementDataLocalNameKey] as? String) ?? peripheral.name
         let uuids = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
+
+        // When the owner chose a named model, do not silently grab a different known adapter in a
+        // multi-car garage. A matching advertised service remains a fallback for hidden names.
+        if let selected = adapterSelection.knownAdapter, selected.isBLE {
+            if let matched = KnownOBDAdapter.match(advertisedName: name) {
+                return matched.id == selected.id
+            }
+            if let service = selected.serviceUUID {
+                return uuids.contains(CBUUID(string: service))
+            }
+            return false
+        }
         return Self.isLikelyOBDAdapter(advertisedName: name, advertisedServiceUUIDs: uuids,
-                                       serviceUUIDs: serviceUUIDs)
+                                       serviceUUIDs: recognizedServiceUUIDs)
     }
 
     private func emitFrame() {
@@ -448,7 +483,11 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         linkToken += 1
         transition(.discoveringServices, "Bluetooth linked. Finding the OBD serial service…")
-        peripheral.discoverServices(serviceUUIDs)
+        peripheral.discoverServices(preferredServiceUUIDs)
+        armDiscoveryTimeout(
+            for: .discoveringServices, seconds: 8,
+            message: "Bluetooth opened, but the adapter did not reveal its services.",
+            recovery: "Power-cycle the adapter, close other OBD apps, and try once more.")
     }
 
     public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral,
@@ -459,45 +498,72 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        discoveryToken += 1
         guard error == nil else {
             degrade("The adapter connected, but its services could not be read.")
             return
         }
-        guard !(peripheral.services ?? []).isEmpty else {
+        let services = peripheral.services ?? []
+        guard !services.isEmpty else {
             degrade("No supported OBD serial service was exposed.",
-                    recovery: "GarageHUD expects OBDLink CX (FFF0) or a BLE ELM327 (FFE0).")
+                    recovery: "Choose Other BLE to run the broad compatibility probe, or verify the adapter model.")
             return
         }
+        let serviceList = services.map { $0.uuid.uuidString }.joined(separator: ", ")
+        OBDConnectionJournalStore.append(
+            stage: "SERVICES",
+            message: "Adapter exposed \(services.count) service\(services.count == 1 ? "" : "s"): \(serviceList)")
+        pendingCharacteristicServices = Set(services.map { ObjectIdentifier($0) })
         transition(.discoveringCharacteristics, "Serial service found. Preparing secure notifications…")
-        for service in peripheral.services ?? [] {
+        for service in services {
             peripheral.discoverCharacteristics(nil, for: service)
         }
+        armDiscoveryTimeout(
+            for: .discoveringCharacteristics, seconds: 8,
+            message: "The adapter services opened, but no usable serial channel appeared.",
+            recovery: "Share the connection report so GarageHUD can add this adapter's channel layout.")
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         guard connectionState == .discoveringCharacteristics else { return }
+        pendingCharacteristicServices.remove(ObjectIdentifier(service))
         guard error == nil else {
-            degrade("The serial service was found, but its data channels could not be opened.")
+            if pendingCharacteristicServices.isEmpty {
+                degrade("The adapter services were found, but their data channels could not be read.")
+            }
             return
         }
         // Pair write + notify from the SAME service — never mix characteristics across services,
         // which could pick an unrelated pair on a multi-service adapter.
         let chars = service.characteristics ?? []
-        let known = KnownOBDAdapter.match(advertisedName: adapterName)
+        let known = adapterSelection.knownAdapter ?? KnownOBDAdapter.match(advertisedName: adapterName)
+        let inboundProperties: CBCharacteristicProperties = [.notify, .indicate]
         let notify = known?.notifyCharUUID.flatMap { expected in
-            chars.first { $0.uuid == CBUUID(string: expected) && $0.properties.contains(.notify) }
-        } ?? chars.first(where: { $0.properties.contains(.notify) })
+            chars.first {
+                $0.uuid == CBUUID(string: expected)
+                    && !$0.properties.intersection(inboundProperties).isEmpty
+            }
+        } ?? chars.first(where: { !$0.properties.intersection(inboundProperties).isEmpty })
         let write = known?.writeCharUUID.flatMap { expected in
             chars.first {
                 $0.uuid == CBUUID(string: expected)
                     && ($0.properties.contains(.writeWithoutResponse) || $0.properties.contains(.write))
             }
         } ?? chars.first(where: { $0.properties.contains(.writeWithoutResponse) || $0.properties.contains(.write) })
-        guard let notify, let write
-        else { return } // this service isn't the serial one; wait for another's callback
+        guard let notify, let write else {
+            if pendingCharacteristicServices.isEmpty {
+                degrade("No writable notification channel was found in the adapter's services.",
+                        recovery: "Share the connection report so GarageHUD can add this adapter profile.")
+            }
+            return
+        }
+        discoveryToken += 1
         notifyChar = notify
         writeChar = write
         pairedServiceUUID = service.uuid.uuidString
+        OBDConnectionJournalStore.append(
+            stage: "CHANNELS",
+            message: "Using service \(service.uuid.uuidString), receive \(notify.uuid.uuidString), write \(write.uuid.uuidString)")
         transition(.discoveringCharacteristics, "Serial channel ready. Waiting for iPhone pairing…",
                    recovery: "Approve the Bluetooth pairing prompt if one appears.")
         peripheral.setNotifyValue(true, for: notify)

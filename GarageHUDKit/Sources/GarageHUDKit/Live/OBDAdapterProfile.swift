@@ -64,6 +64,8 @@ public enum OBDTransport: String, Sendable, Codable, Equatable {
 /// route instead of CoreBluetooth.
 public enum OBDAdapterSelection: String, CaseIterable, Sendable, Codable, Equatable, Identifiable {
     case obdLinkCX
+    case veepeakOBDCheckBLE
+    case vgateICarProBLE
     case obdLinkMXPlus
     case otherBLE
 
@@ -72,6 +74,8 @@ public enum OBDAdapterSelection: String, CaseIterable, Sendable, Codable, Equata
     public var displayName: String {
         switch self {
         case .obdLinkCX: return "OBDLink CX"
+        case .veepeakOBDCheckBLE: return "Veepeak OBDCheck BLE"
+        case .vgateICarProBLE: return "Vgate iCar Pro BLE"
         case .obdLinkMXPlus: return "OBDLink MX+"
         case .otherBLE: return "Other BLE adapter"
         }
@@ -87,10 +91,34 @@ public enum OBDAdapterSelection: String, CaseIterable, Sendable, Codable, Equata
         switch self {
         case .obdLinkCX:
             return "GarageHUD can pair directly. Start the engine and close every other OBD app first."
+        case .veepeakOBDCheckBLE:
+            return "Connect inside GarageHUD, not in iPhone Bluetooth Settings. Unplug it if the car will sit for more than a week."
+        case .vgateICarProBLE:
+            return "Connect inside GarageHUD. Its automatic sleep mode makes it a practical leave-in adapter."
         case .obdLinkMXPlus:
             return "The iPhone can list this adapter, but GarageHUD cannot open its protected MFi data channel yet. OBDLink manufacturer access is required."
         case .otherBLE:
-            return "GarageHUD will look for a BLE ELM327-compatible FFF0 or FFE0 serial service."
+            return "GarageHUD will inspect OBD-named Bluetooth LE devices for an ELM327-compatible serial channel."
+        }
+    }
+
+    public var knownAdapter: KnownOBDAdapter? {
+        switch self {
+        case .obdLinkCX: return .obdLinkCX
+        case .veepeakOBDCheckBLE: return .veepeakOBDCheckBLE
+        case .vgateICarProBLE: return .vgateICarProBLE
+        case .obdLinkMXPlus: return .obdLinkMXPlus
+        case .otherBLE: return nil
+        }
+    }
+
+    public func acceptsSavedProfile(_ profile: OBDAdapterProfile) -> Bool {
+        let matched = KnownOBDAdapter.match(advertisedName: profile.name)
+        switch self {
+        case .otherBLE:
+            return matched?.transport != .externalAccessory
+        default:
+            return matched?.id == knownAdapter?.id
         }
     }
 }
@@ -136,6 +164,23 @@ public struct KnownOBDAdapter: Sendable, Equatable, Identifiable {
         serviceUUID: "FFF0", notifyCharUUID: "FFF1", writeCharUUID: "FFF2",
         note: "Bluetooth LE — pairs directly with GarageHUD.")
 
+    /// An inexpensive, standards-based BLE adapter with the same FFF0 UART layout as OBDLink CX.
+    public static let veepeakOBDCheckBLE = KnownOBDAdapter(
+        id: "veepeak-obdcheck-ble", displayName: "Veepeak OBDCheck BLE",
+        nameMatches: ["Veepeak OBDCheck BLE", "OBDCheck BLE", "VEEPEAK"],
+        transport: .bluetoothLE,
+        serviceUUID: "FFF0", notifyCharUUID: "FFF1", writeCharUUID: "FFF2",
+        note: "Bluetooth LE ELM327 — connect inside GarageHUD, not iPhone Bluetooth Settings.")
+
+    /// Vgate's leave-in BLE adapter. Common firmware exposes a single FFE1 UART characteristic
+    /// for both writes and notifications; dynamic discovery remains available if firmware differs.
+    public static let vgateICarProBLE = KnownOBDAdapter(
+        id: "vgate-icar-pro-ble", displayName: "Vgate iCar Pro BLE",
+        nameMatches: ["Vgate iCar Pro", "iCar Pro", "Vgate", "IOS-Vlink"],
+        transport: .bluetoothLE,
+        serviceUUID: "FFE0", notifyCharUUID: "FFE1", writeCharUUID: "FFE1",
+        note: "Bluetooth LE ELM327 with automatic sleep and wake.")
+
     /// OBDLink MX+ — Apple MFi / Bluetooth Classic. Reachable only via the ExternalAccessory
     /// framework, which needs an MFi entitlement GarageHUD doesn't carry, so it won't appear in a
     /// BLE scan. Cataloged so the app can say why, and point the owner at the CX.
@@ -154,7 +199,13 @@ public struct KnownOBDAdapter: Sendable, Equatable, Identifiable {
         serviceUUID: "FFE0", notifyCharUUID: "FFE1", writeCharUUID: "FFE1",
         note: "Generic Bluetooth LE ELM327 clone.")
 
-    public static let catalog: [KnownOBDAdapter] = [obdLinkCX, obdLinkMXPlus, genericELM327]
+    public static let catalog: [KnownOBDAdapter] = [
+        obdLinkCX, veepeakOBDCheckBLE, vgateICarProBLE, obdLinkMXPlus, genericELM327
+    ]
+
+    public static var knownBLEServiceUUIDs: [String] {
+        Array(Set(catalog.filter(\.isBLE).compactMap(\.serviceUUID))).sorted()
+    }
 
     /// The catalog entry whose name patterns best match an advertised peripheral name, if any.
     public static func match(advertisedName name: String?) -> KnownOBDAdapter? {

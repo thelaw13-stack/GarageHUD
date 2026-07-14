@@ -21,6 +21,19 @@ final class KnownOBDAdapterTests: XCTestCase {
         XCTAssertNil(mx.serviceUUID)
     }
 
+    func testAffordableBLEAdaptersHaveNamedUARTProfiles() {
+        let veepeak = KnownOBDAdapter.veepeakOBDCheckBLE
+        XCTAssertEqual(veepeak.serviceUUID, "FFF0")
+        XCTAssertEqual(veepeak.notifyCharUUID, "FFF1")
+        XCTAssertEqual(veepeak.writeCharUUID, "FFF2")
+
+        let vgate = KnownOBDAdapter.vgateICarProBLE
+        XCTAssertEqual(vgate.serviceUUID, "FFE0")
+        XCTAssertEqual(vgate.notifyCharUUID, "FFE1")
+        XCTAssertEqual(vgate.writeCharUUID, "FFE1")
+        XCTAssertEqual(KnownOBDAdapter.knownBLEServiceUUIDs, ["FFE0", "FFF0"])
+    }
+
     func testMatchPrefersMostSpecificName() {
         // "OBDLink MX+" contains both "OBDLink" (CX pattern) and "MX+" — the MX+ must win.
         XCTAssertEqual(KnownOBDAdapter.match(advertisedName: "OBDLink MX+")?.id, "obdlink-mxplus")
@@ -29,6 +42,8 @@ final class KnownOBDAdapterTests: XCTestCase {
 
     func testMatchFallsToGenericCloneAndNilOnUnknown() {
         XCTAssertEqual(KnownOBDAdapter.match(advertisedName: "Vgate vLinker")?.id, "elm327-ble")
+        XCTAssertEqual(KnownOBDAdapter.match(advertisedName: "VEEPEAK")?.id, "veepeak-obdcheck-ble")
+        XCTAssertEqual(KnownOBDAdapter.match(advertisedName: "Vgate iCar Pro")?.id, "vgate-icar-pro-ble")
         XCTAssertNil(KnownOBDAdapter.match(advertisedName: "Kitchen Speaker"))
         XCTAssertNil(KnownOBDAdapter.match(advertisedName: nil))
     }
@@ -40,9 +55,20 @@ final class KnownOBDAdapterTests: XCTestCase {
 
         XCTAssertEqual(OBDAdapterSelectionStore.load(defaults: defaults), .obdLinkCX)
         XCTAssertTrue(OBDAdapterSelection.obdLinkCX.canConnectDirectly)
+        XCTAssertTrue(OBDAdapterSelection.veepeakOBDCheckBLE.canConnectDirectly)
+        XCTAssertTrue(OBDAdapterSelection.vgateICarProBLE.canConnectDirectly)
         XCTAssertFalse(OBDAdapterSelection.obdLinkMXPlus.canConnectDirectly)
 
         OBDAdapterSelectionStore.save(.obdLinkMXPlus, defaults: defaults)
         XCTAssertEqual(OBDAdapterSelectionStore.load(defaults: defaults), .obdLinkMXPlus)
+    }
+
+    func testSavedProfilesOnlyFollowTheSelectedNamedHardware() {
+        let veepeak = OBDAdapterProfile(
+            peripheralID: UUID(), name: "VEEPEAK", serviceUUID: "FFF0",
+            writeCharUUID: "FFF2", notifyCharUUID: "FFF1", writeWithoutResponse: true)
+        XCTAssertTrue(OBDAdapterSelection.veepeakOBDCheckBLE.acceptsSavedProfile(veepeak))
+        XCTAssertTrue(OBDAdapterSelection.otherBLE.acceptsSavedProfile(veepeak))
+        XCTAssertFalse(OBDAdapterSelection.obdLinkCX.acceptsSavedProfile(veepeak))
     }
 }

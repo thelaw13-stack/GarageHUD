@@ -22,12 +22,7 @@ struct LiveSessionView: View {
 
     private var compatibleSavedProfile: OBDAdapterProfile? {
         guard let profile = savedAdapterProfile else { return nil }
-        let known = KnownOBDAdapter.match(advertisedName: profile.name)
-        switch adapterSelection {
-        case .obdLinkCX: return known?.id == KnownOBDAdapter.obdLinkCX.id ? profile : nil
-        case .obdLinkMXPlus: return nil
-        case .otherBLE: return known?.id == KnownOBDAdapter.obdLinkCX.id ? nil : profile
-        }
+        return adapterSelection.acceptsSavedProfile(profile) ? profile : nil
     }
 
     var body: some View {
@@ -461,23 +456,22 @@ struct LiveSessionView: View {
 
     private func connectionJournalPanel(_ journal: OBDConnectionJournal) -> some View {
         let entries = Array(journal.entries.suffix(7))
-        let color = journal.reachedMeasuredData ? HUDTheme.green : HUDTheme.amber
+        let diagnosis = journal.diagnosis
+        let color = diagnosis.isSuccessful ? HUDTheme.green : HUDTheme.amber
         return HUDPanel(title: "Last Connection Report", caption: journal.adapterSelection.displayName) {
             VStack(alignment: .leading, spacing: HUDTheme.space3) {
                 HStack(alignment: .top, spacing: HUDTheme.space3) {
-                    Image(systemName: journal.reachedMeasuredData ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                    Image(systemName: diagnosis.isSuccessful ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(color)
                         .frame(width: 40, height: 40)
                         .background(RoundedRectangle(cornerRadius: 6).fill(color.opacity(0.12)))
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(journal.reachedMeasuredData ? "MEASURED DATA REACHED" : "CONNECTION STOPPED EARLY")
+                        Text(diagnosis.title.uppercased())
                             .font(HUDTheme.label(.bold))
                             .foregroundStyle(color)
                             .tracking(1)
-                        Text(journal.reachedMeasuredData
-                             ? "GarageHUD decoded at least one live vehicle value."
-                             : "The stages below show exactly where the adapter path ended.")
+                        Text(diagnosis.detail)
                             .font(HUDTheme.label())
                             .foregroundStyle(HUDTheme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -499,6 +493,23 @@ struct LiveSessionView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+
+                Divider().overlay(HUDTheme.hairline)
+
+                HStack(alignment: .top, spacing: HUDTheme.space2) {
+                    Image(systemName: diagnosis.isSuccessful ? "checkmark.circle" : "arrow.turn.down.right")
+                        .foregroundStyle(color)
+                    Text(diagnosis.nextAction)
+                        .font(HUDTheme.label(.medium))
+                        .foregroundStyle(HUDTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                ShareLink(item: journal.supportReport,
+                          preview: SharePreview("GarageHUD OBD-II connection report")) {
+                    Label("Share Connection Report", systemImage: "square.and.arrow.up")
+                }
+                .buttonStyle(.compactAction)
             }
         }
     }
