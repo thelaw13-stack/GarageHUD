@@ -192,6 +192,10 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     public mutating func markMaintenanceDone(_ id: UUID, on date: Date = .now) -> Bool {
         guard let i = maintenance.firstIndex(where: { $0.id == id }) else { return false }
         guard !maintenanceAlreadyDone(id, on: date) else { return false }
+        let rollback = ServiceRecordLink(
+            maintenanceItemID: id,
+            previousServicedAt: maintenance[i].lastServiced,
+            previousServicedMileage: maintenance[i].lastServicedMileage)
         maintenance[i].lastServiced = date
         // Re-baseline the mileage interval too, so "every 5,000 mi" counts from the current odometer.
         if maintenance[i].intervalMiles != nil, let odo = currentMileage {
@@ -199,8 +203,73 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         }
         let odoNote = currentMileage.map { " @ \($0.formatted(.number.grouping(.automatic))) mi" } ?? ""
         buildEvents.append(BuildEvent(date: date, title: "\(Vehicle.servicePrefix)\(maintenance[i].name)\(odoNote)",
-                                      mileage: currentMileage))
+                                      mileage: currentMileage, serviceRecord: rollback))
         return true
+    }
+
+    /// Service events for one schedule, newest first. New records carry a durable item id; records
+    /// from older GarageHUD builds fall back to the service title so existing history is editable.
+    public func serviceRecords(for maintenanceItemID: UUID) -> [BuildEvent] {
+        guard let item = maintenance.first(where: { $0.id == maintenanceItemID }) else { return [] }
+        return serviceLog.filter { event in
+            if let linkedID = event.serviceRecord?.maintenanceItemID {
+                return linkedID == maintenanceItemID
+            }
+            return legacyServiceName(event).caseInsensitiveCompare(item.name) == .orderedSame
+        }
+    }
+
+    public func latestServiceRecord(for maintenanceItemID: UUID) -> BuildEvent? {
+        serviceRecords(for: maintenanceItemID).first
+    }
+
+    /// Removes one service history entry and, when it was the current baseline, restores the
+    /// schedule to the preceding real service. Returns false for non-service or unknown records.
+    @discardableResult
+    public mutating func removeServiceRecord(_ eventID: UUID) -> Bool {
+        guard let eventIndex = buildEvents.firstIndex(where: { $0.id == eventID }),
+              buildEvents[eventIndex].title.hasPrefix(Vehicle.servicePrefix) else { return false }
+
+        let event = buildEvents[eventIndex]
+        let itemID = event.serviceRecord?.maintenanceItemID
+            ?? maintenance
+                .filter { legacyServiceName(event).caseInsensitiveCompare($0.name) == .orderedSame }
+                .max { $0.name.count < $1.name.count }?.id
+        let itemIndex = itemID.flatMap { id in maintenance.firstIndex { $0.id == id } }
+
+        // If a later linked event depends on this one's baseline, bridge its rollback snapshot
+        // across the deleted record so a future undo never resurrects a known-false service.
+        if let link = event.serviceRecord,
+           let nextIndex = buildEvents.indices
+            .filter({
+                buildEvents[$0].serviceRecord?.maintenanceItemID == link.maintenanceItemID
+                    && buildEvents[$0].date > event.date
+            })
+            .min(by: { buildEvents[$0].date < buildEvents[$1].date }) {
+            buildEvents[nextIndex].serviceRecord?.previousServicedAt = link.previousServicedAt
+            buildEvents[nextIndex].serviceRecord?.previousServicedMileage = link.previousServicedMileage
+        }
+
+        buildEvents.remove(at: eventIndex)
+
+        guard let itemIndex else { return true }
+        let eventWasCurrentBaseline =
+            abs(maintenance[itemIndex].lastServiced.timeIntervalSince(event.date)) < 1
+        guard eventWasCurrentBaseline else { return true }
+
+        if let prior = serviceRecords(for: maintenance[itemIndex].id).first {
+            maintenance[itemIndex].lastServiced = prior.date
+            maintenance[itemIndex].lastServicedMileage = prior.mileage
+        } else if let rollback = event.serviceRecord {
+            maintenance[itemIndex].lastServiced = rollback.previousServicedAt
+            maintenance[itemIndex].lastServicedMileage = rollback.previousServicedMileage
+        }
+        return true
+    }
+
+    private func legacyServiceName(_ event: BuildEvent) -> String {
+        let title = event.title.replacingOccurrences(of: Vehicle.servicePrefix, with: "")
+        return title.components(separatedBy: " @ ").first ?? title
     }
 
     /// Every photo attached to the car — its own, plus any on build events and parts — as candidates

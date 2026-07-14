@@ -10,6 +10,7 @@ struct MaintenanceEditorView: View {
 
     @State private var name = ""
     @State private var intervalMonths = 6
+    @State private var lastServiced = Date()
     @State private var trackMiles = false
     @State private var intervalMilesText = "5000"
     @State private var baselineText = ""
@@ -23,6 +24,9 @@ struct MaintenanceEditorView: View {
                 Section("Time interval") {
                     Stepper("Every \(intervalMonths) month\(intervalMonths == 1 ? "" : "s")",
                             value: $intervalMonths, in: 1...60)
+                }
+                Section("Service baseline") {
+                    DatePicker("Last serviced", selection: $lastServiced, displayedComponents: .date)
                 }
                 Section("Mileage interval") {
                     Toggle("Also track by mileage", isOn: $trackMiles)
@@ -66,6 +70,7 @@ struct MaintenanceEditorView: View {
         guard let item = vehicle.maintenance.first(where: { $0.id == itemID }) else { return }
         name = item.name
         intervalMonths = item.intervalMonths
+        lastServiced = item.lastServiced
         if let miles = item.intervalMiles {
             trackMiles = true
             intervalMilesText = String(miles)
@@ -78,6 +83,7 @@ struct MaintenanceEditorView: View {
         guard let i = vehicle.maintenance.firstIndex(where: { $0.id == itemID }) else { dismiss(); return }
         vehicle.maintenance[i].name = name
         vehicle.maintenance[i].intervalMonths = intervalMonths
+        vehicle.maintenance[i].lastServiced = lastServiced
         if trackMiles, let miles = Int(intervalMilesText), miles > 0 {
             vehicle.maintenance[i].intervalMiles = miles
             vehicle.maintenance[i].lastServicedMileage = Int(baselineText) ?? vehicle.currentMileage

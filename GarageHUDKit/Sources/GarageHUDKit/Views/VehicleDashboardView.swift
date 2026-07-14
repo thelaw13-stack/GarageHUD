@@ -7,10 +7,12 @@ struct VehicleDashboardView: View {
     var onNavigate: ((VehicleDetailView.DetailTab) -> Void)? = nil
     @State private var showingAsk = false
     @State private var showingAllObservations = false
+    @State private var showingServiceHistory = false
     @State private var newTask = ""
     @State private var confirmingReturn = false
     @State private var editingPart: Part?
     @State private var editingMaintenance: MaintenanceItem?
+    @State private var pendingServiceDeletion: BuildEvent?
     @State private var resolving: StewardObservation?
 
     var body: some View {
@@ -29,6 +31,7 @@ struct VehicleDashboardView: View {
         .background(HUDTheme.background)
         .sheet(isPresented: $showingAsk) { AskStewardView(vehicle: vehicle) }
         .sheet(isPresented: $showingAllObservations) { allObservationsSheet }
+        .sheet(isPresented: $showingServiceHistory) { ServiceHistoryView(vehicle: $vehicle) }
         .sheet(item: $editingPart) { part in AddEditPartView(vehicle: $vehicle, partID: part.id) }
         .sheet(item: $editingMaintenance) { item in
             MaintenanceEditorView(vehicle: $vehicle, itemID: item.id)
@@ -49,6 +52,20 @@ struct VehicleDashboardView: View {
             Text(remaining > 0
                  ? "\(remaining) checklist item\(remaining == 1 ? "" : "s") still open. This logs a build event and clears the checklist."
                  : "This logs a build event and clears the checklist.")
+        }
+        .confirmationDialog("Remove this service record?",
+                            isPresented: Binding(
+                                get: { pendingServiceDeletion != nil },
+                                set: { if !$0 { pendingServiceDeletion = nil } }),
+                            titleVisibility: .visible,
+                            presenting: pendingServiceDeletion) { event in
+            Button("Remove Record", role: .destructive) {
+                vehicle.removeServiceRecord(event.id)
+                pendingServiceDeletion = nil
+            }
+            Button("Keep Record", role: .cancel) { pendingServiceDeletion = nil }
+        } message: { event in
+            Text("This removes \(serviceDisplayName(event)) from history. If it reset a maintenance schedule, the prior service date and mileage will be restored.")
         }
     }
 
@@ -441,9 +458,14 @@ struct VehicleDashboardView: View {
                             }
                             Spacer(minLength: 0)
                             let done = vehicle.maintenanceAlreadyDone(item.id)
-                            Button(done ? "Done ✓" : "Mark done") { markServiced(item.id) }
+                            Button(done ? "Undo" : "Mark done") {
+                                if done {
+                                    pendingServiceDeletion = vehicle.latestServiceRecord(for: item.id)
+                                } else {
+                                    markServiced(item.id)
+                                }
+                            }
                                 .buttonStyle(.compactAction)
-                                .disabled(done)
                         }
                         .contentShape(Rectangle())
                         .onTapGesture { editingMaintenance = item }
@@ -474,17 +496,25 @@ struct VehicleDashboardView: View {
                 .foregroundStyle(HUDTheme.textSecondary).tracking(1)
             ForEach(log.prefix(4)) { event in
                 HStack(spacing: HUDTheme.space2) {
-                    Text(event.title.replacingOccurrences(of: Vehicle.servicePrefix, with: ""))
+                    Text(serviceDisplayName(event))
                         .font(HUDTheme.label()).foregroundStyle(HUDTheme.textPrimary)
                     Spacer(minLength: 0)
                     Text(event.date.formatted(date: .abbreviated, time: .omitted))
                         .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                    Button { pendingServiceDeletion = event } label: {
+                        Image(systemName: "trash")
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(HUDTheme.textTertiary)
+                    .accessibilityLabel("Remove \(serviceDisplayName(event)) service record")
                 }
             }
-            if log.count > 4 {
-                Text("+ \(log.count - 4) more in the timeline")
-                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textTertiary)
+            Button { showingServiceHistory = true } label: {
+                Label(log.count > 4 ? "Manage all \(log.count) records" : "Manage service history",
+                      systemImage: "clock.arrow.circlepath")
             }
+            .buttonStyle(.compactAction)
         }
     }
 
@@ -515,6 +545,9 @@ struct VehicleDashboardView: View {
         switch d { case .overdue: return "Overdue"; case .dueSoon: return "Due soon"; case .ok: return "OK" }
     }
     private func markServiced(_ id: UUID) { vehicle.markMaintenanceDone(id) }
+    private func serviceDisplayName(_ event: BuildEvent) -> String {
+        event.title.replacingOccurrences(of: Vehicle.servicePrefix, with: "")
+    }
     private func removeMaintenance(_ id: UUID) { vehicle.maintenance.removeAll { $0.id == id } }
     private func addMaintenance() {
         let n = newMaintName.trimmingCharacters(in: .whitespaces)
