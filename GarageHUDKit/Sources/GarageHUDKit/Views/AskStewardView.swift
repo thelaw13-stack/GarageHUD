@@ -15,6 +15,7 @@ struct AskStewardView: View {
     @State private var question = ""
     @State private var reply: StewardReply?
     @State private var thinking = false
+    @State private var showingVoiceSettings = false
 
     #if canImport(Speech)
     @StateObject private var voice: StewardVoiceSession
@@ -57,6 +58,11 @@ struct AskStewardView: View {
         #if os(macOS)
         .frame(minWidth: 480, minHeight: 560)
         #endif
+        #if canImport(Speech)
+        .sheet(isPresented: $showingVoiceSettings) {
+            VoiceSettingsView { voice.speak($0) }
+        }
+        #endif
         .onAppear {
             if reply == nil { reply = StewardReply(text: "Go ahead — ask about power, spend, efficiency, or what to watch. Tap the mic to talk.") }
             #if canImport(Speech)
@@ -88,6 +94,11 @@ struct AskStewardView: View {
                     .font(HUDTheme.label(.semibold))
                     .foregroundStyle(HUDTheme.cyan)
             }
+            Button { showingVoiceSettings = true } label: {
+                Image(systemName: "slider.horizontal.3").foregroundStyle(HUDTheme.textSecondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Voice settings")
             #endif
             Button { dismiss() } label: {
                 Image(systemName: "xmark.circle.fill").foregroundStyle(HUDTheme.textSecondary)

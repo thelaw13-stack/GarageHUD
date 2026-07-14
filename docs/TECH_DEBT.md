@@ -12,10 +12,16 @@ honesty instructions, gated three ways (`canImport` / iOS 26 / runtime availabil
 back to the keyword `StewardConversation` core (tested). The grounding record and voice ranking
 are covered; the assistant's "always answers" contract is tested.
 
-Remaining (needs real hardware/OS): (1) confirm the Premium voice actually loads and sounds right
-on device once the owner downloads one (Settings → Accessibility → Spoken Content → Voices); add a
-first-run nudge when only a default-quality voice is installed (`needsBetterVoiceDownload` is wired
-but not yet surfaced in the UI). (2) Exercise the LLM path on an Apple-Intelligence device (iPhone
+Voice quality resolved via **cloud neural TTS** (`CloudVoice` — OpenAI `gpt-4o-mini-tts`), since
+on-device `AVSpeechSynthesizer` caps at robotic (Apple reserves the Siri voice). Owner supplies a
+key (Keychain-stored via `KeychainStore`), toggles it in `VoiceSettingsView`; the session speaks
+cloud audio and falls back to the best on-device voice when disabled/offline/on error. Request
+building, config persistence, keychain round-trip, and the active/fallback gate are tested.
+
+Remaining (needs real hardware/OS): (1) exercise the cloud voice end-to-end on device with a real
+key — latency, audio-session interplay with the mic, and cost in practice; the on-device Premium
+path is still the offline fallback (a first-run nudge when only a default voice is installed —
+`needsBetterVoiceDownload` — is wired but not surfaced). (2) Exercise the LLM path on an Apple-Intelligence device (iPhone
 15 Pro+ / iOS 26): latency, refusal behavior on out-of-record questions, and that it honors the
 confidence bands in practice. (3) Speech-in (`SFSpeechRecognizer`) is still unexercised against a
 real microphone — shared with the note in README "Status & known gaps."

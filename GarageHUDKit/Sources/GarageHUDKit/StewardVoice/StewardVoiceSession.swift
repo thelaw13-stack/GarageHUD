@@ -43,6 +43,9 @@ public final class StewardVoiceSession: NSObject, ObservableObject {
 
     /// The chosen high-quality voice, resolved once. Nil falls back to the system default.
     private lazy var preferredVoice: AVSpeechSynthesisVoice? = Self.resolvePreferredVoice()
+    /// Cloud-TTS playback + a token so a newer spoken line supersedes an in-flight one.
+    private var cloudPlayer: AVAudioPlayer?
+    private var cloudSpeakToken = 0
     /// The display name of the voice being used, and whether only a low-quality one is installed —
     /// so the UI can name the voice and, when needed, nudge the owner to download a better one.
     @Published public private(set) var voiceName: String = ""
@@ -185,6 +188,25 @@ public final class StewardVoiceSession: NSObject, ObservableObject {
 
     public func speak(_ text: String) {
         guard !text.isEmpty else { return }
+        // Prefer the natural cloud voice when the owner has configured it; fall back to on-device
+        // speech if it isn't active or the request fails (offline, bad key, provider error).
+        let config = CloudVoiceConfig.load()
+        guard config.isActive else { speakOnDevice(text); return }
+        cloudSpeakToken += 1
+        let token = cloudSpeakToken
+        Task { [weak self] in
+            do {
+                let audio = try await CloudVoiceSynthesizer(config: config).synthesize(text)
+                guard let self, token == self.cloudSpeakToken else { return }   // superseded by a newer line
+                self.playCloudAudio(audio, fallbackText: text)
+            } catch {
+                guard let self, token == self.cloudSpeakToken else { return }
+                self.speakOnDevice(text)   // graceful fallback — the owner still hears the answer
+            }
+        }
+    }
+
+    private func speakOnDevice(_ text: String) {
         let utterance = AVSpeechUtterance(string: text)
         // Use the best installed voice (Premium/Enhanced neural), not the robotic compact default.
         utterance.voice = preferredVoice
@@ -196,8 +218,37 @@ public final class StewardVoiceSession: NSObject, ObservableObject {
         synthesizer.speak(utterance)
     }
 
+    private func playCloudAudio(_ data: Data, fallbackText: String) {
+        do {
+            #if os(iOS)
+            try AVAudioSession.sharedInstance().setCategory(.playback, options: [.duckOthers])
+            try AVAudioSession.sharedInstance().setActive(true)
+            #endif
+            let player = try AVAudioPlayer(data: data)
+            player.delegate = self
+            cloudPlayer = player
+            isSpeaking = true
+            player.play()
+        } catch {
+            speakOnDevice(fallbackText)
+        }
+    }
+
     public func stopSpeaking() {
         if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
+        cloudSpeakToken += 1
+        cloudPlayer?.stop()
+        cloudPlayer = nil
+        isSpeaking = false
+    }
+}
+
+extension StewardVoiceSession: AVAudioPlayerDelegate {
+    public nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        Task { @MainActor in
+            self.cloudPlayer = nil
+            self.isSpeaking = false
+        }
     }
 }
 
