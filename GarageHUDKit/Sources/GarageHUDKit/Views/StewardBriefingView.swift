@@ -72,6 +72,7 @@ struct StewardBriefingView: View {
                 }
             }
             Spacer(minLength: 0)
+            checkInToggle
             playBar(brief)
         }
         .padding()
@@ -83,6 +84,27 @@ struct StewardBriefingView: View {
         #if canImport(Speech)
         .onDisappear { voice.stopSpeaking() }
         #endif
+    }
+
+    // Lets the owner control whether the Steward reaches out between visits (the calm morning
+    // check-in). Per-item due reminders still follow the OS notification permission.
+    @State private var checkInsEnabled = FleetWatchSettings.isEnabled()
+    private var checkInToggle: some View {
+        Toggle(isOn: $checkInsEnabled) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Notify me between visits")
+                    .font(HUDTheme.body()).foregroundStyle(HUDTheme.textPrimary)
+                Text("A calm morning check-in when the garage needs a look")
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+            }
+        }
+        .tint(HUDTheme.cyan)
+        .onChange(of: checkInsEnabled) { _, on in
+            FleetWatchSettings.setEnabled(on)
+            #if canImport(UserNotifications)
+            MaintenanceNotifier.sync(for: vehicles)   // re-plan immediately
+            #endif
+        }
     }
 
     private func header(_ brief: StewardBriefing) -> some View {
