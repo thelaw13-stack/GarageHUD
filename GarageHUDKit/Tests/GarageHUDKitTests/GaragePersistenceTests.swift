@@ -27,7 +27,10 @@ final class GaragePersistenceTests: XCTestCase {
         XCTAssertEqual(r.parts.first?.cost, 6000)
         XCTAssertEqual(r.notes.first?.title, "Alignment")
         XCTAssertEqual(r.performanceRecords.first?.wheelTorque, 317)
-        XCTAssertEqual(r.totalInvested, 25_246.92, accuracy: 0.001)
+        // Both cost fields survive the round-trip: the documented lump sum, and the derived total
+        // (now live from the installed part — $6,000 — not the documented figure).
+        XCTAssertEqual(r.documentedTotalInvestment ?? 0, 25_246.92, accuracy: 0.001)
+        XCTAssertEqual(r.totalInvested, 6_000, accuracy: 0.001)
     }
 
     func testLiveCaptureRecordPreservesSamples() throws {

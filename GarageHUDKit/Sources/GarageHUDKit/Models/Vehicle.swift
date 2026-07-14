@@ -368,15 +368,32 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         return Double(installedPartsCount) / Double(total) * 100
     }
 
+    /// Money actually spent on the current build — installed parts only. Planned (wishlist) parts
+    /// are future spend (`plannedSpend`), and removed parts aren't in the car; neither counts as
+    /// invested.
     public var itemizedPartsCost: Double {
-        parts.compactMap { $0.status == .removed ? nil : $0.cost }.reduce(0, +)
+        parts.filter { $0.status == .installed }.compactMap(\.cost).reduce(0, +)
     }
 
-    /// The number to show as "total invested" — prefers a documented lump-sum figure
-    /// (from a build sheet) over the sum of itemized part costs, since most parts here
-    /// don't have individual prices recorded.
+    /// The number to show as "total invested" — **live from your priced parts**, so editing a part
+    /// cost moves it immediately. The documented lump-sum figure (from a build sheet) is only a
+    /// fallback for a car with nothing priced to sum yet, so a freshly-imported build still shows a
+    /// total. (This flipped from documented-wins, which silently ignored part edits.)
     public var totalInvested: Double {
-        documentedTotalInvestment ?? itemizedPartsCost
+        itemizedPartsCost > 0 ? itemizedPartsCost : (documentedTotalInvestment ?? 0)
+    }
+
+    /// True when the total is being summed live from priced parts (vs. resting on the documented
+    /// lump sum). Drives honest "logged" vs "documented" wording.
+    public var investmentIsLiveFromParts: Bool { itemizedPartsCost > 0 }
+
+    /// The documented lump-sum figure when it exists *and* meaningfully disagrees with the live
+    /// parts-sum (>= $50) — so the UI can show both instead of hiding the mismatch. Nil when they
+    /// agree, when there's no documented figure, or when there are no priced parts (it's the total).
+    public var documentedTotalMismatch: Double? {
+        guard let doc = documentedTotalInvestment, itemizedPartsCost > 0,
+              abs(doc - itemizedPartsCost) >= 50 else { return nil }
+        return doc
     }
 
     public var latestPerformance: PerformanceRecord? {

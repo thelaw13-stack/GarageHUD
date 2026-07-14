@@ -80,9 +80,9 @@ public enum StewardConversation {
             guard vehicle.totalInvested > 0 else {
                 return StewardReply(text: "No spend is documented yet.")
             }
-            let documented = vehicle.documentedTotalInvestment != nil
+            let word = vehicle.investmentIsLiveFromParts ? "logged" : "documented"
             return StewardReply(
-                text: "You've \(documented ? "documented" : "logged") \(dollars(vehicle.totalInvested)) invested so far.")
+                text: "You've \(word) \(dollars(vehicle.totalInvested)) invested so far.")
 
         case .efficiency:
             if let costPerHp = vehicle.costPerHorsepowerGained, let gained = vehicle.horsepowerGainedOverStock {

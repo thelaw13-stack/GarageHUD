@@ -33,7 +33,10 @@ public enum BuildSheetExporter {
         // Investment
         if vehicle.totalInvested > 0 {
             header("Investment")
-            line("\(dollars(vehicle.totalInvested)) documented")
+            line("\(dollars(vehicle.totalInvested)) \(vehicle.investmentIsLiveFromParts ? "in logged parts" : "documented")")
+            if let doc = vehicle.documentedTotalMismatch {
+                line("(build sheet noted \(dollars(doc)))")
+            }
         }
 
         // Installed parts by system

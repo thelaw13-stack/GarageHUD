@@ -29,7 +29,7 @@ final class StewardGroundingTests: XCTestCase {
         XCTAssertTrue(r.contains("Fozzy"))
         XCTAssertTrue(r.contains("381 whp"), r)            // measured power
         XCTAssertTrue(r.contains("Strong evidence"))       // with its band
-        XCTAssertTrue(r.contains("$14,857"))               // documented spend
+        XCTAssertTrue(r.contains("$14,857"))               // build-sheet total surfaced even though not all parts priced
         XCTAssertTrue(r.contains("AWD"))
         XCTAssertTrue(r.localizedCaseInsensitiveContains("wishlist") || r.contains("Planned"))
     }

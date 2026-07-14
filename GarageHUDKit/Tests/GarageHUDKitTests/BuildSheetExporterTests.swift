@@ -27,7 +27,10 @@ final class BuildSheetExporterTests: XCTestCase {
         let text = BuildSheetExporter.text(for: s2k())
         XCTAssertTrue(text.contains("2006 Honda S2000 AP2".uppercased()))
         XCTAssertTrue(text.contains("477 whp (measured)"))
-        XCTAssertTrue(text.localizedCaseInsensitiveContains("$12,396 documented"))
+        // Total is now the sum of installed priced parts (5760+945+859), with the build-sheet
+        // figure surfaced as a reconciliation note — not silently overriding.
+        XCTAssertTrue(text.contains("$7,564 in logged parts"), text)
+        XCTAssertTrue(text.localizedCaseInsensitiveContains("build sheet noted $12,396"), text)
         XCTAssertTrue(text.contains("Forced Induction:"))
         XCTAssertTrue(text.contains("- Supercharger — $5,760"))
         XCTAssertTrue(text.localizedCaseInsensitiveContains("PLANNED"))

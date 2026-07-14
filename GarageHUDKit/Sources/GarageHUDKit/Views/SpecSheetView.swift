@@ -46,12 +46,20 @@ struct SpecSheetView: View {
 
                 HUDPanel(title: "Investment") {
                     VStack(alignment: .leading, spacing: 12) {
-                        editableStat(label: "Documented Total", value: $vehicle.documentedTotalInvestment, unit: "USD", color: HUDTheme.textPrimary)
-                        Text("Use this for a known lump-sum figure from a build sheet — it overrides the sum of itemized part costs below wherever \"Total Invested\" is shown.")
+                        // The live figure the rest of the app uses — summed from installed parts,
+                        // so it moves the moment a part price changes.
+                        StatReadout(label: "Total Invested", value: vehicle.totalInvested.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary)
+                        Text(vehicle.investmentIsLiveFromParts
+                             ? "Summed live from your installed parts — edit a part's price and this updates."
+                             : "No parts priced yet, so this shows your documented build-sheet total below.")
                             .font(HUDTheme.label())
                             .foregroundStyle(HUDTheme.textSecondary)
-                        if vehicle.itemizedPartsCost > 0 {
-                            StatReadout(label: "Itemized Parts Cost", value: vehicle.itemizedPartsCost.formatted(.currency(code: "USD")), color: HUDTheme.textSecondary)
+
+                        editableStat(label: "Build-Sheet Total (optional)", value: $vehicle.documentedTotalInvestment, unit: "USD", color: HUDTheme.textSecondary)
+                        if let doc = vehicle.documentedTotalMismatch {
+                            Text("Your build sheet noted \(doc.formatted(.currency(code: "USD"))), but you've priced \(vehicle.itemizedPartsCost.formatted(.currency(code: "USD"))) in parts so far — price the rest to reconcile.")
+                                .font(HUDTheme.label())
+                                .foregroundStyle(HUDTheme.amber)
                         }
                     }
                 }
