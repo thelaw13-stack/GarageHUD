@@ -17,6 +17,14 @@ public struct PullDetector: Sendable {
     /// Minimum RPM rise for a candidate run to count as a genuine pull, not idle throttle noise.
     public static let minRPMRise: Double = 400
 
+    /// Whether a candidate pull is currently being tracked — lets the live cockpit show "watching"
+    /// vs. "capturing" in the moment, not just render a report after the fact.
+    public var isCapturing: Bool { runStart != nil }
+    /// Samples banked in the run so far (0 when not capturing) — for a live in-progress readout.
+    public var activeSampleCount: Int { isCapturing ? sampleCount : 0 }
+    /// The RPM this candidate run started at, for a live "N → current" readout while capturing.
+    public var activeRPMStart: Double? { runStart != nil ? rpmStart : nil }
+
     private var runStart: Date?
     private var rpmStart: Double = 0
     private var rpmPeak: Double = 0
@@ -36,13 +44,6 @@ public struct PullDetector: Sendable {
 
     private let feedLabel: String
     private let envelope: OperatingEnvelope
-
-    /// Live cockpit state. These expose the detector's presence without leaking its mutable
-    /// implementation or pretending that an in-progress run is already a validated report.
-    public var isCapturing: Bool { runStart != nil }
-    public var activeSampleCount: Int { isCapturing ? sampleCount : 0 }
-    public var activeRPMStart: Double? { isCapturing ? rpmStart : nil }
-    public var activeRPMPeak: Double? { isCapturing ? rpmPeak : nil }
 
     public init(feedLabel: String, envelope: OperatingEnvelope) {
         self.feedLabel = feedLabel

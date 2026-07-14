@@ -40,63 +40,54 @@ public protocol LiveDataSource: AnyObject {
     func stop()
 }
 
-/// A repeatable garage demo: idle, one deliberate pull, recovery, then cruise. The fixed shape
-/// exercises the same detector thresholds on every run and makes visual review reproducible.
-struct SimulatedDemoCycle: Sendable {
-    static let frameCount = 60
-    static let interval: TimeInterval = 0.2
+/// One instant in the deterministic demo cycle (see `demoSample(at:)`). A named, `Sendable` type
+/// rather than a tuple, and free/top-level rather than nested — so nothing about it trips the
+/// concurrency checker when it crosses into the source's streaming `Task` below.
+struct DemoSample: Sendable, Equatable {
+    let rpm: Double
+    let speed: Double
+    let boost: Double
+    let throttle: Double
+}
 
-    static func frame(at rawIndex: Int, timestamp: Date) -> LiveTelemetryFrame {
-        let index = rawIndex % frameCount
-        let rpm: Double
-        let speed: Double
-        let boost: Double
-        let throttle: Double
-        let coolant: Double
+/// One full settle/sweep/lift/cruise cycle, in 200ms ticks (~15s total). Tuned so the sweep alone
+/// clears `PullDetector`'s thresholds (throttle stays well above the 65% arming line for several
+/// seconds, RPM rises far past the 400rpm floor) and the lift cleanly drops throttle below the 35%
+/// closing line, so a Pull Guardian report reliably closes once per cycle.
+private enum DemoCycle {
+    static let ticksPerCycle = 75
+    static let settle = 0..<10       // 2.0s: idle creeping toward the run
+    static let sweep = 10..<42       // 6.4s: sustained wide-open throttle, RPM climbing
+    static let lift = 42..<49        // 1.4s: throttle released, RPM falling — closes the pull
+    // everything else: cool-down cruise back toward idle
+}
 
-        switch index {
-        case 0..<10:
-            rpm = 950 + Double(index) * 16
-            speed = 4
-            boost = -2.5
-            throttle = 11
-            coolant = 178 + Double(index) * 0.08
-        case 10..<30:
-            let progress = Double(index - 10) / 19
-            rpm = 2400 + progress * 3900
-            speed = 28 + progress * 56
-            boost = 4 + progress * 9
-            throttle = 88
-            coolant = 180 + progress * 4
-        case 30:
-            rpm = 6350
-            speed = 86
-            boost = 2
-            throttle = 14
-            coolant = 184
-        default:
-            let recovery = Double(index - 31)
-            rpm = max(1700, 3500 - recovery * 70)
-            speed = max(32, 82 - recovery * 1.8)
-            boost = -1.5
-            throttle = 18
-            coolant = max(181, 184 - recovery * 0.12)
-        }
-
-        func measurement(_ value: Double) -> TimedMeasurement<Double> {
-            TimedMeasurement(value, source: .simulated, at: timestamp)
-        }
-        return LiveTelemetryFrame(
-            rpm: measurement(rpm), speedMph: measurement(speed),
-            coolantTempF: measurement(coolant), boostPsi: measurement(boost),
-            throttlePercent: measurement(throttle), connectionState: .polling,
-            capturedAt: timestamp)
+/// The deterministic sample for a tick position within the cycle. Pure and free-standing so the
+/// demo cycle's shape can be asserted directly in tests, not just observed end-to-end through the
+/// async stream.
+func demoSample(at phase: Int) -> DemoSample {
+    switch phase {
+    case DemoCycle.settle:
+        let p = Double(phase) / Double(DemoCycle.settle.count)
+        return DemoSample(rpm: 900 + p * 600, speed: 5 + p * 5, boost: -3, throttle: 10 + p * 8)
+    case DemoCycle.sweep:
+        let p = Double(phase - DemoCycle.sweep.lowerBound) / Double(DemoCycle.sweep.count)
+        return DemoSample(rpm: 1_900 + p * 4_900, speed: 22 + p * 78, boost: 3 + p * 11, throttle: 80 + p * 12)
+    case DemoCycle.lift:
+        let p = Double(phase - DemoCycle.lift.lowerBound) / Double(DemoCycle.lift.count)
+        return DemoSample(rpm: 6_800 - p * 4_300, speed: 100 - p * 15, boost: 14 - p * 16, throttle: 90 - p * 82)
+    default:
+        let p = Double(phase - DemoCycle.lift.upperBound) / Double(DemoCycle.ticksPerCycle - DemoCycle.lift.upperBound)
+        return DemoSample(rpm: 2_500 - p * 1_400, speed: 85 - p * 60, boost: -2, throttle: 22 - p * 8)
     }
 }
 
-/// Generates deterministic demo values before real OBD-II hardware is connected. Every value
-/// is tagged `.simulated` and freshly timestamped: useful for rehearsal, never mistaken for
-/// measured evidence.
+/// Generates a repeatable settle → loaded sweep → lift → cruise cycle so the whole Live workflow,
+/// including a Pull Guardian capture, is demoable on a predictable clock before real OBD-II
+/// hardware is connected — rather than waiting on a random walk to happen to produce a pull. Every
+/// value it emits is still tagged `.simulated` and freshly timestamped — honest about being
+/// invented, never mistaken for measured, and PullDetector grades a simulated pull accordingly
+/// (never higher than "Weak" confidence — no capture is imitating real evidence).
 public final class SimulatedLiveDataSource: LiveDataSource {
     public let frames: AsyncStream<LiveTelemetryFrame>
     private let continuation: AsyncStream<LiveTelemetryFrame>.Continuation
@@ -113,11 +104,21 @@ public final class SimulatedLiveDataSource: LiveDataSource {
         task?.cancel()
         connectionState = .polling
         let continuation = continuation
+        let ticksPerCycle = DemoCycle.ticksPerCycle
         task = Task {
-            var index = 0
+            var tick = 0
+            var coolant = 178.0
             while !Task.isCancelled {
-                continuation.yield(SimulatedDemoCycle.frame(at: index, timestamp: .now))
-                index = (index + 1) % SimulatedDemoCycle.frameCount
+                let s = demoSample(at: tick % ticksPerCycle)
+                coolant = min(206, coolant + 0.03)   // creeps up over a cycle, never spikes on its own
+
+                let now = Date()
+                func m(_ v: Double) -> TimedMeasurement<Double> { TimedMeasurement(v, source: .simulated, at: now) }
+                continuation.yield(LiveTelemetryFrame(
+                    rpm: m(s.rpm), speedMph: m(s.speed), coolantTempF: m(coolant),
+                    boostPsi: m(s.boost), throttlePercent: m(s.throttle),
+                    connectionState: .polling, capturedAt: now))
+                tick += 1
                 try? await Task.sleep(nanoseconds: 200_000_000)
             }
         }

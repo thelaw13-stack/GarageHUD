@@ -61,18 +61,6 @@ struct LiveSessionView: View {
                 }
             }
 
-            // Pull Guardian: pulls auto-captured this session, each graded by how much of its
-            // boost claim was actually measured — not just detected, but honestly scored.
-            if !sessionPulls.isEmpty {
-                HUDPanel(title: "Pulls This Session") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        ForEach(sessionPulls.reversed(), id: \.id) { pull in
-                            pullRow(pull)
-                        }
-                    }
-                }
-            }
-
             HStack(spacing: 12) {
                 Button(isRunning ? "Stop Session" : "Start Session") {
                     isRunning ? stop() : start()
@@ -168,6 +156,13 @@ struct LiveSessionView: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 rpmRunway
+
+                if !sessionPulls.isEmpty {
+                    Divider().overlay(HUDTheme.hairline)
+                    ForEach(sessionPulls.reversed(), id: \.id) { pull in
+                        pullRow(pull)
+                    }
+                }
             }
         }
     }
