@@ -59,6 +59,57 @@ public enum OBDTransport: String, Sendable, Codable, Equatable {
     case externalAccessory
 }
 
+/// The hardware route the owner intends to use. Persisting the choice prevents the Live screen
+/// from repeatedly launching a BLE search for an MX+, which iOS exposes through its accessory
+/// route instead of CoreBluetooth.
+public enum OBDAdapterSelection: String, CaseIterable, Sendable, Codable, Equatable, Identifiable {
+    case obdLinkCX
+    case obdLinkMXPlus
+    case otherBLE
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .obdLinkCX: return "OBDLink CX"
+        case .obdLinkMXPlus: return "OBDLink MX+"
+        case .otherBLE: return "Other BLE adapter"
+        }
+    }
+
+    public var transport: OBDTransport {
+        self == .obdLinkMXPlus ? .externalAccessory : .bluetoothLE
+    }
+
+    public var canConnectDirectly: Bool { transport == .bluetoothLE }
+
+    public var setupDetail: String {
+        switch self {
+        case .obdLinkCX:
+            return "GarageHUD can pair directly. Start the engine and close every other OBD app first."
+        case .obdLinkMXPlus:
+            return "The iPhone can list this adapter, but GarageHUD cannot open its protected MFi data channel yet. OBDLink manufacturer access is required."
+        case .otherBLE:
+            return "GarageHUD will look for a BLE ELM327-compatible FFF0 or FFE0 serial service."
+        }
+    }
+}
+
+public enum OBDAdapterSelectionStore {
+    private static let key = "GarageHUD.selectedOBDAdapter.v1"
+
+    public static func load(defaults: UserDefaults = .standard) -> OBDAdapterSelection {
+        guard let raw = defaults.string(forKey: key), let selection = OBDAdapterSelection(rawValue: raw) else {
+            return .obdLinkCX
+        }
+        return selection
+    }
+
+    public static func save(_ selection: OBDAdapterSelection, defaults: UserDefaults = .standard) {
+        defaults.set(selection.rawValue, forKey: key)
+    }
+}
+
 /// A catalog entry for a known OBD adapter — its transport and, for BLE devices, the GATT UUIDs we
 /// expect. Lets the app recognize a paired device by name, prefer a known-good adapter during a
 /// fresh scan, and explain clearly when a device (like the MX+) can't be reached over BLE.

@@ -44,6 +44,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private var pairedServiceUUID: String?
     private let serviceUUIDs: [CBUUID] = [CBUUID(string: "FFF0"), CBUUID(string: "FFE0")]
     private var adapterName: String?
+    private let adapterSelection: OBDAdapterSelection
     private var scanToken = 0
     private var linkToken = 0
 
@@ -54,9 +55,11 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     /// sessions can set `knownPeripheralID` and skip blind discovery.
     public private(set) var discoveredProfile: OBDAdapterProfile?
 
-    public init(knownPeripheralID: UUID? = nil, knownProfile: OBDAdapterProfile? = nil) {
+    public init(knownPeripheralID: UUID? = nil, knownProfile: OBDAdapterProfile? = nil,
+                adapterSelection: OBDAdapterSelection = .obdLinkCX) {
         self.knownPeripheralID = knownProfile?.peripheralID ?? knownPeripheralID
-        self.adapterName = knownProfile?.name
+        self.adapterName = knownProfile?.name ?? adapterSelection.displayName
+        self.adapterSelection = adapterSelection
         var captured: AsyncStream<LiveTelemetryFrame>.Continuation!
         self.frames = AsyncStream { captured = $0 }
         self.continuation = captured
@@ -121,8 +124,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private func beginScan(_ central: CBCentralManager, message: String = "Searching for an OBD-II adapter…") {
         scanToken += 1
         let token = scanToken
-        transition(.scanning, message,
-                   recovery: "For an OBDLink CX, start the engine and keep other OBD apps closed.")
+        transition(.scanning, message, recovery: adapterSelection.setupDetail)
         central.scanForPeripherals(withServices: nil)
         DispatchQueue.main.asyncAfter(deadline: .now() + 12) { [weak self] in
             guard let self, !self.stopped, token == self.scanToken,
@@ -133,7 +135,9 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
                 self.beginScan(central, message: "Saved adapter was not reachable. Searching for a fresh OBDLink…")
             } else {
                 self.transition(.scanning, "No compatible Bluetooth LE adapter seen yet",
-                                recovery: "Confirm the model is OBDLink CX, power-cycle it, and close the OBDLink app.")
+                                recovery: adapterSelection == .obdLinkCX
+                                    ? "Confirm the label says CX, power-cycle it, and close the OBDLink app. An MX+ cannot appear in this scan."
+                                    : "Confirm the adapter exposes a BLE FFF0 or FFE0 serial service, then power-cycle it.")
             }
         }
     }
@@ -406,7 +410,7 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
 
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         linkToken += 1
-        transition(.discoveringServices, "Bluetooth linked. Finding the OBDLink serial service…")
+        transition(.discoveringServices, "Bluetooth linked. Finding the OBD serial service…")
         peripheral.discoverServices(serviceUUIDs)
     }
 
@@ -468,7 +472,7 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
         guard characteristic.uuid == notifyChar?.uuid else { return }
         guard error == nil, characteristic.isNotifying else {
             degrade("iPhone could not subscribe to the adapter's data channel.",
-                    recovery: "Power-cycle the OBDLink CX and approve the pairing prompt on the next attempt.")
+                    recovery: "Power-cycle the adapter and approve the pairing prompt on the next attempt.")
             return
         }
         beginHandshake()

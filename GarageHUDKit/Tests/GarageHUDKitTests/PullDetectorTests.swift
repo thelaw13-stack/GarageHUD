@@ -127,6 +127,31 @@ final class PullDetectorTests: XCTestCase {
         XCTAssertEqual(report.onTargetFraction, 0.0)
     }
 
+    func testPullBanksAnRPMResolvedBoostFingerprint() {
+        let twoBandEnvelope = OperatingEnvelope(
+            boostCautionPsi: 12, maxSustainedBoostPsi: 14,
+            expectedBoostByRPM: [
+                BoostBand(rpmLow: 3000, rpmHigh: 4499, expectedLowPsi: 7, expectedHighPsi: 9),
+                BoostBand(rpmLow: 4500, rpmHigh: 6500, expectedLowPsi: 9, expectedHighPsi: 12)
+            ])
+        var d = PullDetector(feedLabel: "OBD-II Adapter", envelope: twoBandEnvelope)
+        let samples: [(Double, Double, Double)] = [
+            (0, 3200, 10), (0.5, 3900, 10), (1, 4400, 10),
+            (1.5, 4800, 10), (2, 5400, 11), (2.5, 6100, 11)
+        ]
+        for (t, rpm, boost) in samples {
+            _ = d.ingest(frame(t: t, rpm: rpm, throttle: 90, boost: boost), now: now(t))
+        }
+        let report = d.ingest(frame(t: 3, rpm: 6200, throttle: 10), now: now(3))!
+
+        XCTAssertEqual(report.bandResults.count, 2)
+        XCTAssertEqual(report.bandResults[0].disposition, .overTarget)
+        XCTAssertEqual(report.bandResults[0].averageBoostPsi, 10, accuracy: 0.01)
+        XCTAssertEqual(report.bandResults[0].measuredFraction, 1)
+        XCTAssertEqual(report.bandResults[1].disposition, .onTarget)
+        XCTAssertEqual(report.bandResults[1].sampleCount, 3)
+    }
+
     func testNoTuneProfileLeavesTargetFractionsNil() {
         let bareEnvelope = OperatingEnvelope(boostCautionPsi: 12, maxSustainedBoostPsi: 14)   // no bands
         var d = PullDetector(feedLabel: "OBD-II Adapter", envelope: bareEnvelope)

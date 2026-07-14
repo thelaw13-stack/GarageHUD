@@ -6,6 +6,11 @@ struct TunerView: View {
     private var readiness: TuneReadiness { Steward.tuneReadiness(vehicle) }
     private var bands: [BoostBand] { vehicle.operatingEnvelope.expectedBoostByRPM }
     private var intelligence: PullIntelligence { PullIntelligence.analyze(vehicle.pullReports) }
+    private var latestBandResults: [PullBandResult] {
+        vehicle.pullReports
+            .filter { $0.confidence >= .moderate && !$0.bandResults.isEmpty }
+            .max { $0.endedAt < $1.endedAt }?.bandResults ?? []
+    }
 
     var body: some View {
         ScrollView {
@@ -13,6 +18,7 @@ struct TunerView: View {
                 statusPanel
                 readinessPanel
                 pullIntelligencePanel
+                if !latestBandResults.isEmpty { rpmEvidencePanel }
                 tuneEnvelopePanel
             }
             .padding(HUDTheme.space4)
@@ -205,6 +211,95 @@ struct TunerView: View {
         case .stable: return "scope"
         case .watch: return "exclamationmark.triangle.fill"
         case .hold: return "hand.raised.fill"
+        }
+    }
+
+    private var rpmEvidencePanel: some View {
+        HUDPanel(title: "RPM Evidence Map", caption: "Latest measured pull") {
+            VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                if let trend = intelligence.attentionBand {
+                    HStack(alignment: .top, spacing: HUDTheme.space3) {
+                        Image(systemName: trend.direction == .high ? "arrow.up.right" : "arrow.down.right")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(HUDTheme.amber)
+                            .frame(width: 36, height: 36)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(HUDTheme.amber.opacity(0.12)))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("REPEATED \(trend.directionLabel) BAND")
+                                .font(HUDTheme.label(.bold))
+                                .foregroundStyle(HUDTheme.amber)
+                                .tracking(1)
+                            Text("\(trend.rangeLabel) missed by \(String(format: "%+.1f", trend.averageDeviationPsi)) psi across \(trend.pullCount) measured pulls.")
+                                .font(HUDTheme.body(.medium))
+                                .foregroundStyle(HUDTheme.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    Divider().overlay(HUDTheme.hairline)
+                }
+
+                ForEach(Array(latestBandResults.enumerated()), id: \.offset) { index, result in
+                    bandEvidenceRow(result)
+                    if index < latestBandResults.count - 1 {
+                        Divider().overlay(HUDTheme.hairline)
+                    }
+                }
+            }
+        }
+    }
+
+    private func bandEvidenceRow(_ result: PullBandResult) -> some View {
+        let color = bandEvidenceColor(result.disposition)
+        return VStack(alignment: .leading, spacing: HUDTheme.space2) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(result.rpmLow)-\(result.rpmHigh) RPM")
+                        .font(HUDTheme.body(.semibold))
+                        .foregroundStyle(HUDTheme.textPrimary)
+                    Text("Target \(format(result.expectedLowPsi))-\(format(result.expectedHighPsi)) psi")
+                        .font(HUDTheme.label())
+                        .foregroundStyle(HUDTheme.textSecondary)
+                }
+                Spacer(minLength: HUDTheme.space2)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(format(result.averageBoostPsi)) PSI AVG")
+                        .font(HUDTheme.body(.bold))
+                        .foregroundStyle(color)
+                    Text("\(result.sampleCount) samples · \(Int((result.measuredFraction * 100).rounded()))% measured")
+                        .font(HUDTheme.label())
+                        .foregroundStyle(HUDTheme.textTertiary)
+                }
+            }
+
+            GeometryReader { proxy in
+                let maximum = max(rpmEvidenceMaximum, 1)
+                let targetStart = max(0, result.expectedLowPsi / maximum) * proxy.size.width
+                let targetWidth = max(4, (result.expectedHighPsi - result.expectedLowPsi) / maximum * proxy.size.width)
+                let marker = max(0, min(proxy.size.width - 3, result.averageBoostPsi / maximum * proxy.size.width))
+                ZStack(alignment: .leading) {
+                    Capsule().fill(HUDTheme.hairline).frame(height: 6)
+                    Capsule().fill(HUDTheme.cyan.opacity(0.5))
+                        .frame(width: targetWidth, height: 6)
+                        .offset(x: targetStart)
+                    Rectangle().fill(color).frame(width: 3, height: 18).offset(x: marker)
+                }
+                .frame(maxHeight: .infinity)
+            }
+            .frame(height: 18)
+        }
+        .padding(.vertical, HUDTheme.space1)
+    }
+
+    private var rpmEvidenceMaximum: Double {
+        max(vehicle.operatingEnvelope.maxSustainedBoostPsi ?? 0,
+            latestBandResults.map { max($0.peakBoostPsi, $0.expectedHighPsi) }.max() ?? 0) * 1.08
+    }
+
+    private func bandEvidenceColor(_ disposition: PullBandResult.Disposition) -> Color {
+        switch disposition {
+        case .onTarget: return HUDTheme.green
+        case .overTarget: return HUDTheme.danger
+        case .underTarget: return HUDTheme.amber
         }
     }
 

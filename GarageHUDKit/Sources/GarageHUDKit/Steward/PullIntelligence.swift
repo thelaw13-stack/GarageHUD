@@ -21,6 +21,20 @@ public struct PullIntelligence: Equatable, Sendable {
         }
     }
 
+    /// A deviation that repeated in the same RPM band across measured pulls.
+    public struct BandTrend: Equatable, Sendable {
+        public enum Direction: Equatable, Sendable { case high, low }
+
+        public let rpmLow: Int
+        public let rpmHigh: Int
+        public let direction: Direction
+        public let pullCount: Int
+        public let averageDeviationPsi: Double
+
+        public var rangeLabel: String { "\(rpmLow)-\(rpmHigh) RPM" }
+        public var directionLabel: String { direction == .high ? "HIGH" : "LOW" }
+    }
+
     public let state: State
     public let headline: String
     public let nextAction: String
@@ -30,6 +44,7 @@ public struct PullIntelligence: Equatable, Sendable {
     public let repeatabilitySpreadPsi: Double?
     public let averageTargetFit: Double?
     public let latestPeakDriftPsi: Double?
+    public let attentionBand: BandTrend?
 
     public static func analyze(_ reports: [PullReport], limit: Int = 5) -> PullIntelligence {
         let recent = Array(reports.sorted { $0.endedAt > $1.endedAt }.prefix(limit))
@@ -45,6 +60,7 @@ public struct PullIntelligence: Equatable, Sendable {
         let drift = latest?.boostPeakPsi.flatMap { peak in
             median(priorPeaks).map { peak - $0 }
         }
+        let bandTrend = recurringBand(in: measured)
 
         if let latest, latest.boostBreachedCeiling {
             return result(
@@ -60,6 +76,19 @@ public struct PullIntelligence: Equatable, Sendable {
                 state: .hold,
                 headline: "The latest measured pull added \(format(delta))°F of coolant temperature.",
                 action: "Let the car recover and verify the cooling system before repeating the load.",
+                evidence: evidence(recent: recent, measured: measured, spread: spread, fit: averageFit, drift: drift),
+                recent: recent, measured: measured, spread: spread, fit: averageFit, drift: drift)
+        }
+
+        if let bandTrend {
+            let direction = bandTrend.direction == .high ? "above" : "below"
+            let diagnosis = bandTrend.direction == .high
+                ? "Review boost control response in that band before changing the whole map."
+                : "Check throttle closure, leaks, and control limits in that band before adding target."
+            return result(
+                state: .watch,
+                headline: "Measured pulls repeatedly run \(direction) target at \(bandTrend.rangeLabel).",
+                action: diagnosis,
                 evidence: evidence(recent: recent, measured: measured, spread: spread, fit: averageFit, drift: drift),
                 recent: recent, measured: measured, spread: spread, fit: averageFit, drift: drift)
         }
@@ -119,7 +148,7 @@ public struct PullIntelligence: Equatable, Sendable {
         PullIntelligence(state: state, headline: headline, nextAction: action, evidence: evidence,
                          totalPulls: recent.count, measuredPulls: measured.count,
                          repeatabilitySpreadPsi: spread, averageTargetFit: fit,
-                         latestPeakDriftPsi: drift)
+                         latestPeakDriftPsi: drift, attentionBand: recurringBand(in: measured))
     }
 
     private static func evidence(recent: [PullReport], measured: [PullReport], spread: Double?,
@@ -141,5 +170,50 @@ public struct PullIntelligence: Equatable, Sendable {
         return sorted[middle]
     }
 
+    private struct BandKey: Hashable {
+        let rpmLow: Int
+        let rpmHigh: Int
+    }
+
+    /// Require the same signed miss in at least two pulls and two-thirds of the available evidence.
+    /// A one-off spike remains visible in its pull report but cannot become a tuning trend.
+    private static func recurringBand(in reports: [PullReport]) -> BandTrend? {
+        var grouped: [BandKey: [(deviation: Double, pullID: UUID)]] = [:]
+        for report in reports {
+            for band in report.bandResults where band.measuredFraction >= 0.4 {
+                let key = BandKey(rpmLow: band.rpmLow, rpmHigh: band.rpmHigh)
+                grouped[key, default: []].append((band.averageDeviationPsi, report.id))
+            }
+        }
+
+        return grouped.compactMap { key, readings -> (BandTrend, Double)? in
+            let perPull = Dictionary(grouping: readings, by: \.pullID).compactMap { _, values in
+                values.map(\.deviation).average
+            }
+            guard perPull.count >= 2 else { return nil }
+            let high = perPull.filter { $0 >= 0.75 }
+            let low = perPull.filter { $0 <= -0.75 }
+            let required = max(2, Int(ceil(Double(perPull.count) * 0.67)))
+            let direction: BandTrend.Direction
+            let consistent: [Double]
+            if high.count >= required { direction = .high; consistent = high }
+            else if low.count >= required { direction = .low; consistent = low }
+            else { return nil }
+            let average = consistent.average ?? 0
+            let trend = BandTrend(rpmLow: key.rpmLow, rpmHigh: key.rpmHigh,
+                                  direction: direction, pullCount: consistent.count,
+                                  averageDeviationPsi: average)
+            return (trend, abs(average) * Double(consistent.count))
+        }
+        .max { $0.1 < $1.1 }?.0
+    }
+
     private static func format(_ value: Double) -> String { String(format: "%.1f", value) }
+}
+
+private extension Collection where Element == Double {
+    var average: Double? {
+        guard !isEmpty else { return nil }
+        return reduce(0, +) / Double(count)
+    }
 }

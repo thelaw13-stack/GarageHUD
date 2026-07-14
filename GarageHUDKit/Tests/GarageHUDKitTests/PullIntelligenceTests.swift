@@ -6,7 +6,8 @@ final class PullIntelligenceTests: XCTestCase {
                         over: Double = 0.05, under: Double = 0.05,
                         breach: Bool = false, coolantDelta: Double = 3,
                         confidence: ConfidenceBand = .confirmed,
-                        measured: Double = 1) -> PullReport {
+                        measured: Double = 1,
+                        bands: [PullBandResult] = []) -> PullReport {
         let end = Date(timeIntervalSince1970: 1_700_000_000 + Double(index * 60))
         return PullReport(
             startedAt: end.addingTimeInterval(-3), endedAt: end, feedLabel: "OBD-II Adapter",
@@ -14,7 +15,8 @@ final class PullIntelligenceTests: XCTestCase {
             boostPeakPsi: peak, boostBreachedCeiling: breach, boostCeilingPsi: 14,
             onTargetFraction: on, overTargetFraction: over, underTargetFraction: under,
             coolantStartF: 190, coolantPeakF: 190 + coolantDelta, coolantDeltaF: coolantDelta,
-            sampleCount: 20, measuredBoostFraction: measured, confidence: confidence)
+            sampleCount: 20, measuredBoostFraction: measured, confidence: confidence,
+            bandResults: bands)
     }
 
     func testTwoTightOnTargetMeasuredPullsAreRepeatable() {
@@ -51,5 +53,31 @@ final class PullIntelligenceTests: XCTestCase {
         let result = PullIntelligence.analyze([report(index: 1, coolantDelta: 16)])
         XCTAssertEqual(result.state, .hold)
         XCTAssertTrue(result.headline.localizedCaseInsensitiveContains("coolant"))
+    }
+
+    func testRepeatedHighBandBecomesSpecificTunerFinding() {
+        let highBand = PullBandResult(
+            rpmLow: 3500, rpmHigh: 4500, expectedLowPsi: 8, expectedHighPsi: 10,
+            averageBoostPsi: 11.2, peakBoostPsi: 11.8, sampleCount: 8, measuredFraction: 1,
+            onTargetFraction: 0, overTargetFraction: 1, underTargetFraction: 0)
+        let result = PullIntelligence.analyze([
+            report(index: 1, on: 0, over: 1, under: 0, bands: [highBand]),
+            report(index: 2, on: 0, over: 1, under: 0, bands: [highBand])
+        ])
+
+        XCTAssertEqual(result.state, .watch)
+        XCTAssertEqual(result.attentionBand?.direction, .high)
+        XCTAssertEqual(result.attentionBand?.rpmLow, 3500)
+        XCTAssertEqual(result.attentionBand?.pullCount, 2)
+        XCTAssertTrue(result.headline.contains("3500-4500 RPM"))
+    }
+
+    func testOneOffBandMissDoesNotBecomeATrend() {
+        let highBand = PullBandResult(
+            rpmLow: 3500, rpmHigh: 4500, expectedLowPsi: 8, expectedHighPsi: 10,
+            averageBoostPsi: 11.2, peakBoostPsi: 11.8, sampleCount: 8, measuredFraction: 1,
+            onTargetFraction: 0, overTargetFraction: 1, underTargetFraction: 0)
+        let result = PullIntelligence.analyze([report(index: 1, bands: [highBand])])
+        XCTAssertNil(result.attentionBand)
     }
 }

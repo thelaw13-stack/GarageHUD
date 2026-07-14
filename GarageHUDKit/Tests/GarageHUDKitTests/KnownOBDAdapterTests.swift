@@ -32,4 +32,17 @@ final class KnownOBDAdapterTests: XCTestCase {
         XCTAssertNil(KnownOBDAdapter.match(advertisedName: "Kitchen Speaker"))
         XCTAssertNil(KnownOBDAdapter.match(advertisedName: nil))
     }
+
+    func testHardwareSelectionMakesMXPlusLimitationExplicitAndPersists() {
+        let suite = "OBDAdapterSelectionTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        XCTAssertEqual(OBDAdapterSelectionStore.load(defaults: defaults), .obdLinkCX)
+        XCTAssertTrue(OBDAdapterSelection.obdLinkCX.canConnectDirectly)
+        XCTAssertFalse(OBDAdapterSelection.obdLinkMXPlus.canConnectDirectly)
+
+        OBDAdapterSelectionStore.save(.obdLinkMXPlus, defaults: defaults)
+        XCTAssertEqual(OBDAdapterSelectionStore.load(defaults: defaults), .obdLinkMXPlus)
+    }
 }

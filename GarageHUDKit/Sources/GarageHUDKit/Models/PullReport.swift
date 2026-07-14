@@ -1,5 +1,40 @@
 import Foundation
 
+/// What one completed pull did inside one recorded tune band. Keeping the target alongside the
+/// result means later envelope edits cannot rewrite the history of what the Guardian judged.
+public struct PullBandResult: Codable, Hashable, Sendable {
+    public enum Disposition: String, Codable, Hashable, Sendable {
+        case underTarget
+        case onTarget
+        case overTarget
+    }
+
+    public var rpmLow: Int
+    public var rpmHigh: Int
+    public var expectedLowPsi: Double
+    public var expectedHighPsi: Double
+    public var averageBoostPsi: Double
+    public var peakBoostPsi: Double
+    public var sampleCount: Int
+    public var measuredFraction: Double
+    public var onTargetFraction: Double
+    public var overTargetFraction: Double
+    public var underTargetFraction: Double
+
+    public var disposition: Disposition {
+        if overTargetFraction > max(onTargetFraction, underTargetFraction) { return .overTarget }
+        if underTargetFraction > max(onTargetFraction, overTargetFraction) { return .underTarget }
+        return .onTarget
+    }
+
+    /// Signed distance from the target envelope: positive is high, negative is low, zero is in-band.
+    public var averageDeviationPsi: Double {
+        if averageBoostPsi > expectedHighPsi { return averageBoostPsi - expectedHighPsi }
+        if averageBoostPsi < expectedLowPsi { return averageBoostPsi - expectedLowPsi }
+        return 0
+    }
+}
+
 /// A single wide-open-throttle pull, captured automatically from a live telemetry session — not a
 /// manual save, but the Steward noticing a genuine run and grading what it actually saw. The
 /// headline claims (ceiling breach, target-band compliance) are only as trustworthy as the boost
@@ -41,6 +76,8 @@ public struct PullReport: Identifiable, Codable, Hashable, Sendable {
     /// other Steward observation (Confirmed / Strong / Moderate / Weak / Insufficient), scoped to
     /// what was actually measured during this specific run.
     public var confidence: ConfidenceBand
+    /// RPM-resolved evidence from this pull. Older saved reports decode with an empty collection.
+    public var bandResults: [PullBandResult]
 
     public var durationSeconds: Double { endedAt.timeIntervalSince(startedAt) }
 
@@ -49,7 +86,8 @@ public struct PullReport: Identifiable, Codable, Hashable, Sendable {
                 boostPeakPsi: Double?, boostBreachedCeiling: Bool, boostCeilingPsi: Double?,
                 onTargetFraction: Double?, overTargetFraction: Double?, underTargetFraction: Double?,
                 coolantStartF: Double?, coolantPeakF: Double?, coolantDeltaF: Double?,
-                sampleCount: Int, measuredBoostFraction: Double?, confidence: ConfidenceBand) {
+                sampleCount: Int, measuredBoostFraction: Double?, confidence: ConfidenceBand,
+                bandResults: [PullBandResult] = []) {
         self.id = id
         self.startedAt = startedAt
         self.endedAt = endedAt
@@ -69,6 +107,7 @@ public struct PullReport: Identifiable, Codable, Hashable, Sendable {
         self.sampleCount = sampleCount
         self.measuredBoostFraction = measuredBoostFraction
         self.confidence = confidence
+        self.bandResults = bandResults
     }
 
     public init(from decoder: Decoder) throws {
@@ -92,6 +131,7 @@ public struct PullReport: Identifiable, Codable, Hashable, Sendable {
         sampleCount = try c.decodeIfPresent(Int.self, forKey: .sampleCount) ?? 0
         measuredBoostFraction = try c.decodeIfPresent(Double.self, forKey: .measuredBoostFraction)
         confidence = try c.decodeIfPresent(ConfidenceBand.self, forKey: .confidence) ?? .insufficient
+        bandResults = try c.decodeIfPresent([PullBandResult].self, forKey: .bandResults) ?? []
     }
 
     /// A compact one-liner for the timeline/biography — the memory, not the analysis.

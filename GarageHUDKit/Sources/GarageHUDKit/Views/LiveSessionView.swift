@@ -8,6 +8,7 @@ struct LiveSessionView: View {
 
     @State private var source: LiveDataSource?
     @State private var savedAdapterProfile: OBDAdapterProfile? = OBDAdapterProfileStore.load()
+    @State private var adapterSelection = OBDAdapterSelectionStore.load()
     @State private var isRunning = false
     @State private var frame: LiveTelemetryFrame?
     @State private var displayed: LiveMetrics?        // carried-over needle positions
@@ -17,6 +18,16 @@ struct LiveSessionView: View {
     // Pull Guardian — detects a genuine WOT pull in the stream and grades what it saw.
     @State private var detector: PullDetector?
     @State private var sessionPulls: [PullReport] = []
+
+    private var compatibleSavedProfile: OBDAdapterProfile? {
+        guard let profile = savedAdapterProfile else { return nil }
+        let known = KnownOBDAdapter.match(advertisedName: profile.name)
+        switch adapterSelection {
+        case .obdLinkCX: return known?.id == KnownOBDAdapter.obdLinkCX.id ? profile : nil
+        case .obdLinkMXPlus: return nil
+        case .otherBLE: return known?.id == KnownOBDAdapter.obdLinkCX.id ? nil : profile
+        }
+    }
 
     var body: some View {
         ScrollView {
@@ -67,10 +78,11 @@ struct LiveSessionView: View {
             }
 
             HStack(spacing: 12) {
-                Button(isRunning ? "Stop Session" : "Start Session") {
+                Button(sessionButtonTitle) {
                     isRunning ? stop() : start()
                 }
                 .buttonStyle(ActionButton(isRunning ? .destructive : .primary))
+                .disabled(!isRunning && feed == .adapter && !adapterSelection.canConnectDirectly)
 
                 if !captured.isEmpty && !isRunning {
                     Button("Save as Performance Record") { saveRecord() }
@@ -79,20 +91,13 @@ struct LiveSessionView: View {
             }
 
             Text(feed == .adapter
-                 ? "Reading a Bluetooth LE ELM327 adapter (experimental). Only values decoded live are tagged MEASURED; anything that stops responding drops out rather than freezing."
+                 ? adapterSelection.setupDetail
                  : "Simulated feed — plausible wandering values, always tagged ESTIMATED.")
                 .font(HUDTheme.label())
                 .foregroundStyle(HUDTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
 
-            if feed == .adapter {
-                Text("Recommended: OBDLink CX (Bluetooth LE). The OBDLink MX+ is MFi/Bluetooth Classic and won't appear in a Bluetooth LE scan.")
-                    .font(HUDTheme.label())
-                    .foregroundStyle(HUDTheme.textTertiary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-            }
         }
         .padding(24)
         .frame(maxWidth: .infinity)
@@ -144,9 +149,29 @@ struct LiveSessionView: View {
     private var adapterConnectionPanel: some View {
         let detail = frame?.connectionDetail
         let state = frame?.connectionState ?? (isRunning ? .scanning : .disconnected)
-        let profile = savedAdapterProfile
-        return HUDPanel(title: "Adapter Link", caption: profile == nil ? "First connection" : "Known adapter") {
+        let profile = compatibleSavedProfile
+        return HUDPanel(title: "Adapter Link", caption: profile == nil ? "Hardware setup" : "Known adapter") {
             VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                if !isRunning {
+                    HStack(spacing: HUDTheme.space3) {
+                        Label("Adapter", systemImage: "dot.radiowaves.left.and.right")
+                            .font(HUDTheme.body(.semibold))
+                            .foregroundStyle(HUDTheme.textPrimary)
+                        Spacer(minLength: HUDTheme.space2)
+                        Picker("Adapter model", selection: $adapterSelection) {
+                            ForEach(OBDAdapterSelection.allCases) { option in
+                                Text(option.displayName).tag(option)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .tint(HUDTheme.cyan)
+                        .onChange(of: adapterSelection) { _, selection in
+                            OBDAdapterSelectionStore.save(selection)
+                        }
+                    }
+                    Divider().overlay(HUDTheme.hairline)
+                }
+
                 HStack(spacing: HUDTheme.space3) {
                     Image(systemName: adapterIcon(for: state))
                         .font(.system(size: 20, weight: .semibold))
@@ -154,7 +179,7 @@ struct LiveSessionView: View {
                         .frame(width: 40, height: 40)
                         .background(RoundedRectangle(cornerRadius: 6).fill(statusColor.opacity(0.12)))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(detail?.adapterName ?? profile?.name ?? "OBDLink CX")
+                        Text(detail?.adapterName ?? profile?.name ?? adapterSelection.displayName)
                             .font(HUDTheme.body(.bold))
                             .foregroundStyle(HUDTheme.textPrimary)
                         Text(detail?.message ?? (isRunning ? "Preparing Bluetooth…" : "Ready to connect"))
@@ -172,6 +197,23 @@ struct LiveSessionView: View {
                 }
 
                 connectionRail(state)
+
+                if !adapterSelection.canConnectDirectly && !isRunning {
+                    HStack(alignment: .top, spacing: HUDTheme.space2) {
+                        Image(systemName: "lock.shield.fill")
+                            .foregroundStyle(HUDTheme.amber)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("MX+ DATA ACCESS PENDING")
+                                .font(HUDTheme.label(.semibold))
+                                .foregroundStyle(HUDTheme.amber)
+                                .tracking(1)
+                            Text("Seeing MX+ in iPhone Bluetooth confirms pairing, not app data access. GarageHUD needs OBDLink's protected iOS accessory protocol before it can open that channel.")
+                                .font(HUDTheme.label())
+                                .foregroundStyle(HUDTheme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
 
                 if let recovery = detail?.recovery, isRunning {
                     HStack(alignment: .top, spacing: HUDTheme.space2) {
@@ -387,7 +429,9 @@ struct LiveSessionView: View {
 
     private func makeSource() -> LiveDataSource {
         #if canImport(CoreBluetooth)
-        if feed == .adapter { return OBDLiveDataSource(knownProfile: savedAdapterProfile) }
+        if feed == .adapter {
+            return OBDLiveDataSource(knownProfile: compatibleSavedProfile, adapterSelection: adapterSelection)
+        }
         #endif
         return SimulatedLiveDataSource()
     }
@@ -397,6 +441,12 @@ struct LiveSessionView: View {
         streamTask?.cancel()
         streamTask = nil
         isRunning = false
+    }
+
+    private var sessionButtonTitle: String {
+        if isRunning { return "Stop Session" }
+        if feed == .adapter && !adapterSelection.canConnectDirectly { return "MX+ Access Required" }
+        return "Start Session"
     }
 
     private func saveRecord() {

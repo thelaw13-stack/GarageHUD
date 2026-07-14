@@ -7,6 +7,39 @@ import Foundation
 /// only reasons about frame content, not where the frame came from — which is also why the
 /// simulated feed can fully exercise this before an adapter is on hand.
 public struct PullDetector: Sendable {
+    private struct BandAccumulator: Sendable {
+        var band: BoostBand
+        var boostTotal = 0.0
+        var boostPeak = -Double.infinity
+        var samples = 0
+        var measuredSamples = 0
+        var onTarget = 0
+        var overTarget = 0
+        var underTarget = 0
+
+        mutating func add(boost: Double, measured: Bool) {
+            boostTotal += boost
+            boostPeak = max(boostPeak, boost)
+            samples += 1
+            if measured { measuredSamples += 1 }
+            if boost > band.expectedHighPsi { overTarget += 1 }
+            else if boost < band.expectedLowPsi { underTarget += 1 }
+            else { onTarget += 1 }
+        }
+
+        var result: PullBandResult? {
+            guard samples > 0 else { return nil }
+            return PullBandResult(
+                rpmLow: band.rpmLow, rpmHigh: band.rpmHigh,
+                expectedLowPsi: band.expectedLowPsi, expectedHighPsi: band.expectedHighPsi,
+                averageBoostPsi: boostTotal / Double(samples), peakBoostPsi: boostPeak,
+                sampleCount: samples, measuredFraction: Double(measuredSamples) / Double(samples),
+                onTargetFraction: Double(onTarget) / Double(samples),
+                overTargetFraction: Double(overTarget) / Double(samples),
+                underTargetFraction: Double(underTarget) / Double(samples))
+        }
+    }
+
     /// Throttle level that starts a candidate run.
     public static let throttleOnThreshold: Double = 65
     /// Throttle level a run must drop below to end (a gap below the "on" threshold so a wavering
@@ -40,6 +73,7 @@ public struct PullDetector: Sendable {
     private var onTargetSamples = 0
     private var overTargetSamples = 0
     private var underTargetSamples = 0
+    private var bandAccumulators: [Int: BandAccumulator] = [:]
 
     private let feedLabel: String
     private let envelope: OperatingEnvelope
@@ -79,6 +113,7 @@ public struct PullDetector: Sendable {
         coolantStart = nil; coolantPeak = nil
         sampleCount = 0; boostSamples = 0; measuredBoostSamples = 0
         bandedSamples = 0; onTargetSamples = 0; overTargetSamples = 0; underTargetSamples = 0
+        bandAccumulators = [:]
     }
 
     private mutating func accumulate(_ frame: LiveTelemetryFrame, now: Date) {
@@ -93,11 +128,16 @@ public struct PullDetector: Sendable {
             if let ceiling = envelope.maxSustainedBoostPsi, boostM.value > ceiling {
                 boostCeilingBreached = true
             }
-            if let rpmNow, let band = envelope.expectedBoostByRPM.first(where: { $0.contains(rpm: rpmNow) }) {
+            if let rpmNow,
+               let bandIndex = envelope.expectedBoostByRPM.firstIndex(where: { $0.contains(rpm: rpmNow) }) {
+                let band = envelope.expectedBoostByRPM[bandIndex]
                 bandedSamples += 1
                 if boostM.value > band.expectedHighPsi { overTargetSamples += 1 }
                 else if boostM.value < band.expectedLowPsi { underTargetSamples += 1 }
                 else { onTargetSamples += 1 }
+                var accumulator = bandAccumulators[bandIndex] ?? BandAccumulator(band: band)
+                accumulator.add(boost: boostM.value, measured: boostM.source == .obdAdapter)
+                bandAccumulators[bandIndex] = accumulator
             }
         }
 
@@ -131,6 +171,10 @@ public struct PullDetector: Sendable {
             }
         }
 
+        let bandResults = bandAccumulators
+            .sorted { $0.key < $1.key }
+            .compactMap { $0.value.result }
+
         return PullReport(
             startedAt: start, endedAt: now, feedLabel: feedLabel,
             rpmStart: rpmStart, rpmPeak: rpmPeak, rpmEnd: rpmLast,
@@ -141,6 +185,7 @@ public struct PullDetector: Sendable {
             underTargetFraction: bandedSamples > 0 ? Double(underTargetSamples) / Double(bandedSamples) : nil,
             coolantStartF: coolantStart, coolantPeakF: coolantPeak,
             coolantDeltaF: (coolantStart != nil && coolantPeak != nil) ? coolantPeak! - coolantStart! : nil,
-            sampleCount: sampleCount, measuredBoostFraction: measuredFraction, confidence: confidence)
+            sampleCount: sampleCount, measuredBoostFraction: measuredFraction, confidence: confidence,
+            bandResults: bandResults)
     }
 }
