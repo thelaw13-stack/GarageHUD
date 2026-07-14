@@ -47,6 +47,8 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private let adapterSelection: OBDAdapterSelection
     private var scanToken = 0
     private var linkToken = 0
+    private var discoveredPeripheralCount = 0
+    private var observedPeripheralIDs: Set<UUID> = []
 
     /// When set, only this peripheral will be connected — reconnection to a *validated* device
     /// rather than the first serial adapter that advertises. Pass a profile's `peripheralID`.
@@ -79,6 +81,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private var inFlightCommand: String?
     private var timeoutToken = 0
     private var stopped = true
+    private var hasRecordedFirstMeasurement = false
 
     // Per-metric measurements, each stamped when its reply actually arrives.
     private var rpm, speedMph, coolant, boost, throttle: TimedMeasurement<Double>?
@@ -91,6 +94,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         stopped = false
         reconnectAttempts = 0
         resetMeasurements()
+        OBDConnectionJournalStore.begin(selection: adapterSelection)
         transition(.scanning, "Opening Bluetooth…", recovery: "Keep the adapter powered and the vehicle ignition on.")
         central = CBCentralManager(delegate: self, queue: .main) // confine callbacks to main
     }
@@ -109,6 +113,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private func resetMeasurements() {
         rpm = nil; speedMph = nil; coolant = nil; boost = nil; throttle = nil
         pidCursor = 0; consecutivePollTimeouts = 0; handshake = ELM327Handshake()
+        hasRecordedFirstMeasurement = false
     }
 
     private func transition(_ state: OBDConnectionState, _ message: String,
@@ -118,11 +123,30 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
             message: message,
             recovery: recovery,
             attempt: attempt ?? reconnectAttempts)
+        OBDConnectionJournalStore.append(stage: journalStage(for: state), message: message)
         if connectionState == state { emitFrame() } else { connectionState = state }
+    }
+
+    private func journalStage(for state: OBDConnectionState) -> String {
+        switch state {
+        case .disconnected: return "STOPPED"
+        case .scanning: return "SCANNING"
+        case .connecting: return "CONNECTING"
+        case .discoveringServices: return "SERVICES"
+        case .discoveringCharacteristics: return "CHANNELS"
+        case .resetting: return "WAKE-UP"
+        case .configuring: return "PROTOCOL"
+        case .ready: return "READY"
+        case .polling: return hasRecordedFirstMeasurement ? "MEASURING" : "POLLING"
+        case .degraded: return "DEGRADED"
+        case .reconnecting: return "RETRYING"
+        }
     }
 
     private func beginScan(_ central: CBCentralManager, message: String = "Searching for an OBD-II adapter…") {
         scanToken += 1
+        discoveredPeripheralCount = 0
+        observedPeripheralIDs = []
         let token = scanToken
         transition(.scanning, message, recovery: adapterSelection.setupDetail)
         central.scanForPeripherals(withServices: nil)
@@ -134,7 +158,10 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
                 guard let central = self.central else { return }
                 self.beginScan(central, message: "Saved adapter was not reachable. Searching for a fresh OBDLink…")
             } else {
-                self.transition(.scanning, "No compatible Bluetooth LE adapter seen yet",
+                let nearby = self.discoveredPeripheralCount == 1
+                    ? "1 nearby BLE device"
+                    : "\(self.discoveredPeripheralCount) nearby BLE devices"
+                self.transition(.scanning, "No compatible adapter found among \(nearby)",
                                 recovery: adapterSelection == .obdLinkCX
                                     ? "Confirm the label says CX, power-cycle it, and close the OBDLink app. An MX+ cannot appear in this scan."
                                     : "Confirm the adapter exposes a BLE FFF0 or FFE0 serial service, then power-cycle it.")
@@ -278,7 +305,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         pidCursor = 0
         consecutivePollTimeouts = 0
         reconnectAttempts = 0   // a clean link resets the give-up counter
-        transition(.polling, "Measured data is live")
+        transition(.polling, "OBD polling started. Waiting for the first measured PID…")
         pollCurrent()
     }
 
@@ -304,6 +331,10 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         case .coolantTemp: coolant = m
         case .throttlePosition: throttle = m
         case .intakeManifoldPressure: boost = m
+        }
+        if !hasRecordedFirstMeasurement {
+            hasRecordedFirstMeasurement = true
+            transition(.polling, "Measured data is live")
         }
     }
 
@@ -395,6 +426,9 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
 
     public func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
                                advertisementData: [String: Any], rssi RSSI: NSNumber) {
+        if observedPeripheralIDs.insert(peripheral.identifier).inserted {
+            discoveredPeripheralCount += 1
+        }
         // Reconnecting to a validated device: only that exact peripheral.
         if let known = knownPeripheralID {
             guard peripheral.identifier == known else { return }
@@ -405,6 +439,9 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
             guard looksLikeOBDAdapter(peripheral, advertisementData) else { return }
         }
         let name = (advertisementData[CBAdvertisementDataLocalNameKey] as? String) ?? peripheral.name
+        OBDConnectionJournalStore.append(
+            stage: "FOUND",
+            message: "Saw \(name ?? "a compatible BLE serial adapter") at signal \(RSSI.intValue) dBm")
         connect(peripheral, using: central, name: name)
     }
 

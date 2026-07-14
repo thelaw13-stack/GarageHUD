@@ -9,6 +9,7 @@ struct LiveSessionView: View {
     @State private var source: LiveDataSource?
     @State private var savedAdapterProfile: OBDAdapterProfile? = OBDAdapterProfileStore.load()
     @State private var adapterSelection = OBDAdapterSelectionStore.load()
+    @State private var lastConnectionJournal = OBDConnectionJournalStore.load()
     @State private var isRunning = false
     @State private var frame: LiveTelemetryFrame?
     @State private var displayed: LiveMetrics?        // carried-over needle positions
@@ -50,6 +51,9 @@ struct LiveSessionView: View {
 
             if feed == .adapter {
                 adapterConnectionPanel
+                if !isRunning, let journal = lastConnectionJournal {
+                    connectionJournalPanel(journal)
+                }
             }
 
             HUDPanel(title: "Live Telemetry") {
@@ -397,6 +401,9 @@ struct LiveSessionView: View {
                    profile != savedAdapterProfile {
                     savedAdapterProfile = profile
                 }
+                if feed == .adapter {
+                    lastConnectionJournal = OBDConnectionJournalStore.load()
+                }
                 let snapshot = incoming.displaySnapshot(carryingOver: displayed)
                 displayed = snapshot
                 // Only bank a sample when the frame actually carries fresh data.
@@ -438,6 +445,9 @@ struct LiveSessionView: View {
 
     private func stop() {
         source?.stop()
+        if feed == .adapter {
+            lastConnectionJournal = OBDConnectionJournalStore.load()
+        }
         streamTask?.cancel()
         streamTask = nil
         isRunning = false
@@ -447,6 +457,50 @@ struct LiveSessionView: View {
         if isRunning { return "Stop Session" }
         if feed == .adapter && !adapterSelection.canConnectDirectly { return "MX+ Access Required" }
         return "Start Session"
+    }
+
+    private func connectionJournalPanel(_ journal: OBDConnectionJournal) -> some View {
+        let entries = Array(journal.entries.suffix(7))
+        let color = journal.reachedMeasuredData ? HUDTheme.green : HUDTheme.amber
+        return HUDPanel(title: "Last Connection Report", caption: journal.adapterSelection.displayName) {
+            VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                HStack(alignment: .top, spacing: HUDTheme.space3) {
+                    Image(systemName: journal.reachedMeasuredData ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(color)
+                        .frame(width: 40, height: 40)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(color.opacity(0.12)))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(journal.reachedMeasuredData ? "MEASURED DATA REACHED" : "CONNECTION STOPPED EARLY")
+                            .font(HUDTheme.label(.bold))
+                            .foregroundStyle(color)
+                            .tracking(1)
+                        Text(journal.reachedMeasuredData
+                             ? "GarageHUD decoded at least one live vehicle value."
+                             : "The stages below show exactly where the adapter path ended.")
+                            .font(HUDTheme.label())
+                            .foregroundStyle(HUDTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Divider().overlay(HUDTheme.hairline)
+
+                ForEach(entries) { entry in
+                    HStack(alignment: .top, spacing: HUDTheme.space3) {
+                        Text(entry.stage)
+                            .font(HUDTheme.label(.bold))
+                            .foregroundStyle(entry.stage == "MEASURING" ? HUDTheme.green : HUDTheme.cyan)
+                            .tracking(1)
+                            .frame(width: 82, alignment: .leading)
+                        Text(entry.message)
+                            .font(HUDTheme.label())
+                            .foregroundStyle(HUDTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
     }
 
     private func saveRecord() {
