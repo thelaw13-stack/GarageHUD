@@ -57,6 +57,9 @@ public extension Steward {
         }
         checks.append(calibrationCheck(vehicle))
         checks.append(dynoCheck(vehicle))
+        if !vehicle.pullReports.isEmpty {
+            checks.append(pullHistoryCheck(vehicle.pullReports))
+        }
 
         if boosted {
             checks.append(contentsOf: boostProfileChecks(envelope))
@@ -172,6 +175,21 @@ public extension Steward {
         }
         return .init(id: "validation.currentDyno", title: "Current validation",
                      detail: "No dated powertrain change appears after the latest dyno.", state: .ready)
+    }
+
+    private static func pullHistoryCheck(_ reports: [PullReport]) -> TuneReadiness.Check {
+        let intelligence = PullIntelligence.analyze(reports)
+        let state: TuneReadiness.State
+        switch intelligence.state {
+        case .hold: state = .hold
+        case .watch, .learning: state = .verify
+        case .stable: state = .ready
+        }
+        return .init(
+            id: "validation.pullHistory",
+            title: "Recent pull behavior",
+            detail: "\(intelligence.headline) \(intelligence.evidence)",
+            state: state)
     }
 
     private static func boostProfileChecks(_ envelope: OperatingEnvelope) -> [TuneReadiness.Check] {

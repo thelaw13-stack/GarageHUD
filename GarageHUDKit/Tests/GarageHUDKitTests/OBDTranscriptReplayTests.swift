@@ -38,6 +38,15 @@ final class OBDTranscriptReplayTests: XCTestCase {
         XCTAssertEqual(result.outcome, .ready)
     }
 
+    func testGenuineOBDLinkAndSTNBannersAreAccepted() {
+        for banner in ["OBDLink CX v5.6.19", "STN2230 v5.6.19"] {
+            let replies: [ELM327Handshake.Event] = [
+                .reply(banner), .reply("OK"), .reply("OK"), .reply("OK"), .reply("OK")
+            ]
+            XCTAssertEqual(runHandshake(ELM327Handshake(), replies: replies).outcome, .ready)
+        }
+    }
+
     func testGarbledResetRetriesThenRecovers() {
         // ATZ first answers with noise/error, then the real banner on retry.
         let transcript: [ELM327Handshake.Event] = [

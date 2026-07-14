@@ -35,6 +35,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     public private(set) var connectionState: OBDConnectionState = .disconnected {
         didSet { if oldValue != connectionState { emitFrame() } }
     }
+    public private(set) var connectionDetail = OBDConnectionDetail(message: "Adapter idle")
 
     private var central: CBCentralManager?
     private var peripheral: CBPeripheral?
@@ -42,6 +43,9 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private var notifyChar: CBCharacteristic?
     private var pairedServiceUUID: String?
     private let serviceUUIDs: [CBUUID] = [CBUUID(string: "FFF0"), CBUUID(string: "FFE0")]
+    private var adapterName: String?
+    private var scanToken = 0
+    private var linkToken = 0
 
     /// When set, only this peripheral will be connected — reconnection to a *validated* device
     /// rather than the first serial adapter that advertises. Pass a profile's `peripheralID`.
@@ -50,8 +54,9 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     /// sessions can set `knownPeripheralID` and skip blind discovery.
     public private(set) var discoveredProfile: OBDAdapterProfile?
 
-    public init(knownPeripheralID: UUID? = nil) {
-        self.knownPeripheralID = knownPeripheralID
+    public init(knownPeripheralID: UUID? = nil, knownProfile: OBDAdapterProfile? = nil) {
+        self.knownPeripheralID = knownProfile?.peripheralID ?? knownPeripheralID
+        self.adapterName = knownProfile?.name
         var captured: AsyncStream<LiveTelemetryFrame>.Continuation!
         self.frames = AsyncStream { captured = $0 }
         self.continuation = captured
@@ -83,7 +88,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         stopped = false
         reconnectAttempts = 0
         resetMeasurements()
-        connectionState = .scanning
+        transition(.scanning, "Opening Bluetooth…", recovery: "Keep the adapter powered and the vehicle ignition on.")
         central = CBCentralManager(delegate: self, queue: .main) // confine callbacks to main
     }
 
@@ -92,13 +97,67 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         invalidateTimeout()
         if let peripheral, let central { central.cancelPeripheralConnection(peripheral) }
         central?.stopScan()
-        connectionState = .disconnected
+        scanToken += 1
+        linkToken += 1
+        transition(.disconnected, "Session stopped")
         // Stream stays open (reusable); deinit finishes it.
     }
 
     private func resetMeasurements() {
         rpm = nil; speedMph = nil; coolant = nil; boost = nil; throttle = nil
         pidCursor = 0; consecutivePollTimeouts = 0; handshake = ELM327Handshake()
+    }
+
+    private func transition(_ state: OBDConnectionState, _ message: String,
+                            recovery: String? = nil, attempt: Int? = nil) {
+        connectionDetail = OBDConnectionDetail(
+            adapterName: adapterName,
+            message: message,
+            recovery: recovery,
+            attempt: attempt ?? reconnectAttempts)
+        if connectionState == state { emitFrame() } else { connectionState = state }
+    }
+
+    private func beginScan(_ central: CBCentralManager, message: String = "Searching for an OBD-II adapter…") {
+        scanToken += 1
+        let token = scanToken
+        transition(.scanning, message,
+                   recovery: "For an OBDLink CX, start the engine and keep other OBD apps closed.")
+        central.scanForPeripherals(withServices: nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 12) { [weak self] in
+            guard let self, !self.stopped, token == self.scanToken,
+                  self.connectionState == .scanning else { return }
+            if self.knownPeripheralID != nil {
+                self.knownPeripheralID = nil
+                guard let central = self.central else { return }
+                self.beginScan(central, message: "Saved adapter was not reachable. Searching for a fresh OBDLink…")
+            } else {
+                self.transition(.scanning, "No compatible Bluetooth LE adapter seen yet",
+                                recovery: "Confirm the model is OBDLink CX, power-cycle it, and close the OBDLink app.")
+            }
+        }
+    }
+
+    private func connect(_ peripheral: CBPeripheral, using central: CBCentralManager, name: String?) {
+        scanToken += 1
+        central.stopScan()
+        self.peripheral = peripheral
+        adapterName = KnownOBDAdapter.match(advertisedName: name)?.displayName ?? name ?? adapterName ?? "OBD-II Adapter"
+        peripheral.delegate = self
+        transition(.connecting, "Found \(adapterName ?? "adapter"). Opening secure link…",
+                   recovery: "Leave the adapter powered and approve any iPhone pairing prompt.")
+        central.connect(peripheral)
+
+        linkToken += 1
+        let token = linkToken
+        DispatchQueue.main.asyncAfter(deadline: .now() + 12) { [weak self] in
+            guard let self, !self.stopped, token == self.linkToken,
+                  self.connectionState == .connecting else { return }
+            guard let central = self.central, let peripheral = self.peripheral else { return }
+            central.cancelPeripheralConnection(peripheral)
+            self.knownPeripheralID = nil
+            self.beginScan(central, message: "That adapter did not open. Searching again…")
+        }
     }
 
     // MARK: Serial engine (one command in flight, prompt-gated)
@@ -173,21 +232,23 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     // MARK: Handshake + polling
 
     private func beginHandshake() {
-        connectionState = .resetting
+        transition(.resetting, "Bluetooth paired. Waking the OBD command processor…")
         transmit(handshake.openingCommand, timeout: 3.0) // ATZ can be slow
     }
 
     private func apply(_ action: ELM327Handshake.Action) {
         switch action {
         case .send(let command):
-            connectionState = (handshake.step == .reset) ? .resetting : .configuring
+            transition((handshake.step == .reset) ? .resetting : .configuring,
+                       handshake.step == .reset ? "Retrying adapter wake-up…" : "Negotiating the vehicle protocol…")
             transmit(command, timeout: 1.5)
         case .ready:
             captureProfile()      // bring-up (incl. ELM327 identity check) succeeded
-            connectionState = .ready
+            transition(.ready, "Adapter verified. Starting measured PIDs…")
             startPolling()
         case .failed:
-            degrade()
+            degrade("The device answered, but its OBD command processor could not be verified.",
+                    recovery: "Power-cycle the adapter. GarageHUD supports ELM327, STN, and OBDLink CX command sets.")
         }
     }
 
@@ -206,13 +267,14 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
             notifyCharUUID: notifyChar.uuid.uuidString,
             writeWithoutResponse: writeChar.properties.contains(.writeWithoutResponse),
             lastConnected: Date())
+        if let discoveredProfile { OBDAdapterProfileStore.save(discoveredProfile) }
     }
 
     private func startPolling() {
         pidCursor = 0
         consecutivePollTimeouts = 0
         reconnectAttempts = 0   // a clean link resets the give-up counter
-        connectionState = .polling
+        transition(.polling, "Measured data is live")
         pollCurrent()
     }
 
@@ -241,8 +303,9 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         }
     }
 
-    private func degrade() {
-        connectionState = .degraded
+    private func degrade(_ message: String = "Adapter responses stopped",
+                         recovery: String? = "GarageHUD will reconnect automatically.") {
+        transition(.degraded, message, recovery: recovery)
         scheduleReconnect()
     }
 
@@ -253,19 +316,20 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         // rediscover the same device → fail → reconnect… draining the battery silently.
         reconnectAttempts += 1
         guard reconnectAttempts <= maxReconnectAttempts else {
-            connectionState = .disconnected   // give up; the frame stream still reflects it
+            transition(.disconnected, "Adapter did not recover after \(maxReconnectAttempts) attempts",
+                       recovery: "Power-cycle the adapter, close other OBD apps, then start a new session.")
             return
         }
-        connectionState = .reconnecting
+        transition(.reconnecting, "Link interrupted. Reconnect \(reconnectAttempts) of \(maxReconnectAttempts)…",
+                   recovery: "Keep the ignition on; GarageHUD is retrying.", attempt: reconnectAttempts)
         if let peripheral, let central { central.cancelPeripheralConnection(peripheral) }
         let delay = min(2.0 * Double(reconnectAttempts), 10.0)
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self, !self.stopped, self.central?.state == .poweredOn else { return }
             self.resetMeasurements()
-            self.connectionState = .scanning
-            // Unfiltered scan: many BLE OBD adapters don't advertise their service UUID, so a
-            // service-filtered scan never sees them. We filter by advertised name in didDiscover.
-            self.central?.scanForPeripherals(withServices: nil)
+            if let central = self.central {
+                self.beginScan(central, message: "Looking for \(self.adapterName ?? "the adapter") again…")
+            }
         }
     }
 
@@ -293,7 +357,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         continuation.yield(LiveTelemetryFrame(
             rpm: rpm, speedMph: speedMph, coolantTempF: coolant,
             boostPsi: boost, throttlePercent: throttle,
-            connectionState: connectionState, capturedAt: Date()))
+            connectionState: connectionState, connectionDetail: connectionDetail, capturedAt: Date()))
     }
 }
 
@@ -302,12 +366,26 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
         guard !stopped else { return }
         if central.state == .poweredOn {
-            connectionState = .scanning
-            // See scheduleReconnect: unfiltered so we don't miss adapters that omit their service
-            // UUID from the advertisement (common on BLE ELM327 clones).
-            central.scanForPeripherals(withServices: nil)
+            if let knownPeripheralID,
+               let saved = central.retrievePeripherals(withIdentifiers: [knownPeripheralID]).first {
+                connect(saved, using: central, name: adapterName ?? saved.name)
+            } else {
+                beginScan(central)
+            }
         } else {
-            connectionState = .disconnected
+            let detail: (String, String)
+            switch central.state {
+            case .unauthorized:
+                detail = ("Bluetooth access is not allowed",
+                          "Enable GarageHUD in iPhone Settings › Privacy & Security › Bluetooth.")
+            case .poweredOff:
+                detail = ("Bluetooth is turned off", "Turn Bluetooth on, then restart the Live session.")
+            case .unsupported:
+                detail = ("Bluetooth LE is unavailable on this device", "Use a Bluetooth LE-capable iPhone.")
+            default:
+                detail = ("Bluetooth is not ready", "Wait a moment, then restart the Live session.")
+            }
+            transition(.disconnected, detail.0, recovery: detail.1)
         }
     }
 
@@ -322,21 +400,34 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
             // OBD-ish local name — so we never grab an unrelated Bluetooth device (headphones etc.).
             guard looksLikeOBDAdapter(peripheral, advertisementData) else { return }
         }
-        central.stopScan()
-        self.peripheral = peripheral
-        peripheral.delegate = self
-        connectionState = .connecting
-        central.connect(peripheral)
+        let name = (advertisementData[CBAdvertisementDataLocalNameKey] as? String) ?? peripheral.name
+        connect(peripheral, using: central, name: name)
     }
 
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        connectionState = .discoveringServices
+        linkToken += 1
+        transition(.discoveringServices, "Bluetooth linked. Finding the OBDLink serial service…")
         peripheral.discoverServices(serviceUUIDs)
     }
 
+    public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral,
+                               error: Error?) {
+        linkToken += 1
+        degrade("Bluetooth found \(adapterName ?? "the adapter"), but the link did not open.",
+                recovery: "Close any other OBD app, power-cycle the adapter, and keep the ignition on.")
+    }
+
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-        guard error == nil else { degrade(); return }
-        connectionState = .discoveringCharacteristics
+        guard error == nil else {
+            degrade("The adapter connected, but its services could not be read.")
+            return
+        }
+        guard !(peripheral.services ?? []).isEmpty else {
+            degrade("No supported OBD serial service was exposed.",
+                    recovery: "GarageHUD expects OBDLink CX (FFF0) or a BLE ELM327 (FFE0).")
+            return
+        }
+        transition(.discoveringCharacteristics, "Serial service found. Preparing secure notifications…")
         for service in peripheral.services ?? [] {
             peripheral.discoverCharacteristics(nil, for: service)
         }
@@ -344,21 +435,51 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
 
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         guard connectionState == .discoveringCharacteristics else { return }
+        guard error == nil else {
+            degrade("The serial service was found, but its data channels could not be opened.")
+            return
+        }
         // Pair write + notify from the SAME service — never mix characteristics across services,
         // which could pick an unrelated pair on a multi-service adapter.
         let chars = service.characteristics ?? []
-        guard let notify = chars.first(where: { $0.properties.contains(.notify) }),
-              let write = chars.first(where: { $0.properties.contains(.writeWithoutResponse) || $0.properties.contains(.write) })
+        let known = KnownOBDAdapter.match(advertisedName: adapterName)
+        let notify = known?.notifyCharUUID.flatMap { expected in
+            chars.first { $0.uuid == CBUUID(string: expected) && $0.properties.contains(.notify) }
+        } ?? chars.first(where: { $0.properties.contains(.notify) })
+        let write = known?.writeCharUUID.flatMap { expected in
+            chars.first {
+                $0.uuid == CBUUID(string: expected)
+                    && ($0.properties.contains(.writeWithoutResponse) || $0.properties.contains(.write))
+            }
+        } ?? chars.first(where: { $0.properties.contains(.writeWithoutResponse) || $0.properties.contains(.write) })
+        guard let notify, let write
         else { return } // this service isn't the serial one; wait for another's callback
         notifyChar = notify
         writeChar = write
         pairedServiceUUID = service.uuid.uuidString
+        transition(.discoveringCharacteristics, "Serial channel ready. Waiting for iPhone pairing…",
+                   recovery: "Approve the Bluetooth pairing prompt if one appears.")
         peripheral.setNotifyValue(true, for: notify)
+    }
+
+    public func peripheral(_ peripheral: CBPeripheral,
+                           didUpdateNotificationStateFor characteristic: CBCharacteristic,
+                           error: Error?) {
+        guard characteristic.uuid == notifyChar?.uuid else { return }
+        guard error == nil, characteristic.isNotifying else {
+            degrade("iPhone could not subscribe to the adapter's data channel.",
+                    recovery: "Power-cycle the OBDLink CX and approve the pairing prompt on the next attempt.")
+            return
+        }
         beginHandshake()
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-        guard error == nil, let data = characteristic.value,
+        guard error == nil else {
+            degrade("The adapter data channel reported an error.")
+            return
+        }
+        guard let data = characteristic.value,
               let text = String(data: data, encoding: .ascii) else { return }
         ingest(text)
     }
@@ -366,6 +487,9 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         invalidateTimeout()
         guard !stopped else { return }
+        guard connectionState != .reconnecting else { return }
+        transition(.degraded, "Bluetooth link closed unexpectedly",
+                   recovery: "GarageHUD will reconnect automatically.")
         scheduleReconnect()
     }
 }

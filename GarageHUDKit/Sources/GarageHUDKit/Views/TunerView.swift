@@ -5,12 +5,14 @@ struct TunerView: View {
 
     private var readiness: TuneReadiness { Steward.tuneReadiness(vehicle) }
     private var bands: [BoostBand] { vehicle.operatingEnvelope.expectedBoostByRPM }
+    private var intelligence: PullIntelligence { PullIntelligence.analyze(vehicle.pullReports) }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HUDTheme.space4) {
                 statusPanel
                 readinessPanel
+                pullIntelligencePanel
                 tuneEnvelopePanel
             }
             .padding(HUDTheme.space4)
@@ -108,6 +110,102 @@ struct TunerView: View {
         }
         .padding(.vertical, HUDTheme.space2)
         .accessibilityElement(children: .combine)
+    }
+
+    private var pullIntelligencePanel: some View {
+        HUDPanel(title: "Pull Intelligence", caption: "Last \(intelligence.totalPulls) banked") {
+            VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                HStack(alignment: .top, spacing: HUDTheme.space3) {
+                    Image(systemName: intelligenceIcon)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(intelligenceColor)
+                        .frame(width: 42, height: 42)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(intelligenceColor.opacity(0.12)))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(intelligence.state.label.uppercased())
+                            .font(HUDTheme.label(.bold))
+                            .foregroundStyle(intelligenceColor)
+                            .tracking(1)
+                        Text(intelligence.headline)
+                            .font(HUDTheme.body(.semibold))
+                            .foregroundStyle(HUDTheme.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 0) {
+                        intelligenceFact("\(intelligence.measuredPulls)", "MEASURED")
+                        intelligenceFact(intelligence.averageTargetFit.map { "\(Int(($0 * 100).rounded()))%" } ?? "—", "TARGET FIT")
+                        intelligenceFact(intelligence.repeatabilitySpreadPsi.map { String(format: "%.1f PSI", $0) } ?? "—", "PEAK SPREAD")
+                        intelligenceFact(intelligence.latestPeakDriftPsi.map { String(format: "%+.1f PSI", $0) } ?? "—", "PEAK DRIFT")
+                    }
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 125))], spacing: HUDTheme.space2) {
+                        intelligenceFact("\(intelligence.measuredPulls)", "MEASURED")
+                        intelligenceFact(intelligence.averageTargetFit.map { "\(Int(($0 * 100).rounded()))%" } ?? "—", "TARGET FIT")
+                        intelligenceFact(intelligence.repeatabilitySpreadPsi.map { String(format: "%.1f PSI", $0) } ?? "—", "PEAK SPREAD")
+                        intelligenceFact(intelligence.latestPeakDriftPsi.map { String(format: "%+.1f PSI", $0) } ?? "—", "PEAK DRIFT")
+                    }
+                }
+
+                Divider().overlay(HUDTheme.hairline)
+
+                HStack(alignment: .top, spacing: HUDTheme.space2) {
+                    Image(systemName: "arrow.right.circle.fill")
+                        .foregroundStyle(intelligenceColor)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("NEXT CONTROLLED STEP")
+                            .font(HUDTheme.label(.semibold))
+                            .foregroundStyle(HUDTheme.textTertiary)
+                            .tracking(1)
+                        Text(intelligence.nextAction)
+                            .font(HUDTheme.body(.medium))
+                            .foregroundStyle(HUDTheme.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(intelligence.evidence)
+                            .font(HUDTheme.label())
+                            .foregroundStyle(HUDTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+
+    private func intelligenceFact(_ value: String, _ label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(HUDTheme.body(.bold))
+                .foregroundStyle(HUDTheme.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(label)
+                .font(HUDTheme.label(.semibold))
+                .foregroundStyle(HUDTheme.textTertiary)
+                .tracking(1)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, HUDTheme.space3)
+        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+        .overlay(alignment: .leading) { Rectangle().fill(HUDTheme.hairline).frame(width: 1) }
+    }
+
+    private var intelligenceColor: Color {
+        switch intelligence.state {
+        case .learning: return HUDTheme.textSecondary
+        case .stable: return HUDTheme.green
+        case .watch: return HUDTheme.amber
+        case .hold: return HUDTheme.danger
+        }
+    }
+
+    private var intelligenceIcon: String {
+        switch intelligence.state {
+        case .learning: return "waveform.path.ecg"
+        case .stable: return "scope"
+        case .watch: return "exclamationmark.triangle.fill"
+        case .hold: return "hand.raised.fill"
+        }
     }
 
     private var tuneEnvelopePanel: some View {

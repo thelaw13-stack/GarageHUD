@@ -29,10 +29,10 @@ public struct ELM327Handshake: Equatable, Sendable {
     public let resetCommand: String
     public let configCommands: [String]
     public let maxAttempts: Int
-    /// When true, the `ATZ` reply must look like an ELM327 (its version banner contains
-    /// `identityToken`) — otherwise the device is rejected as not an ELM327-compatible adapter.
+    /// When true, the `ATZ` reply must look like a supported ELM/STN command processor. Genuine
+    /// OBDLink hardware commonly identifies as OBDLink or STN rather than containing "ELM".
     public let verifyIdentity: Bool
-    public let identityToken: String
+    public let identityTokens: [String]
 
     public private(set) var step: Step
     public private(set) var attempts: Int
@@ -41,12 +41,12 @@ public struct ELM327Handshake: Equatable, Sendable {
                 configCommands: [String] = ["ATE0", "ATL0", "ATH0", "ATSP0"],
                 maxAttempts: Int = 3,
                 verifyIdentity: Bool = true,
-                identityToken: String = "ELM") {
+                identityTokens: [String] = ["ELM", "OBDLINK", "STN"]) {
         self.resetCommand = resetCommand
         self.configCommands = configCommands
         self.maxAttempts = maxAttempts
         self.verifyIdentity = verifyIdentity
-        self.identityToken = identityToken
+        self.identityTokens = identityTokens
         self.step = .reset
         self.attempts = 0
     }
@@ -78,9 +78,11 @@ public struct ELM327Handshake: Equatable, Sendable {
             if Self.isError(line) { return retryOrFail() }
             // The reset reply must identify an ELM327. A device that answers cleanly but isn't
             // one is rejected outright — retrying can't change what it is.
-            if case .reset = step, verifyIdentity,
-               !line.uppercased().contains(identityToken.uppercased()) {
-                return .failed
+            if case .reset = step, verifyIdentity {
+                let upper = line.uppercased()
+                guard identityTokens.contains(where: { upper.contains($0.uppercased()) }) else {
+                    return .failed
+                }
             }
             return advance()
         case .timeout:

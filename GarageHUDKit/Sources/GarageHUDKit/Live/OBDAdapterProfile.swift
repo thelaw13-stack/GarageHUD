@@ -31,6 +31,26 @@ public struct OBDAdapterProfile: Sendable, Equatable, Hashable, Codable, Identif
     }
 }
 
+/// Small local memory for the last adapter that completed a real handshake. The
+/// profile contains only CoreBluetooth routing data and is safe to keep in app preferences.
+public enum OBDAdapterProfileStore {
+    private static let key = "GarageHUD.validatedOBDAdapter.v1"
+
+    public static func load(defaults: UserDefaults = .standard) -> OBDAdapterProfile? {
+        guard let data = defaults.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(OBDAdapterProfile.self, from: data)
+    }
+
+    public static func save(_ profile: OBDAdapterProfile, defaults: UserDefaults = .standard) {
+        guard let data = try? JSONEncoder().encode(profile) else { return }
+        defaults.set(data, forKey: key)
+    }
+
+    public static func forget(defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: key)
+    }
+}
+
 /// How an adapter physically talks to iOS. Only `.bluetoothLE` adapters are reachable from our
 /// CoreBluetooth stack; `.externalAccessory` (MFi / Bluetooth Classic) adapters require Apple's
 /// ExternalAccessory framework + an MFi entitlement, which GarageHUD does not have.

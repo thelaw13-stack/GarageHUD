@@ -57,6 +57,24 @@ public enum OBDConnectionState: Equatable, Sendable {
     public var isLive: Bool { self == .polling }
 }
 
+/// Human-readable progress from the adapter transport. This travels with each frame so the Live
+/// screen can explain exactly where a connection is, which device was seen, and what the owner can
+/// do next. It deliberately contains no raw Bluetooth identifiers or opaque error codes.
+public struct OBDConnectionDetail: Equatable, Sendable {
+    public var adapterName: String?
+    public var message: String
+    public var recovery: String?
+    public var attempt: Int
+
+    public init(adapterName: String? = nil, message: String,
+                recovery: String? = nil, attempt: Int = 0) {
+        self.adapterName = adapterName
+        self.message = message
+        self.recovery = recovery
+        self.attempt = attempt
+    }
+}
+
 /// A snapshot of the live feed: each metric independently timestamped and sourced, plus the
 /// link state. Nothing here asserts a value is current — the reader decides that with a
 /// freshness window, which is exactly the point.
@@ -67,6 +85,7 @@ public struct LiveTelemetryFrame: Sendable {
     public var boostPsi: TimedMeasurement<Double>?
     public var throttlePercent: TimedMeasurement<Double>?
     public var connectionState: OBDConnectionState
+    public var connectionDetail: OBDConnectionDetail?
     public var capturedAt: Date
 
     public init(rpm: TimedMeasurement<Double>? = nil,
@@ -75,6 +94,7 @@ public struct LiveTelemetryFrame: Sendable {
                 boostPsi: TimedMeasurement<Double>? = nil,
                 throttlePercent: TimedMeasurement<Double>? = nil,
                 connectionState: OBDConnectionState = .disconnected,
+                connectionDetail: OBDConnectionDetail? = nil,
                 capturedAt: Date = .now) {
         self.rpm = rpm
         self.speedMph = speedMph
@@ -82,6 +102,7 @@ public struct LiveTelemetryFrame: Sendable {
         self.boostPsi = boostPsi
         self.throttlePercent = throttlePercent
         self.connectionState = connectionState
+        self.connectionDetail = connectionDetail
         self.capturedAt = capturedAt
     }
 

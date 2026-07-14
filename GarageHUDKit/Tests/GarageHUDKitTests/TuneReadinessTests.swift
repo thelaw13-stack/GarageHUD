@@ -94,4 +94,21 @@ final class TuneReadinessTests: XCTestCase {
         let result = Steward.tuneReadiness(vehicle, context: context)
         XCTAssertEqual(result.checks.first { $0.id == "calibration.missing" }?.state, .verify)
     }
+
+    func testRecentMeasuredCeilingBreachOverridesOtherwiseReadySetup() {
+        var vehicle = preparedCar()
+        let end = now.addingTimeInterval(-60)
+        vehicle.pullReports = [PullReport(
+            startedAt: end.addingTimeInterval(-3), endedAt: end, feedLabel: "OBD-II Adapter",
+            rpmStart: 3000, rpmPeak: 6500, rpmEnd: 6400,
+            boostPeakPsi: 23, boostBreachedCeiling: true, boostCeilingPsi: 22,
+            onTargetFraction: 0.4, overTargetFraction: 0.6, underTargetFraction: 0,
+            coolantStartF: 190, coolantPeakF: 194, coolantDeltaF: 4,
+            sampleCount: 20, measuredBoostFraction: 1, confidence: .confirmed)]
+
+        let result = Steward.tuneReadiness(vehicle, context: context)
+
+        XCTAssertEqual(result.state, .hold)
+        XCTAssertEqual(result.checks.first { $0.id == "validation.pullHistory" }?.state, .hold)
+    }
 }

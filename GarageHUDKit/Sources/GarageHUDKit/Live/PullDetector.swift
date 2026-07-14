@@ -33,7 +33,6 @@ public struct PullDetector: Sendable {
     private var boostCeilingBreached = false
     private var coolantStart: Double?
     private var coolantPeak: Double?
-    private var coolantLast: Double?
     private var sampleCount = 0
     private var boostSamples = 0
     private var measuredBoostSamples = 0
@@ -77,7 +76,7 @@ public struct PullDetector: Sendable {
         runStart = now
         rpmStart = rpm; rpmPeak = rpm; rpmLast = rpm
         boostPeak = nil; boostCeilingBreached = false
-        coolantStart = nil; coolantPeak = nil; coolantLast = nil
+        coolantStart = nil; coolantPeak = nil
         sampleCount = 0; boostSamples = 0; measuredBoostSamples = 0
         bandedSamples = 0; onTargetSamples = 0; overTargetSamples = 0; underTargetSamples = 0
     }
@@ -105,7 +104,6 @@ public struct PullDetector: Sendable {
         if let coolantM = frame.fresh(\.coolantTempF, now: now) {
             if coolantStart == nil { coolantStart = coolantM.value }
             coolantPeak = max(coolantPeak ?? -.infinity, coolantM.value)
-            coolantLast = coolantM.value
         }
     }
 
@@ -142,7 +140,7 @@ public struct PullDetector: Sendable {
             overTargetFraction: bandedSamples > 0 ? Double(overTargetSamples) / Double(bandedSamples) : nil,
             underTargetFraction: bandedSamples > 0 ? Double(underTargetSamples) / Double(bandedSamples) : nil,
             coolantStartF: coolantStart, coolantPeakF: coolantPeak,
-            coolantDeltaF: (coolantStart != nil && coolantLast != nil) ? coolantLast! - coolantStart! : nil,
+            coolantDeltaF: (coolantStart != nil && coolantPeak != nil) ? coolantPeak! - coolantStart! : nil,
             sampleCount: sampleCount, measuredBoostFraction: measuredFraction, confidence: confidence)
     }
 }

@@ -148,6 +148,19 @@ final class PullDetectorTests: XCTestCase {
         XCTAssertGreaterThan(report.coolantDeltaF!, 0)
     }
 
+    func testCoolantDeltaKeepsThePeakEvenWhenTemperatureFallsBeforeLift() {
+        var d = PullDetector(feedLabel: "OBD-II Adapter", envelope: envelope)
+        let temperatures = [190.0, 194, 202, 198, 196, 195]
+        for (index, temperature) in temperatures.enumerated() {
+            let t = Double(index) * 0.5
+            _ = d.ingest(frame(t: t, rpm: 3500 + t * 500, throttle: 90,
+                               boost: 10, coolant: temperature), now: now(t))
+        }
+        let report = d.ingest(frame(t: 3.0, rpm: 5000, throttle: 10), now: now(3.0))!
+        XCTAssertEqual(report.coolantPeakF, 202)
+        XCTAssertEqual(report.coolantDeltaF, 12)
+    }
+
     // MARK: Live in-progress state (for the cockpit's "watching vs. capturing" readout)
 
     func testIsCapturingReflectsAnOpenRunOnly() {

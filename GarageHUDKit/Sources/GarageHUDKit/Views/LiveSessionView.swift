@@ -7,6 +7,7 @@ struct LiveSessionView: View {
     @State private var feed: Feed = .simulated
 
     @State private var source: LiveDataSource?
+    @State private var savedAdapterProfile: OBDAdapterProfile? = OBDAdapterProfileStore.load()
     @State private var isRunning = false
     @State private var frame: LiveTelemetryFrame?
     @State private var displayed: LiveMetrics?        // carried-over needle positions
@@ -35,6 +36,10 @@ struct LiveSessionView: View {
             .pickerStyle(.segmented)
             .disabled(isRunning)
             .frame(maxWidth: 320)
+
+            if feed == .adapter {
+                adapterConnectionPanel
+            }
 
             HUDPanel(title: "Live Telemetry") {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 130))], spacing: 20) {
@@ -121,15 +126,106 @@ struct LiveSessionView: View {
         case .polling: return feed == .adapter ? "LINKED · MEASURING" : "LIVE SESSION ACTIVE"
         case .degraded, .reconnecting: return "SIGNAL DEGRADED"
         case .disconnected: return "DISCONNECTED"
-        default: return "CONNECTING…"
+        case .scanning: return "SEARCHING"
+        case .connecting: return "OPENING LINK"
+        case .discoveringServices, .discoveringCharacteristics: return "PAIRING"
+        case .resetting, .configuring, .ready: return "NEGOTIATING"
         }
     }
 
     private var statusColor: Color {
-        switch frame?.connectionState ?? .polling {
+        switch frame?.connectionState ?? (feed == .simulated && isRunning ? .polling : .disconnected) {
         case .polling: return HUDTheme.amber
         case .degraded, .reconnecting, .disconnected: return HUDTheme.danger
         default: return HUDTheme.textSecondary
+        }
+    }
+
+    private var adapterConnectionPanel: some View {
+        let detail = frame?.connectionDetail
+        let state = frame?.connectionState ?? (isRunning ? .scanning : .disconnected)
+        let profile = savedAdapterProfile
+        return HUDPanel(title: "Adapter Link", caption: profile == nil ? "First connection" : "Known adapter") {
+            VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                HStack(spacing: HUDTheme.space3) {
+                    Image(systemName: adapterIcon(for: state))
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(statusColor)
+                        .frame(width: 40, height: 40)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(statusColor.opacity(0.12)))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(detail?.adapterName ?? profile?.name ?? "OBDLink CX")
+                            .font(HUDTheme.body(.bold))
+                            .foregroundStyle(HUDTheme.textPrimary)
+                        Text(detail?.message ?? (isRunning ? "Preparing Bluetooth…" : "Ready to connect"))
+                            .font(HUDTheme.label())
+                            .foregroundStyle(HUDTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: HUDTheme.space2)
+                    if detail?.attempt ?? 0 > 0 {
+                        Text("TRY \(detail?.attempt ?? 0)")
+                            .font(HUDTheme.label(.semibold))
+                            .foregroundStyle(HUDTheme.amber)
+                            .tracking(1)
+                    }
+                }
+
+                connectionRail(state)
+
+                if let recovery = detail?.recovery, isRunning {
+                    HStack(alignment: .top, spacing: HUDTheme.space2) {
+                        Image(systemName: "wrench.and.screwdriver")
+                            .foregroundStyle(HUDTheme.amber)
+                        Text(recovery)
+                            .font(HUDTheme.label())
+                            .foregroundStyle(HUDTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                if profile != nil && !isRunning {
+                    Button {
+                        OBDAdapterProfileStore.forget()
+                        savedAdapterProfile = nil
+                    } label: {
+                        Label("Forget Saved Adapter", systemImage: "trash")
+                    }
+                    .buttonStyle(.compactAction)
+                }
+            }
+        }
+    }
+
+    private func connectionRail(_ state: OBDConnectionState) -> some View {
+        let active = connectionProgress(state)
+        return HStack(spacing: 3) {
+            ForEach(0..<4, id: \.self) { index in
+                Capsule()
+                    .fill(index <= active ? statusColor : HUDTheme.hairline)
+                    .frame(height: 5)
+            }
+        }
+        .accessibilityLabel("Connection progress")
+        .accessibilityValue("\(max(0, active + 1)) of 4")
+    }
+
+    private func connectionProgress(_ state: OBDConnectionState) -> Int {
+        switch state {
+        case .disconnected, .scanning: return 0
+        case .connecting: return 1
+        case .discoveringServices, .discoveringCharacteristics, .resetting, .configuring, .ready: return 2
+        case .polling: return 3
+        case .degraded, .reconnecting: return 1
+        }
+    }
+
+    private func adapterIcon(for state: OBDConnectionState) -> String {
+        switch state {
+        case .polling: return "checkmark.circle.fill"
+        case .degraded, .reconnecting, .disconnected: return "exclamationmark.triangle.fill"
+        case .scanning: return "dot.radiowaves.left.and.right"
+        default: return "link"
         }
     }
 
@@ -162,6 +258,16 @@ struct LiveSessionView: View {
                     ForEach(sessionPulls.reversed(), id: \.id) { pull in
                         pullRow(pull)
                     }
+                    let intelligence = PullIntelligence.analyze(vehicle.pullReports)
+                    HStack(alignment: .top, spacing: HUDTheme.space2) {
+                        Image(systemName: intelligence.state == .hold ? "hand.raised.fill" : "waveform.path.ecg")
+                            .foregroundStyle(intelligence.state == .hold ? HUDTheme.danger : HUDTheme.cyan)
+                        Text(intelligence.nextAction)
+                            .font(HUDTheme.label(.medium))
+                            .foregroundStyle(HUDTheme.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, HUDTheme.space1)
                 }
             }
         }
@@ -244,6 +350,11 @@ struct LiveSessionView: View {
         streamTask = Task {
             for await incoming in newSource.frames {
                 frame = incoming
+                if let obd = newSource as? OBDLiveDataSource,
+                   let profile = obd.discoveredProfile,
+                   profile != savedAdapterProfile {
+                    savedAdapterProfile = profile
+                }
                 let snapshot = incoming.displaySnapshot(carryingOver: displayed)
                 displayed = snapshot
                 // Only bank a sample when the frame actually carries fresh data.
@@ -276,7 +387,7 @@ struct LiveSessionView: View {
 
     private func makeSource() -> LiveDataSource {
         #if canImport(CoreBluetooth)
-        if feed == .adapter { return OBDLiveDataSource() }
+        if feed == .adapter { return OBDLiveDataSource(knownProfile: savedAdapterProfile) }
         #endif
         return SimulatedLiveDataSource()
     }
