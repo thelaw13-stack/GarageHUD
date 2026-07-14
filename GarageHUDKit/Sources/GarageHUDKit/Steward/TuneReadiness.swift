@@ -250,3 +250,46 @@ public extension Steward {
 
     private static func format(_ value: Double) -> String { String(format: "%g", value) }
 }
+
+/// A concrete way to resolve a readiness check — so a "verify"/"hold" isn't just a diagnosis but a
+/// door to fix it. Pure mapping from the check id; the Tuner view routes or acts on it.
+public enum TuneAction: Equatable, Sendable {
+    case resolveMaintenance                 // overdue / due-soon / no schedule → the service panel
+    case returnToService                    // the car is out of service
+    case confirmSupport(PartCategory)       // fueling/cooling not documented → confirm stock or log it
+    case documentEngine                     // no calibration/engine detail recorded
+    case confirmForcedInduction             // boost map set but FI not confirmed in the parts record
+    case logDyno                            // no / stale dyno validation
+    case editBoostMap                       // the RPM boost target map needs work (in-page)
+
+    /// The short button label shown on the check row.
+    public var label: String {
+        switch self {
+        case .resolveMaintenance: return "Service"
+        case .returnToService: return "Status"
+        case .confirmSupport: return "Confirm"
+        case .documentEngine: return "Add specs"
+        case .confirmForcedInduction: return "Fix specs"
+        case .logDyno: return "Log dyno"
+        case .editBoostMap: return "Edit map"
+        }
+    }
+}
+
+public extension TuneReadiness.Check {
+    /// The action that resolves this check, or nil when it's already satisfied (`.ready`) or purely
+    /// informational. Actionable only for the `verify`/`hold` items the owner asked to be able to act on.
+    var action: TuneAction? {
+        guard state != .ready else { return nil }
+        if id == "condition.outOfService" { return .returnToService }
+        if id.hasPrefix("condition.") { return .resolveMaintenance }         // overdue / dueSoon / noSchedule
+        if id.hasPrefix("support.") {
+            return PartCategory(rawValue: String(id.dropFirst("support.".count))).map { .confirmSupport($0) }
+        }
+        if id == "calibration.missing" { return .documentEngine }
+        if id.hasPrefix("validation.") && (id.contains("noDyno") || id.contains("staleDyno")) { return .logDyno }
+        if id == "profile.unexpectedBoost" { return .confirmForcedInduction }
+        if id.hasPrefix("profile.") { return .editBoostMap }                  // bands / ranges / continuity / ceiling
+        return nil
+    }
+}

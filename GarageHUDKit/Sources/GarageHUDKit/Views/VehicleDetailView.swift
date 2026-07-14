@@ -152,7 +152,9 @@ struct VehicleDetailView: View {
         case .parts: PartsInventoryView(vehicle: $vehicle)
         case .timeline: BuildTimelineView(vehicle: $vehicle)
         case .performance: PerformanceView(vehicle: $vehicle)
-        case .tuner: TunerView(vehicle: $vehicle)
+        case .tuner: TunerView(vehicle: $vehicle, onNavigate: { tab in
+            withAnimation(.easeOut(duration: 0.15)) { selectedTab = tab }
+        })
         case .live: LiveSessionView(vehicle: $vehicle)
         case .gallery: GalleryView(vehicle: $vehicle)
         case .notes: NotesView(vehicle: $vehicle)

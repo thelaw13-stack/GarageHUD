@@ -2,6 +2,9 @@ import SwiftUI
 
 struct TunerView: View {
     @Binding var vehicle: Vehicle
+    /// Route a check's fix that lives on another tab (service, specs, performance) up to the detail
+    /// view. When nil (previews) those actions simply aren't offered.
+    var onNavigate: ((VehicleDetailView.DetailTab) -> Void)? = nil
 
     private var readiness: TuneReadiness { Steward.tuneReadiness(vehicle) }
     private var bands: [BoostBand] { vehicle.operatingEnvelope.expectedBoostByRPM }
@@ -13,17 +16,32 @@ struct TunerView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: HUDTheme.space4) {
-                statusPanel
-                readinessPanel
-                pullIntelligencePanel
-                if !latestBandResults.isEmpty { rpmEvidencePanel }
-                tuneEnvelopePanel
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: HUDTheme.space4) {
+                    statusPanel
+                    readinessPanel
+                    pullIntelligencePanel
+                    if !latestBandResults.isEmpty { rpmEvidencePanel }
+                    tuneEnvelopePanel.id("boostMap")
+                }
+                .padding(HUDTheme.space4)
             }
-            .padding(HUDTheme.space4)
+            .onAppear { scrollProxy = proxy }
         }
         .background(HUDTheme.background)
+    }
+
+    @State private var scrollProxy: ScrollViewProxy?
+
+    private func perform(_ action: TuneAction) {
+        switch action {
+        case .resolveMaintenance, .returnToService: onNavigate?(.dashboard)   // service + status live there
+        case .confirmSupport, .documentEngine, .confirmForcedInduction: onNavigate?(.specs)
+        case .logDyno: onNavigate?(.performance)
+        case .editBoostMap:
+            withAnimation { scrollProxy?.scrollTo("boostMap", anchor: .top) }   // it's on this page
+        }
     }
 
     private var statusPanel: some View {
@@ -112,6 +130,12 @@ struct TunerView: View {
                     .font(HUDTheme.label())
                     .foregroundStyle(HUDTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
+                // A verify/hold check is now a door to fixing it, not just a diagnosis.
+                if let action = check.action {
+                    Button(action.label) { perform(action) }
+                        .buttonStyle(.compactAction)
+                        .padding(.top, HUDTheme.space1)
+                }
             }
         }
         .padding(.vertical, HUDTheme.space2)
