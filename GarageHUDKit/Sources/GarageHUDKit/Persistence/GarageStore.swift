@@ -30,6 +30,10 @@ public final class GarageStore: ObservableObject {
     }
 
     @Published public private(set) var syncStatus: SyncStatus = .disabled
+    /// What changed since the last time the app was opened — the "since you were last here" digest,
+    /// computed once at launch. Nil on a first launch or when nothing meaningful changed.
+    @Published public private(set) var fleetDigest: FleetDigest?
+    private let fleetSnapshotKey = "GHUD.fleetSnapshot.v1"
 
     private let fileURL: URL
     private var isLoading = false
@@ -77,6 +81,7 @@ public final class GarageStore: ObservableObject {
         for i in vehicles.indices where vehicles[i].dedupeRecordIDs() { changed = true }
         seededThisLaunch = changed
         if changed { save() }   // persist the seeded/normalized/healed garage
+        rollFleetDigest()       // "since you were last here": diff prior snapshot, then re-baseline
         if cloud != nil {
             Task { await initialSync() }
         }
@@ -360,6 +365,22 @@ public final class GarageStore: ObservableObject {
         guard let data = try? GaragePersistence.encode(vehicles) else { return }
         try? data.write(to: fileURL, options: .atomic)
     }
+
+    /// Compute the "since you were last here" digest against the stored snapshot, then re-baseline
+    /// the snapshot to the current fleet — so next launch measures from now. First launch (no prior
+    /// snapshot) simply records the baseline and shows nothing.
+    private func rollFleetDigest() {
+        let previous: FleetSnapshot? = UserDefaults.standard.data(forKey: fleetSnapshotKey)
+            .flatMap { try? JSONDecoder().decode(FleetSnapshot.self, from: $0) }
+        fleetDigest = FleetDigestBuilder.digest(from: previous, to: vehicles)
+        let current = FleetDigestBuilder.snapshot(of: vehicles)
+        if let data = try? JSONEncoder().encode(current) {
+            UserDefaults.standard.set(data, forKey: fleetSnapshotKey)
+        }
+    }
+
+    /// Dismiss the digest (the owner tapped it away); it won't reappear until something changes.
+    public func dismissFleetDigest() { fleetDigest = nil }
 
     /// The whole garage as a versioned JSON backup the owner can export and keep.
     public func exportData() -> Data {

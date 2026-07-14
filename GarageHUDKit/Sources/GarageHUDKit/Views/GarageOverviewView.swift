@@ -15,6 +15,7 @@ struct GarageOverviewView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: HUDTheme.space4) {
                 header
+                sinceLastVisit
                 dataSafetyNotices
                 spotlightSection
                 fleetHealthStrip
@@ -27,6 +28,50 @@ struct GarageOverviewView: View {
         .sheet(isPresented: $showingBriefing) { StewardBriefingView(vehicles: store.vehicles) }
         .sheet(isPresented: $showingCompare) {
             FleetComparisonView(vehicles: store.vehicles) { selectedVehicleID = $0 }
+        }
+    }
+
+    // The front door: what changed since the app was last opened. The Steward greets you with the
+    // fleet's news instead of waiting to be asked. Appears only when there's genuinely something new.
+    @ViewBuilder
+    private var sinceLastVisit: some View {
+        if let digest = store.fleetDigest {
+            HUDPanel(title: "Since you were last here",
+                     caption: digest.since.formatted(.relative(presentation: .named))) {
+                VStack(alignment: .leading, spacing: HUDTheme.space2) {
+                    ForEach(digest.changes) { change in
+                        Button {
+                            if let id = change.vehicleID { selectedVehicleID = id }
+                        } label: {
+                            HStack(alignment: .top, spacing: HUDTheme.space2) {
+                                Circle().fill(digestColor(change.tone)).frame(width: 6, height: 6).padding(.top, 6)
+                                Text(change.text)
+                                    .font(HUDTheme.body()).foregroundStyle(HUDTheme.textPrimary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 0)
+                                if change.vehicleID != nil {
+                                    Image(systemName: "chevron.right").font(.system(size: 10))
+                                        .foregroundStyle(HUDTheme.textTertiary).padding(.top, 4)
+                                }
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Button("Dismiss") { withAnimation { store.dismissFleetDigest() } }
+                        .buttonStyle(.secondaryAction)
+                        .padding(.top, HUDTheme.space1)
+                }
+            }
+            .transition(.opacity)
+        }
+    }
+
+    private func digestColor(_ tone: StewardObservation.Tone) -> Color {
+        switch tone {
+        case .advisory: return HUDTheme.danger
+        case .caution: return HUDTheme.amber
+        case .informational: return HUDTheme.cyan
         }
     }
 
