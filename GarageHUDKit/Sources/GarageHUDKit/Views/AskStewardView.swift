@@ -14,6 +14,7 @@ struct AskStewardView: View {
     @State private var input = ""
     @State private var question = ""
     @State private var reply: StewardReply?
+    @State private var thinking = false
 
     #if canImport(Speech)
     @StateObject private var voice: StewardVoiceSession
@@ -26,13 +27,21 @@ struct AskStewardView: View {
         #endif
     }
 
-    private let quickAsks = [
-        "What should I watch?",
-        "How much power?",
-        "What did I spend?",
-        "Cost per horsepower?",
-        "When did I last touch it?"
-    ]
+    // With the on-device LLM, open-ended questions land; without it, these still map to the keyword
+    // core. Either way they seed a real conversation, not just canned lookups.
+    private var quickAsks: [String] {
+        if StewardAssistant.isLLMAvailable {
+            return [
+                "What's the smartest next $2k?",
+                "Will my fueling keep up if I raise boost?",
+                "What should I watch?",
+                "Is my cost-per-hp reasonable?",
+                "What's left to make this reliable?"
+            ]
+        }
+        return ["What should I watch?", "How much power?", "What did I spend?",
+                "Cost per horsepower?", "When did I last touch it?"]
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -96,11 +105,19 @@ struct AskStewardView: View {
                         .font(HUDTheme.label())
                         .foregroundStyle(HUDTheme.textSecondary)
                 }
-                Text(reply?.text ?? "")
-                    .font(HUDTheme.body(.medium))
-                    .foregroundStyle(HUDTheme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let confidence = reply?.confidence {
+                if thinking {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("Steward is thinking…")
+                            .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                    }
+                } else {
+                    Text(reply?.text ?? "")
+                        .font(HUDTheme.body(.medium))
+                        .foregroundStyle(HUDTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if let confidence = reply?.confidence, !thinking {
                     Text(confidence.label)
                         .font(HUDTheme.label(.semibold))
                         .foregroundStyle(HUDTheme.textSecondary)
@@ -166,13 +183,18 @@ struct AskStewardView: View {
 
     private func ask(_ text: String) {
         let q = text.trimmingCharacters(in: .whitespaces)
-        guard !q.isEmpty else { return }
+        guard !q.isEmpty, !thinking else { return }
         question = q
-        let answer = StewardConversation.reply(to: q, vehicle: vehicle)
-        withAnimation(.easeOut(duration: 0.15)) { reply = answer }
         input = ""
-        #if canImport(Speech)
-        voice.speak(answer.text)
-        #endif
+        thinking = true
+        Task {
+            // Routes through the on-device LLM Steward when available, else the keyword core.
+            let answer = await StewardAssistant.answer(question: q, vehicle: vehicle)
+            thinking = false
+            withAnimation(.easeOut(duration: 0.15)) { reply = answer }
+            #if canImport(Speech)
+            voice.speak(answer.text)
+            #endif
+        }
     }
 }

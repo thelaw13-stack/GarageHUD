@@ -41,11 +41,48 @@ public final class StewardVoiceSession: NSObject, ObservableObject {
     private var task: SFSpeechRecognitionTask?
     private let synthesizer = AVSpeechSynthesizer()
 
+    /// The chosen high-quality voice, resolved once. Nil falls back to the system default.
+    private lazy var preferredVoice: AVSpeechSynthesisVoice? = Self.resolvePreferredVoice()
+    /// The display name of the voice being used, and whether only a low-quality one is installed —
+    /// so the UI can name the voice and, when needed, nudge the owner to download a better one.
+    @Published public private(set) var voiceName: String = ""
+    @Published public private(set) var needsBetterVoiceDownload = false
+
     public init(vehicle: Vehicle?, mode: DrivingMode = .parked) {
         self.vehicle = vehicle
         self.mode = mode
         super.init()
         synthesizer.delegate = self
+        voiceName = preferredVoice?.name ?? "System default"
+        needsBetterVoiceDownload = Self.onlyDefaultVoiceInstalled()
+    }
+
+    // MARK: Voice selection
+
+    private static func candidates() -> [StewardVoicePreference.Candidate] {
+        AVSpeechSynthesisVoice.speechVoices().map { v in
+            StewardVoicePreference.Candidate(
+                identifier: v.identifier, name: v.name, language: v.language,
+                qualityRank: v.quality.rank,
+                // Novelty voices carry a distinctive identifier segment and shouldn't narrate.
+                isNovelty: v.identifier.contains(".custom") || Self.noveltyNames.contains(v.name))
+        }
+    }
+
+    private static let noveltyNames: Set<String> = [
+        "Albert", "Bad News", "Bahh", "Bells", "Boing", "Bubbles", "Cellos", "Wobble",
+        "Good News", "Jester", "Organ", "Superstar", "Trinoids", "Whisper", "Zarvox"
+    ]
+
+    private static func resolvePreferredVoice() -> AVSpeechSynthesisVoice? {
+        let lang = AVSpeechSynthesisVoice.currentLanguageCode()
+        guard let best = StewardVoicePreference.best(from: candidates(), preferredLanguage: lang) else { return nil }
+        return AVSpeechSynthesisVoice(identifier: best.identifier)
+    }
+
+    private static func onlyDefaultVoiceInstalled() -> Bool {
+        StewardVoicePreference.onlyDefaultAvailable(candidates(),
+                                                    preferredLanguage: AVSpeechSynthesisVoice.currentLanguageCode())
     }
 
     // MARK: Authorization
@@ -135,9 +172,13 @@ public final class StewardVoiceSession: NSObject, ObservableObject {
         // A fleet-level session (no single-car context) doesn't field free-form questions —
         // it only speaks prebuilt scripts like the briefing.
         guard let vehicle else { return }
-        let reply = StewardConversation.reply(to: trimmed, vehicle: vehicle, mode: mode)
-        onExchange?(trimmed, reply)
-        speak(reply.text)
+        // Route spoken questions through the same assistant as typed ones: on-device LLM when
+        // available, keyword core otherwise.
+        Task { @MainActor in
+            let reply = await StewardAssistant.answer(question: trimmed, vehicle: vehicle, mode: mode)
+            onExchange?(trimmed, reply)
+            speak(reply.text)
+        }
     }
 
     // MARK: Speak
@@ -145,8 +186,12 @@ public final class StewardVoiceSession: NSObject, ObservableObject {
     public func speak(_ text: String) {
         guard !text.isEmpty else { return }
         let utterance = AVSpeechUtterance(string: text)
-        // Calm and a touch measured — Steward advises, it doesn't chatter.
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * (mode == .moving ? 0.96 : 1.0)
+        // Use the best installed voice (Premium/Enhanced neural), not the robotic compact default.
+        utterance.voice = preferredVoice
+        // Calm and a touch measured — Steward advises, it doesn't chatter. A hair below default rate
+        // and just under natural pitch reads as considered rather than clipped.
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * (mode == .moving ? 0.94 : 0.97)
+        utterance.pitchMultiplier = 0.98
         utterance.postUtteranceDelay = 0.1
         synthesizer.speak(utterance)
     }
@@ -154,6 +199,11 @@ public final class StewardVoiceSession: NSObject, ObservableObject {
     public func stopSpeaking() {
         if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
     }
+}
+
+private extension AVSpeechSynthesisVoiceQuality {
+    /// 1 default / 2 enhanced / 3 premium — the enum's own rawValue, named for intent.
+    var rank: Int { rawValue }
 }
 
 extension StewardVoiceSession: AVSpeechSynthesizerDelegate {
