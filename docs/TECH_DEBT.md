@@ -1,5 +1,25 @@
 # Technical Debt Register
 
+## TD-007 — Voice + conversational Steward: on-device validation
+
+Priority: Medium
+
+Done: TTS now selects the best installed voice (Premium > Enhanced > default) instead of the
+robotic compact default — ranking is pure and unit-tested (`StewardVoicePreference`). "Ask
+Steward" gained an on-device LLM path via Apple's Foundation Models (`StewardLLM` /
+`StewardAssistant`), grounded strictly in the car's record (`StewardGrounding`, tested) with
+honesty instructions, gated three ways (`canImport` / iOS 26 / runtime availability) and falling
+back to the keyword `StewardConversation` core (tested). The grounding record and voice ranking
+are covered; the assistant's "always answers" contract is tested.
+
+Remaining (needs real hardware/OS): (1) confirm the Premium voice actually loads and sounds right
+on device once the owner downloads one (Settings → Accessibility → Spoken Content → Voices); add a
+first-run nudge when only a default-quality voice is installed (`needsBetterVoiceDownload` is wired
+but not yet surfaced in the UI). (2) Exercise the LLM path on an Apple-Intelligence device (iPhone
+15 Pro+ / iOS 26): latency, refusal behavior on out-of-record questions, and that it honors the
+confidence bands in practice. (3) Speech-in (`SFSpeechRecognizer`) is still unexercised against a
+real microphone — shared with the note in README "Status & known gaps."
+
 ## TD-004 — OBD adapter pairing & hardware validation
 
 Priority: High → partially addressed

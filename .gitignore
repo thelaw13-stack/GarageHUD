@@ -12,3 +12,8 @@ Car Hud 3/
 
 # review screenshots
 _review_*.png
+
+# Swift test result output (CI writes these; never commit)
+*-swift-testing.xml
+test-results.xml
+results.xml

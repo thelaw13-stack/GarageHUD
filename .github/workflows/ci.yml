@@ -10,6 +10,12 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Let the test-results reporter post a check + PR annotations.
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 jobs:
   package-tests:
     name: Package tests (swift test)
@@ -21,9 +27,23 @@ jobs:
       - name: Build
         working-directory: GarageHUDKit
         run: swift build
-      - name: Test
+      - name: Test (emit JUnit results)
         working-directory: GarageHUDKit
-        run: swift test
+        # --xunit-output requires --parallel to actually write the file; our tests are
+        # parallel-safe (unique temp files / UserDefaults suites).
+        run: swift test --parallel --xunit-output test-results.xml
+      - name: Publish test results to the PR
+        uses: EnricoMi/publish-unit-test-result-action/macos@v2
+        if: always()   # report pass AND fail, so a red run still explains itself
+        with:
+          files: GarageHUDKit/test-results.xml
+          check_name: Swift test results
+      - name: Upload test results artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: swift-test-results
+          path: GarageHUDKit/test-results.xml
 
   ios-build:
     name: iOS app build (simulator)
