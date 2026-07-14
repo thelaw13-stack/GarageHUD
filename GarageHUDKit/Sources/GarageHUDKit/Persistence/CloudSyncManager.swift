@@ -1,5 +1,6 @@
 import Foundation
 import CloudKit
+import Security
 
 /// CloudKit-backed sync for the whole garage. Strategy: the entire vehicle graph is
 /// stored as one JSON blob in a single "Garage" record (last-writer-wins by timestamp),
@@ -15,6 +16,18 @@ public final class CloudSyncManager {
 
     private let garageRecordType = "Garage"
     private let photoRecordType = "Photo"
+
+    public static var canUseCloudKitContainer: Bool {
+        guard let task = SecTaskCreateFromSelf(nil),
+              let value = SecTaskCopyValueForEntitlement(
+                task,
+                "com.apple.developer.icloud-container-identifiers" as CFString,
+                nil
+              ) else { return false }
+        if let containers = value as? [String] { return containers.contains(containerID) }
+        if let container = value as? String { return container == containerID }
+        return false
+    }
 
     public init() {
         container = CKContainer(identifier: Self.containerID)

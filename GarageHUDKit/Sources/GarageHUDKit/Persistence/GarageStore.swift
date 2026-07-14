@@ -6,7 +6,7 @@ import Foundation
 /// details out of the UI layer.
 @MainActor
 public final class GarageStore: ObservableObject {
-    public static let maxGarageSlots = 4
+    public static let maxGarageSlots = 8
 
     public enum SyncStatus: Equatable {
         case disabled
@@ -60,8 +60,9 @@ public final class GarageStore: ObservableObject {
     /// `syncEnabled: false` (used by unit-ish/local runs) skips all CloudKit calls.
     public init(fileURL: URL? = nil, syncEnabled: Bool = true) {
         self.fileURL = fileURL ?? GarageStore.defaultFileURL
-        self.cloud = syncEnabled ? CloudSyncManager() : nil
-        self.initialSyncPending = syncEnabled
+        let canSync = syncEnabled && CloudSyncManager.canUseCloudKitContainer
+        self.cloud = canSync ? CloudSyncManager() : nil
+        self.initialSyncPending = canSync
         isLoading = true
         load()
         isLoading = false
@@ -73,8 +74,8 @@ public final class GarageStore: ObservableObject {
             if applyInitialSeed() { changed = true }
             UserDefaults.standard.set(true, forKey: seedAppliedKey)
         }
-        // Pack vehicles into contiguous low bays so none is ever stranded in a hidden slot
-        // beyond the visible range (which happened when a stray vehicle occupied a bay).
+        // Keep valid 1...8 bay assignments visible, while repairing duplicates or truly
+        // out-of-range slots so no vehicle is stranded beyond the garage.
         if normalizeGarageSlots() { changed = true }
         // Heal any duplicate record ids from past imports/merges — a duplicate id can hard-crash a
         // ForEach and confuse sheet(item:)/sync.
@@ -87,15 +88,28 @@ public final class GarageStore: ObservableObject {
         }
     }
 
-    /// Reassign garage slots to 1…N (ordered by current slot) so every vehicle sits in a visible
-    /// bay. Returns true if anything moved.
+    /// Preserve valid bay assignments in the visible 1...8 range. Repair duplicates or
+    /// out-of-range slots into the first open bay so every vehicle stays reachable.
     @discardableResult
     private func normalizeGarageSlots() -> Bool {
-        let order = vehicles.sorted { $0.garageSlot < $1.garageSlot }.map(\.id)
+        let order = vehicles
+            .sorted { lhs, rhs in
+                if lhs.garageSlot == rhs.garageSlot { return lhs.displayName < rhs.displayName }
+                return lhs.garageSlot < rhs.garageSlot
+            }
+            .map(\.id)
+        var occupied = Set<Int>()
         var changed = false
-        for (i, id) in order.enumerated() {
-            if let idx = vehicles.firstIndex(where: { $0.id == id }), vehicles[idx].garageSlot != i + 1 {
-                vehicles[idx].garageSlot = i + 1
+        for id in order {
+            guard let idx = vehicles.firstIndex(where: { $0.id == id }) else { continue }
+            let slot = vehicles[idx].garageSlot
+            if (1...Self.maxGarageSlots).contains(slot), !occupied.contains(slot) {
+                occupied.insert(slot)
+                continue
+            }
+            if let repaired = (1...Self.maxGarageSlots).first(where: { !occupied.contains($0) }) {
+                vehicles[idx].garageSlot = repaired
+                occupied.insert(repaired)
                 changed = true
             }
         }
@@ -125,7 +139,7 @@ public final class GarageStore: ObservableObject {
 
     private func firstFreeSlot() -> Int? {
         let used = Set(vehicles.map(\.garageSlot))
-        return (1...8).first { !used.contains($0) }
+        return (1...Self.maxGarageSlots).first { !used.contains($0) }
     }
 
     /// Fills any *bare* existing vehicle (no parts logged) with a matching seed vehicle's build —
