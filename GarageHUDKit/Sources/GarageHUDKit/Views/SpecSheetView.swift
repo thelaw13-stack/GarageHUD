@@ -40,69 +40,11 @@ struct SpecSheetView: View {
                     .padding(.top, 4)
                 }
 
+                numbersPanel
+
                 stewardInputsPanel
 
                 liveEnvelopePanel
-
-                HUDPanel(title: "Investment") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        // The live figure the rest of the app uses — summed from installed parts,
-                        // so it moves the moment a part price changes.
-                        StatReadout(label: "Total Invested", value: vehicle.totalInvested.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary)
-                        Text(vehicle.investmentIsLiveFromParts
-                             ? "Summed live from your installed parts — edit a part's price and this updates."
-                             : "No parts priced yet, so this shows your documented build-sheet total below.")
-                            .font(HUDTheme.label())
-                            .foregroundStyle(HUDTheme.textSecondary)
-
-                        editableStat(label: "Build-Sheet Total (optional)", value: $vehicle.documentedTotalInvestment, unit: "USD", color: HUDTheme.textSecondary)
-                        if let doc = vehicle.documentedTotalMismatch {
-                            Text("Your build sheet noted \(doc.formatted(.currency(code: "USD"))), but you've priced \(vehicle.itemizedPartsCost.formatted(.currency(code: "USD"))) in parts so far — price the rest to reconcile.")
-                                .font(HUDTheme.label())
-                                .foregroundStyle(HUDTheme.amber)
-                        }
-                    }
-                }
-
-                spendBySystemPanel
-
-                HUDPanel(title: "Efficiency") {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 16)], spacing: 16) {
-                        if let costPerHP = vehicle.costPerHorsepowerGained {
-                            StatReadout(
-                                label: "Cost per WHP Gained",
-                                value: costPerHP.formatted(.currency(code: "USD")),
-                                unit: "/hp", color: HUDTheme.textPrimary
-                            )
-                        }
-                        if let gained = vehicle.horsepowerGainedOverStock {
-                            StatReadout(label: "WHP Gained over Stock", value: "+\(Int(gained))", unit: "HP", color: HUDTheme.textPrimary)
-                        }
-                        if let costPerPart = vehicle.costPerInstalledPart {
-                            StatReadout(
-                                label: "Avg Cost per Mod",
-                                value: costPerPart.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary
-                            )
-                        }
-                    }
-                    if vehicle.costPerHorsepowerGained == nil && vehicle.costPerInstalledPart == nil {
-                        Text("Set a factory horsepower baseline, log a dyno pull, and a documented total to see cost-efficiency numbers here.")
-                            .font(HUDTheme.label())
-                            .foregroundStyle(HUDTheme.textSecondary)
-                    }
-                }
-
-                HUDPanel(title: "Current Estimated") {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 16)], spacing: 16) {
-                        if let hp = vehicle.currentHorsepowerEstimate {
-                            StatReadout(label: "Horsepower", value: "\(Int(hp))", unit: "HP", color: HUDTheme.textPrimary)
-                        }
-                        if let ratio = vehicle.powerToWeight {
-                            StatReadout(label: "Power/Weight", value: String(format: "%.2f", ratio), unit: "lb/hp", color: HUDTheme.textPrimary)
-                        }
-                        StatReadout(label: "Total Invested", value: vehicle.totalInvested.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary)
-                    }
-                }
 
                 ShareLink(item: BuildSheetExporter.text(for: vehicle),
                           preview: SharePreview("\(vehicle.displayName) build sheet")) {
@@ -130,13 +72,69 @@ struct SpecSheetView: View {
         }
     }
 
+    // Power, money, and spend — one calm section instead of four stacked stat boxes.
+    private var numbersPanel: some View {
+        let cols = [GridItem(.adaptive(minimum: 150), spacing: 16)]
+        return HUDPanel(title: "Numbers") {
+            VStack(alignment: .leading, spacing: HUDTheme.space3) {
+                numbersSubhead("POWER")
+                LazyVGrid(columns: cols, spacing: 16) {
+                    if let hp = vehicle.currentHorsepowerEstimate {
+                        StatReadout(label: "Current", value: "\(Int(hp))", unit: "HP", color: HUDTheme.textPrimary)
+                    }
+                    if let ratio = vehicle.powerToWeight {
+                        StatReadout(label: "Power / Weight", value: String(format: "%.2f", ratio), unit: "lb/hp", color: HUDTheme.textPrimary)
+                    }
+                    if let gained = vehicle.horsepowerGainedOverStock {
+                        StatReadout(label: "Gained over stock", value: "+\(Int(gained))", unit: "HP", color: HUDTheme.textPrimary)
+                    }
+                }
+
+                numbersDivider
+                numbersSubhead("INVESTMENT")
+                StatReadout(label: "Total Invested", value: vehicle.totalInvested.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary)
+                Text(vehicle.investmentIsLiveFromParts
+                     ? "Summed live from your installed parts — edit a part's price and this updates."
+                     : "No parts priced yet, so this shows your build-sheet total.")
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                editableStat(label: "Build-Sheet Total (optional)", value: $vehicle.documentedTotalInvestment, unit: "USD", color: HUDTheme.textSecondary)
+                if let doc = vehicle.documentedTotalMismatch {
+                    Text("Build sheet noted \(doc.formatted(.currency(code: "USD"))), but you've priced \(vehicle.itemizedPartsCost.formatted(.currency(code: "USD"))) in parts — price the rest to reconcile.")
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.amber)
+                }
+                if vehicle.costPerHorsepowerGained != nil || vehicle.costPerInstalledPart != nil {
+                    LazyVGrid(columns: cols, spacing: 16) {
+                        if let costPerHP = vehicle.costPerHorsepowerGained {
+                            StatReadout(label: "Cost / WHP gained", value: costPerHP.formatted(.currency(code: "USD")), unit: "/hp", color: HUDTheme.textPrimary)
+                        }
+                        if let costPerPart = vehicle.costPerInstalledPart {
+                            StatReadout(label: "Avg cost / mod", value: costPerPart.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary)
+                        }
+                    }
+                }
+
+                if !vehicle.spendByCategory.isEmpty {
+                    numbersDivider
+                    numbersSubhead("SPEND BY SYSTEM")
+                    spendBySystemRows
+                }
+            }
+        }
+    }
+
+    private func numbersSubhead(_ text: String) -> some View {
+        Text(text).font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textSecondary).tracking(1.2)
+    }
+    private var numbersDivider: some View {
+        Rectangle().fill(HUDTheme.hairline).frame(height: 1).padding(.vertical, HUDTheme.space1)
+    }
+
     @ViewBuilder
-    private var spendBySystemPanel: some View {
+    private var spendBySystemRows: some View {
         let breakdown = vehicle.spendByCategory
         if !breakdown.isEmpty {
             let maxTotal = breakdown.first?.total ?? 1
-            HUDPanel(title: "Spend by System") {
-                VStack(alignment: .leading, spacing: HUDTheme.space3) {
+            VStack(alignment: .leading, spacing: HUDTheme.space3) {
                     ForEach(breakdown, id: \.category) { row in
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
@@ -157,7 +155,6 @@ struct SpecSheetView: View {
                     Text("Itemized part prices — undocumented-price parts aren't counted here.")
                         .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 }
-            }
         }
     }
 
