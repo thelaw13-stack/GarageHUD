@@ -49,6 +49,9 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// Wide-open-throttle pulls the Pull Guardian auto-captured from a live session — the run,
     /// graded by how much of its boost claims were actually measured.
     public var pullReports: [PullReport] = []
+    /// Where this build is headed — the owner's stated goal, so the Steward can reason about the
+    /// *path* (sequence, support, next purchase) and not just the present state. Nil = no plan set.
+    public var buildGoal: BuildGoal?
     /// The photo the owner chose to represent this car on the garage grid. When nil (or pointing at
     /// a photo that no longer exists) the hero falls back to the first available photo.
     public var coverPhotoID: UUID? = nil
@@ -117,6 +120,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         photos = try c.decodeIfPresent([Photo].self, forKey: .photos) ?? []
         maintenance = try c.decodeIfPresent([MaintenanceItem].self, forKey: .maintenance) ?? []
         pullReports = try c.decodeIfPresent([PullReport].self, forKey: .pullReports) ?? []
+        buildGoal = try c.decodeIfPresent(BuildGoal.self, forKey: .buildGoal)
         coverPhotoID = try c.decodeIfPresent(UUID.self, forKey: .coverPhotoID)
     }
 

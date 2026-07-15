@@ -21,6 +21,7 @@ struct VehicleDashboardView: View {
                 VehicleIdentitySurface(vehicle: vehicle)
                 stewardPanel            // C — required attention (quieter, supporting)
                 buildAssessment         // synthesis
+                BuildPlanSection(vehicle: $vehicle, onEditPart: { editingPart = $0 })  // where it's headed
                 rebuildChecklist        // D — contextual workflow
                 maintenancePanel
                 detailsPanel            // E — secondary specs / build detail
