@@ -188,8 +188,12 @@ struct GarageOverviewView: View {
     private var headerActions: some View {
         if !store.vehicles.isEmpty {
             HStack(spacing: HUDTheme.space2) {
-                ShareLink(item: GarageBackup.of(store), preview: SharePreview("GarageHUD backup")) {
-                    Image(systemName: "square.and.arrow.up")
+                // A restore file for the whole fleet — not a build sheet. Use an archivebox glyph,
+                // not the share arrow, so it reads as "back up" and never masquerades as the per-car
+                // "Share build sheet" on the Specs screen.
+                ShareLink(item: GarageBackup.of(store),
+                          preview: SharePreview("GarageHUD garage backup (restore file)")) {
+                    Image(systemName: "archivebox")
                 }
                 .buttonStyle(.secondaryAction)
                 .accessibilityLabel("Back up garage")
@@ -319,7 +323,7 @@ private struct DataSafetyNotice: View {
             if let data = try? Data(contentsOf: url) {
                 let backup = GarageBackup(data: data, filename: url.lastPathComponent)
                 ShareLink(item: backup, preview: SharePreview(title)) {
-                    Image(systemName: "square.and.arrow.up")
+                    Image(systemName: "archivebox")
                 }
                 .buttonStyle(.secondaryAction)
                 .accessibilityLabel("Export preserved garage file")
