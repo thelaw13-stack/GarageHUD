@@ -46,7 +46,7 @@ struct SpecSheetView: View {
 
                 liveEnvelopePanel
 
-                ShareLink(item: BuildSheetExporter.text(for: vehicle),
+                ShareLink(item: BuildSheetExporter.file(for: vehicle),
                           preview: SharePreview("\(vehicle.displayName) build sheet")) {
                     Label("Share build sheet", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity)
                 }

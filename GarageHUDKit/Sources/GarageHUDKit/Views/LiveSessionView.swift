@@ -505,7 +505,8 @@ struct LiveSessionView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                ShareLink(item: journal.supportReport,
+                ShareLink(item: SharableTextFile(fileName: "GarageHUD OBD-II connection report",
+                                                 text: journal.supportReport),
                           preview: SharePreview("GarageHUD OBD-II connection report")) {
                     Label("Share Connection Report", systemImage: "square.and.arrow.up")
                 }

@@ -45,4 +45,18 @@ final class BuildSheetExporterTests: XCTestCase {
         XCTAssertTrue(text.contains("Not yet measured"))
         XCTAssertFalse(text.contains("Installed parts"))   // none → section omitted
     }
+
+    // The share payload is a named file, not a bare string — so "Save to Files" writes a real .txt
+    // instead of falling back to stale transfer-buffer data (whatever was last copied).
+    func testFileCarriesVehicleNameAndFullText() {
+        let v = Vehicle(make: "Honda", model: "S2000", year: 2004, garageSlot: 1)
+        let file = BuildSheetExporter.file(for: v)
+        XCTAssertEqual(file.fileName, "\(v.displayName) build sheet")
+        XCTAssertEqual(file.text, BuildSheetExporter.text(for: v))
+    }
+
+    func testFileNameSanitizesSlashesAndBlankNames() {
+        XCTAssertEqual(SharableTextFile(fileName: "AC/DC report", text: "x").fileName, "AC-DC report")
+        XCTAssertEqual(SharableTextFile(fileName: "   ", text: "x").fileName, "GarageHUD")
+    }
 }

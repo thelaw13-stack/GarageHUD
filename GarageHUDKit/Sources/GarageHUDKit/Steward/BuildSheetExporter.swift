@@ -114,6 +114,13 @@ public enum BuildSheetExporter {
         return out.joined(separator: "\n")
     }
 
+    /// The build sheet as a named, shareable file — so "Save to Files" writes a real `.txt` instead
+    /// of falling back to stale transfer-buffer data.
+    public static func file(for vehicle: Vehicle, context: StewardContext = .live) -> SharableTextFile {
+        SharableTextFile(fileName: "\(vehicle.displayName) build sheet",
+                         text: text(for: vehicle, context: context))
+    }
+
     private static func dollars(_ v: Double) -> String {
         v.formatted(.currency(code: "USD").precision(.fractionLength(0)))
     }
