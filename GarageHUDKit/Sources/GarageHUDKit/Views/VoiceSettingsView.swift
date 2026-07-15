@@ -31,7 +31,7 @@ struct VoiceSettingsView: View {
                         }
                         Button("Test voice") {
                             persist()
-                            speak("This is your Steward. Fueling is documented, and the last dyno read 381 wheel horsepower.")
+                            speak("This is your Steward. I'll read your build's status and what's worth doing next, in this voice.")
                         }
                         .disabled(!(keyOnFile || !keyInput.isEmpty))
                     }

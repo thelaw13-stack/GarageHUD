@@ -109,10 +109,10 @@ public enum StewardConversation {
             return StewardReply(text: "No activity is logged yet.")
 
         case .log:
-            return StewardReply(text: "Hands-free capture is coming. For now, add records on the Performance and Timeline tabs.")
+            return StewardReply(text: "I can't log records by voice yet — add them on the Performance and Timeline tabs.")
 
         case .help:
-            return StewardReply(text: "Ask me about power, what you've spent, cost-per-horsepower, or what to watch. Voice is on the way — for now, type.")
+            return StewardReply(text: "Ask me about power, spend, efficiency, or what to watch — by voice or text.")
 
         case .unknown:
             return StewardReply(text: "I didn't catch that. Try: what's my power, what did I spend, or what should I watch?")

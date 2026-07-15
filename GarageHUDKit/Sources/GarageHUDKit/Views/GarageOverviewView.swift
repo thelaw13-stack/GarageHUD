@@ -280,7 +280,20 @@ struct GarageOverviewView: View {
         if !observations.isEmpty {
             HUDPanel(title: "Fleet Steward") {
                 VStack(alignment: .leading, spacing: HUDTheme.space3) {
-                    ForEach(observations.prefix(2)) { StewardObservationRow($0) }
+                    ForEach(observations.prefix(2)) { obs in
+                        // A note about a specific car is now a door to it, not just read-out text.
+                        let target = obs.subjectID.flatMap { id in store.vehicles.first { $0.id == id }?.id }
+                        HStack(alignment: .top, spacing: HUDTheme.space2) {
+                            StewardObservationRow(obs)
+                            if target != nil {
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.right").font(.system(size: 11))
+                                    .foregroundStyle(HUDTheme.textTertiary).padding(.top, 3)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture { if let target { selectedVehicleID = target } }
+                    }
                 }
             }
         }
