@@ -188,9 +188,17 @@ struct GarageOverviewView: View {
     private var headerActions: some View {
         if !store.vehicles.isEmpty {
             HStack(spacing: HUDTheme.space2) {
-                // A restore file for the whole fleet — not a build sheet. Use an archivebox glyph,
-                // not the share arrow, so it reads as "back up" and never masquerades as the per-car
-                // "Share build sheet" on the Specs screen.
+                // The human-readable fleet sheet — a polished PDF of the whole garage. The share
+                // arrow now means "share a sheet", consistently with the per-car build sheet.
+                ShareLink(item: SharableFleetSheet(vehicles: store.vehicles),
+                          preview: SharePreview("GarageHUD fleet sheet")) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .buttonStyle(.secondaryAction)
+                .accessibilityLabel("Share fleet sheet")
+
+                // A restore file for the whole fleet — not a build sheet. The archivebox glyph reads
+                // as "back up" and never masquerades as a share.
                 ShareLink(item: GarageBackup.of(store),
                           preview: SharePreview("GarageHUD garage backup (restore file)")) {
                     Image(systemName: "archivebox")
