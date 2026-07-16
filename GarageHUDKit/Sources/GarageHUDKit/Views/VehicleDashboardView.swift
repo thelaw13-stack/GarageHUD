@@ -13,6 +13,8 @@ struct VehicleDashboardView: View {
     @State private var editingPart: Part?
     @State private var editingMaintenance: MaintenanceItem?
     @State private var pendingServiceDeletion: BuildEvent?
+    @State private var pendingServiceItemID: UUID?
+    @State private var serviceCostText = ""
     @State private var resolving: StewardObservation?
 
     var body: some View {
@@ -67,6 +69,23 @@ struct VehicleDashboardView: View {
             Button("Keep Record", role: .cancel) { pendingServiceDeletion = nil }
         } message: { event in
             Text("This removes \(serviceDisplayName(event)) from history. If it reset a maintenance schedule, the prior service date and mileage will be restored.")
+        }
+        .alert("Log this service",
+               isPresented: Binding(get: { pendingServiceItemID != nil },
+                                    set: { if !$0 { pendingServiceItemID = nil } })) {
+            TextField("Cost (optional)", text: $serviceCostText)
+                #if os(iOS)
+                .keyboardType(.decimalPad)
+                #endif
+            Button("Log") {
+                if let id = pendingServiceItemID {
+                    vehicle.markMaintenanceDone(id, cost: Double(serviceCostText.trimmingCharacters(in: .whitespaces)))
+                }
+                pendingServiceItemID = nil
+            }
+            Button("Cancel", role: .cancel) { pendingServiceItemID = nil }
+        } message: {
+            Text("Enter what it cost, or leave it blank — the service logs either way.")
         }
     }
 
@@ -323,7 +342,8 @@ struct VehicleDashboardView: View {
                                 if done {
                                     pendingServiceDeletion = vehicle.latestServiceRecord(for: item.id)
                                 } else {
-                                    markServiced(item.id)
+                                    serviceCostText = ""
+                                    pendingServiceItemID = item.id
                                 }
                             }
                                 .buttonStyle(.compactAction)
@@ -405,7 +425,6 @@ struct VehicleDashboardView: View {
     private func maintenanceStatusText(_ d: MaintenanceItem.Due) -> String {
         switch d { case .overdue: return "Overdue"; case .dueSoon: return "Due soon"; case .ok: return "OK" }
     }
-    private func markServiced(_ id: UUID) { vehicle.markMaintenanceDone(id) }
     private func serviceDisplayName(_ event: BuildEvent) -> String {
         event.title.replacingOccurrences(of: Vehicle.servicePrefix, with: "")
     }

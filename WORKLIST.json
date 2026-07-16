@@ -226,7 +226,7 @@
       ],
       "testing_criteria": ["VehicleModelTests: BuildEvent.cost round-trips; serviceSpend sums; markMaintenanceDone can carry a cost; totalInvested unaffected", "full suite green"],
       "status": "complete",
-      "result": { "tests": "344 green (+5, shared with W-016)", "commit": "pending", "date": "2026-07-16", "notes": "BuildEvent.cost added; markMaintenanceDone takes an optional cost; setBuildEventCost prices/clears a record after the fact. Editable per record in Service History (tap 'Add cost'), with a running TOTAL SERVICE SPEND header. Vehicle.serviceSpend shown as its own line on Specs, separate from Total Invested and Purchase price." }
+      "result": { "tests": "344 green (+5, shared with W-016)", "commit": "pending", "date": "2026-07-16", "notes": "BuildEvent.cost added; markMaintenanceDone takes an optional cost; setBuildEventCost prices/clears a record after the fact. Editable per record in Service History (tap 'Add cost'), with a running TOTAL SERVICE SPEND header. Vehicle.serviceSpend shown as its own line on Specs, separate from Total Invested and Purchase price. Follow-up (Tim): 'Mark done' now prompts for the cost via an optional alert field — Log works with it blank, so the prompt never restricts the record." }
     }
   ]
 }
