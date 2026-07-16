@@ -122,8 +122,18 @@
       "depends_on": ["W-007"],
       "completion_criteria": ["Share the fleet sheet to Files, Mail, and AirDrop on the device; confirm a titled .pdf opens correctly", "confirm the share-sheet preview reads well"],
       "testing_criteria": ["manual on-device check; note results here"],
-      "status": "incomplete",
-      "result": null
+      "status": "blocked",
+      "blocked_reason": "Payload fully validated on host; the remaining criteria are a physical on-device share tap (Files/Mail/AirDrop) only Tim can perform.",
+      "result": {
+        "tests": "339 green",
+        "date": "2026-07-16",
+        "verified_on_host": [
+          "The exact bytes SharableFleetSheet exports (FleetSheetPDF.data) were written to 'GarageHUD Fleet Sheet.pdf' and open: macOS reports com.adobe.pdf and QuickLook renders it.",
+          "PDFKit: 1 page, 612x1271pt (US-Letter width, well under the 14,400pt CGContext ceiling), with 1003 chars of SELECTABLE vector text — crisp and searchable, not a rasterized image.",
+          "Rendered page reflects current honest logic: documented-total labeling (W-001), the dot legend, and goal %."
+        ],
+        "remaining_on_device": "Tim taps Share on the garage screen -> Save to Files, then Mail and AirDrop; confirm a titled .pdf arrives and opens, and the iOS share-sheet preview reads well. Report back to flip this to complete."
+      }
     },
     {
       "id": "W-010",
