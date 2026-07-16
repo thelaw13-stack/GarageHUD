@@ -122,11 +122,11 @@
       "depends_on": ["W-007"],
       "completion_criteria": ["Share the fleet sheet to Files, Mail, and AirDrop on the device; confirm a titled .pdf opens correctly", "confirm the share-sheet preview reads well"],
       "testing_criteria": ["manual on-device check; note results here"],
-      "status": "blocked",
-      "blocked_reason": "Payload fully validated on host; the remaining criteria are a physical on-device share tap (Files/Mail/AirDrop) only Tim can perform.",
+      "status": "complete",
       "result": {
         "tests": "339 green",
         "date": "2026-07-16",
+        "on_device": "Tim confirmed 2026-07-16: 'export to pdf works great, just as mocked up.'",
         "verified_on_host": [
           "The exact bytes SharableFleetSheet exports (FleetSheetPDF.data) were written to 'GarageHUD Fleet Sheet.pdf' and open: macOS reports com.adobe.pdf and QuickLook renders it.",
           "PDFKit: 1 page, 612x1271pt (US-Letter width, well under the 14,400pt CGContext ceiling), with 1003 chars of SELECTABLE vector text — crisp and searchable, not a rasterized image.",
@@ -194,6 +194,21 @@
       "depends_on": [],
       "completion_criteria": ["Each major screen reviewed for first-glance focus", "any hierarchy fixes landed or logged as follow-up items"],
       "testing_criteria": ["design review (no automated test); record conclusions here"],
+      "status": "incomplete",
+      "result": null
+    },
+    {
+      "id": "W-016",
+      "title": "Model vehicle purchase price (acquisition cost), distinct from build investment",
+      "why": "GarageHUD has no purchase-price field — the only money fields are build/mod spend (documentedTotalInvestment, part costs). For a mostly-stock utility truck like the Tundra, what you paid is the primary money fact and it has nowhere to live, so Tim reasonably put '60K purchase price' in a free-text Note, which never becomes a number. Notes are prose; the figure can't surface.",
+      "depends_on": [],
+      "completion_criteria": [
+        "Vehicle gains a purchasePrice: Double? (tolerant decode)",
+        "Editable on Specs and shown as its own figure (not silently folded into 'Total Invested', which stays build/mod spend)",
+        "DECISION PENDING (Tim): whether to also show a combined 'all-in' (purchase + build) line, and whether purchase price appears on the fleet sheet",
+        "Honest wording: 'Purchase price' / 'paid', separate from 'invested'"
+      ],
+      "testing_criteria": ["VehicleModelTests: purchasePrice round-trips and does not alter totalInvested", "full suite green"],
       "status": "incomplete",
       "result": null
     }
