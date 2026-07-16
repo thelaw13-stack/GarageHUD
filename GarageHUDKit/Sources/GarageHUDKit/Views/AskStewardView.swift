@@ -16,6 +16,7 @@ struct AskStewardView: View {
     @State private var reply: StewardReply?
     @State private var thinking = false
     @State private var showingVoiceSettings = false
+    @State private var voiceNudgeDismissed = VoiceNudge.isDismissed()
 
     #if canImport(Speech)
     @StateObject private var voice: StewardVoiceSession
@@ -47,6 +48,9 @@ struct AskStewardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
+            #if canImport(Speech)
+            if showVoiceNudge { voiceNudgeBanner }
+            #endif
             replyArea
             Spacer(minLength: 0)
             quickChips
@@ -189,6 +193,43 @@ struct AskStewardView: View {
         }
         .buttonStyle(.plain)
         .disabled(voice.authorization == .denied || voice.authorization == .unavailable)
+    }
+    #endif
+
+    #if canImport(Speech)
+    /// Show the "better voice" nudge only when the device has just the robotic default, the natural
+    /// cloud voice is off, and it hasn't been dismissed. Re-reads the cloud setting each render, so
+    /// turning cloud voice on in the sheet hides it immediately.
+    private var showVoiceNudge: Bool {
+        VoiceNudge.shouldShow(onlyDefaultVoiceInstalled: voice.needsBetterVoiceDownload,
+                              cloudVoiceEnabled: CloudVoiceConfig.load().enabled,
+                              dismissed: voiceNudgeDismissed)
+    }
+
+    private var voiceNudgeBanner: some View {
+        HStack(alignment: .top, spacing: HUDTheme.space2) {
+            Image(systemName: "speaker.wave.2").font(.system(size: 13)).foregroundStyle(HUDTheme.cyan).padding(.top, 1)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Steward is using the basic system voice")
+                    .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textPrimary)
+                Text("For a natural voice, turn one on in Voice settings — or download an enhanced voice in iOS Settings › Accessibility › Spoken Content › Voices.")
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Voice settings") { showingVoiceSettings = true }
+                    .buttonStyle(.compactAction).padding(.top, 2)
+            }
+            Spacer(minLength: 0)
+            Button {
+                VoiceNudge.markDismissed(); voiceNudgeDismissed = true
+            } label: {
+                Image(systemName: "xmark").font(.system(size: 11, weight: .semibold)).foregroundStyle(HUDTheme.textTertiary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss voice tip")
+        }
+        .padding(HUDTheme.space3)
+        .background(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.panelBackground))
+        .overlay(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).strokeBorder(HUDTheme.hairline, lineWidth: 1))
     }
     #endif
 

@@ -142,8 +142,8 @@
       "depends_on": [],
       "completion_criteria": ["A calm first-run nudge appears when only a default voice is installed and cloud voice is off", "dismissible, non-nagging"],
       "testing_criteria": ["logic covered where testable; manual on-device confirm", "full suite green"],
-      "status": "incomplete",
-      "result": null
+      "status": "complete",
+      "result": { "tests": "349 green (+5)", "commit": "pending", "date": "2026-07-16", "notes": "VoiceNudge (pure, tested) gates the nudge: shows only when the device has just the robotic default voice, cloud voice is off, and it hasn't been dismissed; dismissal persists in UserDefaults so it never nags. Surfaced as a calm, dismissible banner in Ask Steward (where the voice is first heard) with a 'Voice settings' button and the iOS enhanced-voice download path. Gating unit-tested; the banner only appears on a device in the robotic-only state, which can't be forced on Tim's phone (his has enhanced voices), so visual appearance is condition-gated by the tested rule rather than eyeballed." }
     },
     {
       "id": "W-011",
