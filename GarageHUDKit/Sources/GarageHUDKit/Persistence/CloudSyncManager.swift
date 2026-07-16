@@ -26,6 +26,25 @@ public final class CloudSyncManager {
         (try? await container.accountStatus()) == .available
     }
 
+    // MARK: Payload envelope
+
+    /// The versioned cloud payload — the same `{ schemaVersion, vehicles }` envelope as the local
+    /// file, so a schema version now travels with the synced graph (this is what makes a future
+    /// non-additive change to the cloud model safe). Pure and CloudKit-free, so it's unit-testable.
+    nonisolated static func encodePayload(_ vehicles: [Vehicle]) throws -> Data {
+        try GaragePersistence.encode(vehicles)
+    }
+
+    /// Decodes a cloud payload, tolerating BOTH the versioned document and a pre-versioning bare
+    /// `[Vehicle]` array (records written by older builds), so introducing the envelope never drops
+    /// an existing device's cloud data. Nil when the payload is empty or unreadable.
+    nonisolated static func decodePayload(_ data: Data) -> [Vehicle]? {
+        switch GaragePersistence.decode(data) {
+        case .ok(let vehicles), .migratedLegacy(let vehicles): return vehicles
+        case .empty, .unreadable: return nil
+        }
+    }
+
     // MARK: Pull
 
     public struct RemoteGarage {
@@ -42,10 +61,8 @@ public final class CloudSyncManager {
             guard let updatedAt = record["updatedAt"] as? Date,
                   let asset = record["payload"] as? CKAsset,
                   let url = asset.fileURL,
-                  let data = try? Data(contentsOf: url) else { return nil }
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            guard let vehicles = try? decoder.decode([Vehicle].self, from: data) else { return nil }
+                  let data = try? Data(contentsOf: url),
+                  let vehicles = Self.decodePayload(data) else { return nil }
             return RemoteGarage(vehicles: vehicles, updatedAt: updatedAt)
         } catch let error as CKError where error.code == .unknownItem {
             return nil // no cloud record yet
@@ -60,9 +77,7 @@ public final class CloudSyncManager {
     /// we don't clobber the server change tag; on a conflict we still win (LWW by design).
     @discardableResult
     public func push(vehicles: [Vehicle], updatedAt: Date) async -> Bool {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        guard let data = try? encoder.encode(vehicles) else { return false }
+        guard let data = try? Self.encodePayload(vehicles) else { return false }
 
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
         guard (try? data.write(to: tmp)) != nil else { return false }

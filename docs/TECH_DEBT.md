@@ -52,8 +52,11 @@ arrays migrate in place; a corrupt file is backed up to `garage-unreadable-<ts>.
 surfaced via `GarageStore.loadFailureBackupURL` instead of being silently discarded. Covered by
 `GaragePersistenceVersioningTests`. See [PERSISTENCE.md](PERSISTENCE.md).
 
-Remaining: the CloudKit payload is still an unversioned bare array; version it too before any
-non-additive change to the synced graph.
+Resolved (2026-07-16): the CloudKit payload now uses the same versioned
+`Document { schemaVersion, vehicles }` envelope (`CloudSyncManager.encodePayload` / `decodePayload`
+reusing `GaragePersistence`). The pull still accepts a legacy bare array so older records aren't
+dropped; `CloudPayloadTests` covers the round-trip, legacy tolerance, and unreadable→nil. See the
+one-time transition caveat in [PERSISTENCE.md](PERSISTENCE.md).
 
 ## TD-006 — CI / strict concurrency — RESOLVED
 

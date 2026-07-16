@@ -58,5 +58,13 @@ The local file is a versioned `GaragePersistence.Document { schemaVersion, vehic
   rather than silently discarded. The app then continues empty (restoring from iCloud or seed)
   instead of overwriting the bad file blindly.
 
-The **CloudKit** payload is still a bare `[Vehicle]` array (unchanged, for compatibility). A
-non-additive change there would need the same versioning applied to the cloud asset.
+The **CloudKit** payload is now the *same* versioned `Document { schemaVersion, vehicles }` envelope
+as the local file (`CloudSyncManager.encodePayload` / `decodePayload`, reusing `GaragePersistence`).
+A schema version therefore travels with the synced graph, so a future non-additive change to the
+cloud model is safe. The pull tolerates **both** the versioned document and a pre-versioning bare
+`[Vehicle]` array, so records written by older builds are still read, never dropped. Covered by
+`CloudPayloadTests`.
+
+One-time transition caveat: a bare-array-only (not-yet-updated) device cannot read the new versioned
+payload. This is inherent to changing the envelope; on a single-user, few-device setup where devices
+ship together it's a non-issue. The reverse direction is safe — updated devices read old records.
