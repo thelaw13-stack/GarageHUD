@@ -3,6 +3,15 @@
 GarageHUD is developed by a small team — Tim (owner) plus AI collaborators working in parallel.
 These conventions keep that parallel work coordinated and keep `main` always green and shippable.
 
+## Start here, every session
+
+**Read [`WORKLIST.json`](WORKLIST.json) first — before touching code.** It is the durable plan of
+record: completed work with its evidence (commit + test delta), and open work with explicit
+completion and testing criteria. Follow its `session_protocol` — pick the next unblocked item whose
+dependencies are `complete`, set it `in_progress`, meet every completion criterion, run the tests,
+then record the result and set `status`. Never mark an item `complete` without a recorded, passing
+test result. The scoreboard, not memory, defines the current state.
+
 ## The golden rule
 
 **`main` is always green.** Never commit code that doesn't build clean and pass every test. There

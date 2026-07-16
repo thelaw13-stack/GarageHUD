@@ -1,0 +1,191 @@
+{
+  "title": "GarageHUD Work-List — the scoreboard",
+  "purpose": "The single durable plan of record. Completed work is kept with its evidence (commit + test delta) so it can't fade; open work is kept with explicit completion and testing criteria so skipped work has nowhere to hide. This file is the source of truth for what is done and what is next — not memory, not the commit log alone.",
+  "session_protocol": {
+    "_note": "Every session reads this file FIRST, before touching code. Follow these steps in order.",
+    "steps": [
+      "1. Read this whole file. The scoreboard, not recollection, defines the current state.",
+      "2. Choose the next item: the first item (top-to-bottom) whose status is 'incomplete' AND whose every depends_on id is 'complete' AND which is not 'blocked'. Honor an explicit user request over this default, but never silently reorder.",
+      "3. Set that item's status to 'in_progress' before starting work.",
+      "4. Do the work until EVERY string in completion_criteria is objectively met.",
+      "5. Run the tests named in testing_criteria (default: the full suite). Work is not done until they pass.",
+      "6. Record evidence in result: the test delta (e.g. '339 -> 342, +3'), the commit hash, the date (YYYY-MM-DD), and any deliberate trade-off. Then set status to 'complete'.",
+      "7. Never set 'complete' without a recorded, passing test result. Partial or unverified work stays 'incomplete', or 'blocked' with a blocked_reason. No exceptions — 'main is always green' (see CONTRIBUTING.md).",
+      "8. If new work is discovered, add it as a new item with status 'incomplete' rather than doing it silently."
+    ]
+  },
+  "conventions": {
+    "status_values": {
+      "incomplete": "Not started, or started and not yet verified complete. The default for all new work.",
+      "in_progress": "Actively being worked this session.",
+      "blocked": "Cannot proceed; blocked_reason states why (e.g. needs real hardware, awaiting owner decision).",
+      "complete": "All completion_criteria met and testing_criteria passed, with evidence recorded in result."
+    },
+    "test_command": "cd GarageHUDKit && swift build 2>&1 | grep -cE 'error:|warning:'  # must print 0  &&  swift test  # all pass",
+    "green_bar": "Zero warnings (-strict-concurrency=complete) and zero failing tests before any commit.",
+    "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
+    "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
+    "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
+    "test_count_at_last_update": 339,
+    "last_updated": "2026-07-16"
+  },
+  "items": [
+    {
+      "id": "W-001",
+      "title": "Investment total reads the honest figure (max of live parts vs documented)",
+      "why": "A frozen build-sheet lump sum silently ignored part-price edits; the first fix overshot so partial pricing understated the total (pricing one wheel could collapse a $25k build to $150).",
+      "depends_on": [],
+      "completion_criteria": [
+        "totalInvested = max(itemizedPartsCost, documentedTotalInvestment ?? 0)",
+        "investmentIsLiveFromParts true only when priced parts meet/exceed the documented figure",
+        "documentedReconcileFigure and pricedPartsSoFar drive honest copy across Specs, build-sheet export, and Steward grounding"
+      ],
+      "testing_criteria": ["VehicleModelTests, GaragePersistenceTests, BuildSheetExporterTests, StewardGroundingTests updated and green", "full suite green"],
+      "status": "complete",
+      "result": { "tests": "339 green", "commits": ["86c0f4f", "8d99472"], "date": "2026-07-16", "notes": "Open trade-off tracked as W-008: when documented > priced, the headline holds at documented until parts catch up." }
+    },
+    {
+      "id": "W-002",
+      "title": "Coherence pass — honest voice copy, tappable fleet Steward rows, Specs consolidation",
+      "why": "Honesty is the app's pitch; stale 'voice on the way' copy, a fabricated spoken HP figure, read-only Steward rows, and an 8-panel Specs screen all eroded it.",
+      "depends_on": [],
+      "completion_criteria": ["No fabricated numbers in voice test", "Garage Steward rows navigate to the subject car", "Specs is one calm Numbers section"],
+      "testing_criteria": ["full suite green"],
+      "status": "complete",
+      "result": { "tests": "green", "commits": ["6c02ac6", "156b3fd"], "date": "2026-07-16", "notes": null }
+    },
+    {
+      "id": "W-003",
+      "title": "Phase 3 — the Build Plan (intent layer)",
+      "why": "The app knew what a car is and what's off now, but not where it's headed.",
+      "depends_on": [],
+      "completion_criteria": ["BuildGoal on Vehicle", "BuildPlanner orders wishlist parts support/sequence/power", "Dashboard panel + goal editor", "advisory on boost-without-fueling"],
+      "testing_criteria": ["BuildPlanTests cover ordering, sequence tagging, advisory, goal persistence", "full suite green"],
+      "status": "complete",
+      "result": { "tests": "333 green (+8)", "commits": ["9546d07"], "date": "2026-07-16", "notes": null }
+    },
+    {
+      "id": "W-004",
+      "title": "Wheel-honest build-goal progress",
+      "why": "Progress compared a crank factory rating to a wheel target, overstating % to goal for un-dynoed cars.",
+      "depends_on": ["W-003"],
+      "completion_criteria": ["currentWheelHorsepowerEstimate (latest wheel dyno, else stock wheel baseline; never crank)", "BuildProgress and the goal advisory use it"],
+      "testing_criteria": ["BuildPlanTests: un-dynoed car with a wheel goal is not falsely 'at goal'", "full suite green"],
+      "status": "complete",
+      "result": { "tests": "339 green", "commits": ["8d99472"], "date": "2026-07-16", "notes": null }
+    },
+    {
+      "id": "W-005",
+      "title": "Shareable sheets export as named files, not bare strings",
+      "why": "Sharing a bare String gave the share sheet no filename, so 'Save to Files' fell back to stale clipboard data.",
+      "depends_on": [],
+      "completion_criteria": ["SharableTextFile exports a titled .txt and plain text", "build sheet and OBD report routed through it"],
+      "testing_criteria": ["BuildSheetExporterTests cover file naming/sanitization", "full suite green"],
+      "status": "complete",
+      "result": { "tests": "335 green (+2)", "commits": ["ad309a7"], "date": "2026-07-16", "notes": null }
+    },
+    {
+      "id": "W-006",
+      "title": "Export-icon vocabulary — share arrow = sheet, archivebox = backup",
+      "why": "The garage JSON backup wore the same share-arrow glyph as the build sheet, so it read as 'share this car' and handed over raw JSON.",
+      "depends_on": ["W-005"],
+      "completion_criteria": ["Both garage-backup exports use archivebox + 'restore file' preview", "share arrow reserved for human-readable sheets"],
+      "testing_criteria": ["full suite green"],
+      "status": "complete",
+      "result": { "tests": "335 green", "commits": ["5940e83"], "date": "2026-07-16", "notes": null }
+    },
+    {
+      "id": "W-007",
+      "title": "Whole-fleet sheet as a polished PDF",
+      "why": "The only whole-garage export was JSON; owners need a human-readable document to hand a buyer or shop.",
+      "depends_on": ["W-006"],
+      "completion_criteria": ["FleetSheet renders the garage from HUDTheme to a single-page PDF", "measured-vs-estimated graded", "dot legend for recipients", "shared from the garage share arrow", "failed render throws instead of emitting a 0-byte file"],
+      "testing_criteria": ["FleetSheetTests: valid PDF, empty fleet, full 8-bay render within CGContext limits", "full suite green"],
+      "status": "complete",
+      "result": { "tests": "339 green (+3)", "commits": ["ddd2e76", "8d99472"], "date": "2026-07-16", "notes": "Visually inspected the rendered PDF before shipping." }
+    },
+    {
+      "id": "W-008",
+      "title": "Tune the cost-precedence threshold against real cars",
+      "why": "When the documented total exceeds priced parts, the headline holds at documented until parts catch up — deliberate anti-understatement, but it means a single part edit won't move the headline in that window. Confirm this feels right on Tim's actual S2K/Fozzy data, or introduce a coverage threshold.",
+      "depends_on": ["W-001"],
+      "completion_criteria": ["Decision recorded: keep max() as-is OR switch to a coverage rule (e.g. parts-live once priced parts cover N% of installed parts)", "behavior matches Tim's expectation on his real fleet"],
+      "testing_criteria": ["any rule change covered by VehicleModelTests", "full suite green"],
+      "status": "blocked",
+      "blocked_reason": "Needs Tim's judgment on his real-car numbers; low priority.",
+      "result": null
+    },
+    {
+      "id": "W-009",
+      "title": "Validate fleet-sheet sharing on a real device",
+      "why": "The PDF render is unit-tested and eyeballed, but AirDrop/Files/Mail behavior, preview thumbnail, and large-fleet feel are unverified on hardware.",
+      "depends_on": ["W-007"],
+      "completion_criteria": ["Share the fleet sheet to Files, Mail, and AirDrop on the device; confirm a titled .pdf opens correctly", "confirm the share-sheet preview reads well"],
+      "testing_criteria": ["manual on-device check; note results here"],
+      "status": "incomplete",
+      "result": null
+    },
+    {
+      "id": "W-010",
+      "title": "Surface the first-run 'download a better voice' nudge",
+      "why": "needsBetterVoiceDownload is wired but never shown, so a user with only the default robotic voice isn't guided to the Premium download (TD-007).",
+      "depends_on": [],
+      "completion_criteria": ["A calm first-run nudge appears when only a default voice is installed and cloud voice is off", "dismissible, non-nagging"],
+      "testing_criteria": ["logic covered where testable; manual on-device confirm", "full suite green"],
+      "status": "incomplete",
+      "result": null
+    },
+    {
+      "id": "W-011",
+      "title": "OBD adapter pairing UI",
+      "why": "Handshake, profile model, and known-peripheral reconnect exist and are tested, but there's no UI to present discovered adapters, pick one, and persist the profile (TD-004).",
+      "depends_on": [],
+      "completion_criteria": ["Present discovered ELM327 candidates", "owner picks one; profile persisted", "knownPeripheralID loaded on next launch"],
+      "testing_criteria": ["view-model logic unit-tested where possible", "full suite green"],
+      "status": "incomplete",
+      "result": null
+    },
+    {
+      "id": "W-012",
+      "title": "Version the CloudKit payload",
+      "why": "The local file is a versioned document, but the CloudKit graph is still an unversioned bare array; version it before any non-additive change to the synced schema (TD-005 remaining, relates TD-001).",
+      "depends_on": [],
+      "completion_criteria": ["CloudKit payload carries a schemaVersion", "legacy bare-array payloads migrate in place"],
+      "testing_criteria": ["round-trip + migration tests for the synced payload", "full suite green"],
+      "status": "incomplete",
+      "result": null
+    },
+    {
+      "id": "W-013",
+      "title": "On-device validation: cloud voice, LLM Steward, speech-in",
+      "why": "Cloud TTS, the Foundation Models LLM path, and SFSpeechRecognizer are all gated and tested in logic but never exercised on real hardware/OS (TD-007).",
+      "depends_on": [],
+      "completion_criteria": ["Cloud voice end-to-end with a real key (latency, audio-session/mic interplay, cost)", "LLM path on an Apple-Intelligence device honors confidence bands and refuses out-of-record questions", "speech-in works against a real mic"],
+      "testing_criteria": ["manual on-device validation; record findings and any TD updates here"],
+      "status": "blocked",
+      "blocked_reason": "Requires a real key and an Apple-Intelligence-capable device with a physical microphone/adapter.",
+      "result": null
+    },
+    {
+      "id": "W-014",
+      "title": "OBD hardware validation",
+      "why": "Real-adapter integration, ISO-TP/multi-ECU headers, and live disconnect/reconnect are unverified against physical hardware (TD-004). Synthetic transcript replay is done.",
+      "depends_on": ["W-011"],
+      "completion_criteria": ["Connect to a real ELM327 and decode live PIDs", "handle a multi-ECU/ISO-TP response", "survive a disconnect/reconnect cycle"],
+      "testing_criteria": ["on-device/hardware validation; record findings here"],
+      "status": "blocked",
+      "blocked_reason": "Requires a physical ELM327 adapter and a running vehicle.",
+      "result": null
+    },
+    {
+      "id": "W-015",
+      "title": "DD-001 — eye-gravity review of every major screen",
+      "why": "Design debt: each major screen should be reviewed for where the eye lands first; if two reviewers disagree, the hierarchy isn't finished.",
+      "depends_on": [],
+      "completion_criteria": ["Each major screen reviewed for first-glance focus", "any hierarchy fixes landed or logged as follow-up items"],
+      "testing_criteria": ["design review (no automated test); record conclusions here"],
+      "status": "incomplete",
+      "result": null
+    }
+  ]
+}
