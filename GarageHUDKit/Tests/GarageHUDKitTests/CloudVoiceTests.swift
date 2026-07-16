@@ -41,13 +41,10 @@ final class CloudVoiceTests: XCTestCase {
     }
 
     func testIsActiveRequiresBothEnabledAndAKey() {
-        let account = "cloudVoice.test.\(UUID().uuidString)"
-        // Not enabled → not active regardless of key.
-        XCTAssertFalse(CloudVoiceConfig(enabled: false).isActive)
-        // Enabled but no key → not active (would fall back to on-device).
-        var enabledNoKey = CloudVoiceConfig(enabled: true)
-        XCTAssertFalse(enabledNoKey.hasKey || enabledNoKey.isActive)
-        _ = enabledNoKey   // silence unused-mutation
+        XCTAssertFalse(CloudVoiceConfig(enabled: false).isActive(hasKey: false))
+        XCTAssertFalse(CloudVoiceConfig(enabled: false).isActive(hasKey: true))
+        XCTAssertFalse(CloudVoiceConfig(enabled: true).isActive(hasKey: false))
+        XCTAssertTrue(CloudVoiceConfig(enabled: true).isActive(hasKey: true))
     }
 
     func testKeychainRoundTripAndDelete() {

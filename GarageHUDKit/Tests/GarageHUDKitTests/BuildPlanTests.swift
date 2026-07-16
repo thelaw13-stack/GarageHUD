@@ -89,7 +89,7 @@ final class BuildPlanTests: XCTestCase {
     }
 
     func testGoalPersistsThroughDecode() throws {
-        var v = boostedCar(goalWHP: 450)
+        let v = boostedCar(goalWHP: 450)
         let data = try JSONEncoder().encode([v])
         let restored = try JSONDecoder().decode([Vehicle].self, from: data)
         XCTAssertEqual(restored.first?.buildGoal?.targetWheelHP, 450)

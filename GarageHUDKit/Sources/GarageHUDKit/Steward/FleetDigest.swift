@@ -36,7 +36,7 @@ public struct FleetSnapshot: Codable, Equatable, Sendable {
 /// One thing that changed since the last visit, in the Steward's voice.
 public struct FleetChange: Identifiable, Equatable, Sendable {
     public enum Kind: String, Sendable {
-        case addedVehicle, wentIntoService, backInService, serviceWorsened, serviceCleared
+        case addedVehicle, removedVehicle, wentIntoService, backInService, serviceWorsened, serviceCleared
         case dyno, pull, mileage, addedParts
     }
     public let id: String
@@ -81,6 +81,7 @@ public enum FleetDigestBuilder {
         guard let previous else { return nil }
         let current = snapshot(of: vehicles, at: now, context: context)
         let byID = Dictionary(uniqueKeysWithValues: previous.vehicles.map { ($0.id, $0) })
+        let currentIDs = Set(current.vehicles.map(\.id))
         var changes: [FleetChange] = []
 
         for c in current.vehicles {
@@ -115,6 +116,9 @@ public enum FleetDigestBuilder {
                 let n = c.installedParts - p.installedParts
                 changes.append(change(.addedParts, c.id, "\(c.name) gained \(n) installed part\(n == 1 ? "" : "s").", .informational))
             }
+        }
+        for p in previous.vehicles where !currentIDs.contains(p.id) {
+            changes.append(change(.removedVehicle, p.id, "\(p.name) left the garage.", .informational))
         }
 
         guard !changes.isEmpty else { return nil }

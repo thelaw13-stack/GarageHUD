@@ -73,9 +73,18 @@ final class FleetDigestTests: XCTestCase {
     }
 
     func testAddedVehicleIsAnnounced() {
-        let before = FleetDigestBuilder.snapshot(of: [car("S2K")])
-        let digest = FleetDigestBuilder.digest(from: before, to: [car("S2K"), car("Fozzy")])
+        let s2k = car("S2K")
+        let before = FleetDigestBuilder.snapshot(of: [s2k])
+        let digest = FleetDigestBuilder.digest(from: before, to: [s2k, car("Fozzy")])
         XCTAssertTrue(digest!.changes.contains { $0.kind == .addedVehicle && $0.text.contains("Fozzy") })
+    }
+
+    func testRemovedVehicleIsAnnounced() {
+        let s2k = car("S2K")
+        let fozzy = car("Fozzy")
+        let before = FleetDigestBuilder.snapshot(of: [s2k, fozzy])
+        let digest = FleetDigestBuilder.digest(from: before, to: [s2k])
+        XCTAssertTrue(digest!.changes.contains { $0.kind == .removedVehicle && $0.text.contains("Fozzy") })
     }
 
     func testChangesAreOrderedMostSeriousFirst() {

@@ -74,16 +74,9 @@ struct UpgradeView: View {
 
             Spacer(minLength: 20)
 
-            // TESTING ONLY — simulate the purchase so the 8-bay / 5th-vehicle state can be exercised
-            // before the IAP is live. Remove before an App Store submission.
-            Button(purchases.isEightBayUnlocked ? "Testing: lock back to 4 bays"
-                                                 : "Testing: simulate purchase") {
-                purchases.setUnlockedForTesting(!purchases.isEightBayUnlocked)
-                if purchases.isEightBayUnlocked { dismiss() }
-            }
-            .font(HUDTheme.label())
-            .foregroundStyle(HUDTheme.textTertiary)
-            .padding(.bottom, 8)
+            #if DEBUG
+            testingUnlockButton
+            #endif
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(HUDTheme.background.ignoresSafeArea())
@@ -91,4 +84,19 @@ struct UpgradeView: View {
         .frame(minWidth: 420, minHeight: 520)
         #endif
     }
+
+    #if DEBUG
+    /// Local development shortcut for exercising the 8-bay / 5th-vehicle state before the
+    /// StoreKit product is live. Hidden from release builds.
+    private var testingUnlockButton: some View {
+        Button(purchases.isEightBayUnlocked ? "Testing: lock back to 4 bays"
+                                             : "Testing: simulate purchase") {
+            purchases.setUnlockedForTesting(!purchases.isEightBayUnlocked)
+            if purchases.isEightBayUnlocked { dismiss() }
+        }
+        .font(HUDTheme.label())
+        .foregroundStyle(HUDTheme.textTertiary)
+        .padding(.bottom, 8)
+    }
+    #endif
 }

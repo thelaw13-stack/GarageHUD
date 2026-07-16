@@ -15,10 +15,9 @@ public final class PurchaseManager: ObservableObject {
     private var updatesTask: Task<Void, Never>?
 
     public init() {
-        // TEMP — hard-unlocked so all 8 bays (a 5th+ vehicle) are usable before the IAP is live in
-        // App Store Connect. Revert to `UserDefaults.standard.bool(forKey: Self.unlockKey)` and
-        // re-gate behind the real purchase before an App Store submission.
-        isEightBayUnlocked = true
+        isEightBayUnlocked = Self.initialUnlockedState(
+            storedUnlock: UserDefaults.standard.bool(forKey: Self.unlockKey),
+            developmentForceUnlock: Self.developmentForceUnlock)
         updatesTask = listenForTransactions()
         Task { await refresh() }
     }
@@ -84,8 +83,17 @@ public final class PurchaseManager: ObservableObject {
         UserDefaults.standard.set(value, forKey: Self.unlockKey)
     }
 
-    /// TESTING ONLY — grant/revoke the 8-bay unlock without a real purchase, so the paid state
-    /// (bays 5–8, a 5th vehicle) can be exercised on-device before the IAP is live in App Store
-    /// Connect. Remove or gate behind a build flag before an App Store submission.
+    /// Debug builds keep the 8-bay state available for local development and review, while
+    /// release builds start from the real stored entitlement/purchase state.
+    nonisolated static var developmentForceUnlock: Bool { _isDebugAssertConfiguration() }
+
+    nonisolated static func initialUnlockedState(storedUnlock: Bool, developmentForceUnlock: Bool) -> Bool {
+        storedUnlock || developmentForceUnlock
+    }
+
+    #if DEBUG
+    /// Grant/revoke the 8-bay unlock without a real purchase, so the paid state (bays 5-8,
+    /// a 5th vehicle) can be exercised locally before the IAP is live in App Store Connect.
     public func setUnlockedForTesting(_ value: Bool) { setUnlocked(value) }
+    #endif
 }

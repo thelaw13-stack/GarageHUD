@@ -16,7 +16,7 @@ final class PartTransferTests: XCTestCase {
 
     func testMoveRelocatesPartAndLogsBothTimelines() {
         var fozzy = Vehicle(make: "Subaru", model: "Forester XT", year: 2008, nickname: "Fozzy", garageSlot: 1)
-        var tundra = Vehicle(make: "Toyota", model: "Tundra", year: 2021, nickname: "Tundra", garageSlot: 2)
+        let tundra = Vehicle(make: "Toyota", model: "Tundra", year: 2021, nickname: "Tundra", garageSlot: 2)
         let amp = Part(name: "JL VX800/8i", category: .electronics, status: .installed)
         fozzy.parts = [amp]
         let s = store(with: [fozzy, tundra])

@@ -52,7 +52,11 @@ public struct CloudVoiceConfig: Equatable, Sendable {
     /// The key is present in the Keychain for the chosen provider.
     public var hasKey: Bool { KeychainStore.has(provider.keychainAccount) }
     /// Active only when the owner has both enabled it and supplied a key.
-    public var isActive: Bool { enabled && hasKey }
+    public var isActive: Bool { isActive(hasKey: hasKey) }
+
+    public func isActive(hasKey: Bool) -> Bool {
+        enabled && hasKey
+    }
 }
 
 public enum CloudVoiceError: Error, Equatable { case notConfigured, badResponse(Int), emptyAudio, transport }

@@ -77,8 +77,9 @@ struct VoiceSettingsView: View {
     }
 
     private func persist() {
-        if !keyInput.isEmpty {
-            KeychainStore.set(keyInput.trimmingCharacters(in: .whitespacesAndNewlines), for: provider.keychainAccount)
+        let trimmedKey = keyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedKey.isEmpty {
+            KeychainStore.set(trimmedKey, for: provider.keychainAccount)
             keyOnFile = true
             keyInput = ""
         }
