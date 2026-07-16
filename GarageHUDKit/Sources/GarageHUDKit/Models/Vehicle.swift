@@ -39,6 +39,10 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// the sum of itemized part costs when set — most real build sheets give one total, not
     /// per-part pricing, so summing `Part.cost` alone would just read as $0.
     public var documentedTotalInvestment: Double?
+    /// What the owner paid to acquire the vehicle — its purchase price. Kept deliberately separate
+    /// from `totalInvested` (build/mod spend) and `serviceSpend` (maintenance): three distinct money
+    /// facts, never conflated. Nil until recorded.
+    public var purchasePrice: Double?
 
     public var parts: [Part] = []
     public var buildEvents: [BuildEvent] = []
@@ -110,6 +114,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         factoryPowerBasis = try c.decodeIfPresent(PowerBasis.self, forKey: .factoryPowerBasis) ?? .factoryCrank
         drivetrain = try c.decodeIfPresent(Drivetrain.self, forKey: .drivetrain) ?? .unknown
         documentedTotalInvestment = try c.decodeIfPresent(Double.self, forKey: .documentedTotalInvestment)
+        purchasePrice = try c.decodeIfPresent(Double.self, forKey: .purchasePrice)
         confirmedStockSystems = try c.decodeIfPresent(Set<PartCategory>.self, forKey: .confirmedStockSystems) ?? []
         operatingEnvelopeOverride = try c.decodeIfPresent(OperatingEnvelope.self, forKey: .operatingEnvelopeOverride)
         serviceStatus = try c.decodeIfPresent(ServiceStatus.self, forKey: .serviceStatus) ?? .operational
@@ -193,7 +198,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// impossible duplicate (already done today at this odometer) so repeated taps can't manufacture
     /// a service history that never happened.
     @discardableResult
-    public mutating func markMaintenanceDone(_ id: UUID, on date: Date = .now) -> Bool {
+    public mutating func markMaintenanceDone(_ id: UUID, on date: Date = .now, cost: Double? = nil) -> Bool {
         guard let i = maintenance.firstIndex(where: { $0.id == id }) else { return false }
         guard !maintenanceAlreadyDone(id, on: date) else { return false }
         let rollback = ServiceRecordLink(
@@ -207,7 +212,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         }
         let odoNote = currentMileage.map { " @ \($0.formatted(.number.grouping(.automatic))) mi" } ?? ""
         buildEvents.append(BuildEvent(date: date, title: "\(Vehicle.servicePrefix)\(maintenance[i].name)\(odoNote)",
-                                      mileage: currentMileage, serviceRecord: rollback))
+                                      mileage: currentMileage, serviceRecord: rollback, cost: cost))
         return true
     }
 
@@ -296,6 +301,22 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     public var serviceLog: [BuildEvent] {
         buildEvents.filter { $0.title.hasPrefix(Vehicle.servicePrefix) }
             .sorted { $0.date > $1.date }
+    }
+
+    /// Total recorded maintenance spend — the sum of costs entered on service records. A distinct
+    /// money bucket from `totalInvested` (build/mod parts) and `purchasePrice` (acquisition), so
+    /// ownership cost stays honestly separated from what the build cost.
+    public var serviceSpend: Double {
+        serviceLog.compactMap(\.cost).reduce(0, +)
+    }
+
+    /// Set (or clear) the recorded cost on one build event — used to price a service record after
+    /// the fact in Service History. Returns false for an unknown id.
+    @discardableResult
+    public mutating func setBuildEventCost(_ eventID: UUID, _ cost: Double?) -> Bool {
+        guard let i = buildEvents.firstIndex(where: { $0.id == eventID }) else { return false }
+        buildEvents[i].cost = cost
+        return true
     }
 
     /// The most-pressing maintenance state across all items (worst wins), accounting for both the

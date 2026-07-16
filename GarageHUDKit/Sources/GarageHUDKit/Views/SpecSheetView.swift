@@ -123,6 +123,17 @@ struct SpecSheetView: View {
                     numbersSubhead("SPEND BY SYSTEM")
                     spendBySystemRows
                 }
+
+                numbersDivider
+                numbersSubhead("OWNERSHIP")
+                editableStat(label: "Purchase Price", value: $vehicle.purchasePrice, unit: "USD", color: HUDTheme.textPrimary)
+                Text("What you paid for the vehicle — kept separate from build spend.")
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                if vehicle.serviceSpend > 0 {
+                    StatReadout(label: "Service Spend", value: vehicle.serviceSpend.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary)
+                    Text("Total recorded across your service records — add a cost to each service in Service History.")
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                }
             }
         }
     }

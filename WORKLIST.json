@@ -209,8 +209,24 @@
         "Honest wording: 'Purchase price' / 'paid', separate from 'invested'"
       ],
       "testing_criteria": ["VehicleModelTests: purchasePrice round-trips and does not alter totalInvested", "full suite green"],
-      "status": "incomplete",
-      "result": null
+      "status": "complete",
+      "result": { "tests": "344 green (+5, shared with W-017)", "commit": "pending", "date": "2026-07-16", "notes": "Vehicle.purchasePrice added (tolerant decode, older files -> nil). Shown as its own 'Purchase Price' line under a new OWNERSHIP section on Specs, editable, kept out of totalInvested. Separate lines, no all-in. Fleet-sheet inclusion deferred." },
+      "decision": "Tim chose (2026-07-16): separate lines (no all-in combined line). Fleet-sheet inclusion deferred unless asked."
+    },
+    {
+      "id": "W-017",
+      "title": "Maintenance / service cost tracking",
+      "why": "Service records (oil changes, tire rotations) had no cost field, so lifetime maintenance spend couldn't be tracked — the other half of why Tim's Tundra costs ended up in a note. Requested alongside W-016.",
+      "depends_on": [],
+      "completion_criteria": [
+        "BuildEvent gains cost: Double? (service occurrence carries what it cost)",
+        "A service record's cost is editable in Service History",
+        "Vehicle.serviceSpend sums service-record costs; shown as its own line on Specs, separate from Total Invested and Purchase price",
+        "Total service spend surfaced in the Service History view"
+      ],
+      "testing_criteria": ["VehicleModelTests: BuildEvent.cost round-trips; serviceSpend sums; markMaintenanceDone can carry a cost; totalInvested unaffected", "full suite green"],
+      "status": "complete",
+      "result": { "tests": "344 green (+5, shared with W-016)", "commit": "pending", "date": "2026-07-16", "notes": "BuildEvent.cost added; markMaintenanceDone takes an optional cost; setBuildEventCost prices/clears a record after the fact. Editable per record in Service History (tap 'Add cost'), with a running TOTAL SERVICE SPEND header. Vehicle.serviceSpend shown as its own line on Specs, separate from Total Invested and Purchase price." }
     }
   ]
 }

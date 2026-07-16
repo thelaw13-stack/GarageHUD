@@ -25,6 +25,9 @@ public struct BuildEvent: Identifiable, Codable, Hashable, Sendable {
     public var relatedPartIDs: [UUID] = []
     public var photos: [Photo] = []
     public var serviceRecord: ServiceRecordLink?
+    /// What this event cost, when it's a spend worth recording — chiefly a service (oil, tires) so
+    /// maintenance spend can be summed. Optional in Codable (missing decodes to nil on older files).
+    public var cost: Double?
 
     public init(
         id: UUID = UUID(),
@@ -34,7 +37,8 @@ public struct BuildEvent: Identifiable, Codable, Hashable, Sendable {
         mileage: Int? = nil,
         relatedPartIDs: [UUID] = [],
         photos: [Photo] = [],
-        serviceRecord: ServiceRecordLink? = nil
+        serviceRecord: ServiceRecordLink? = nil,
+        cost: Double? = nil
     ) {
         self.id = id
         self.date = date
@@ -44,5 +48,6 @@ public struct BuildEvent: Identifiable, Codable, Hashable, Sendable {
         self.relatedPartIDs = relatedPartIDs
         self.photos = photos
         self.serviceRecord = serviceRecord
+        self.cost = cost
     }
 }

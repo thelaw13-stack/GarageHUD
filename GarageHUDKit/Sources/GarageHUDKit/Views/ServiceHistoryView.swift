@@ -4,6 +4,7 @@ struct ServiceHistoryView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var vehicle: Vehicle
     @State private var pendingDeletion: BuildEvent?
+    @State private var editingCost: BuildEvent?
 
     var body: some View {
         NavigationStack {
@@ -14,21 +15,36 @@ struct ServiceHistoryView: View {
                         systemImage: "wrench.and.screwdriver",
                         description: Text("Completed maintenance will appear here."))
                 } else {
-                    List {
-                        ForEach(vehicle.serviceLog) { event in
-                            serviceRow(event)
-                                .swipeActions {
-                                    Button("Remove", role: .destructive) {
-                                        pendingDeletion = event
-                                    }
-                                }
+                    VStack(spacing: 0) {
+                        if vehicle.serviceSpend > 0 {
+                            HStack {
+                                Text("TOTAL SERVICE SPEND").font(HUDTheme.label(.semibold))
+                                    .foregroundStyle(HUDTheme.textSecondary).tracking(1.2)
+                                Spacer()
+                                Text(vehicle.serviceSpend.formatted(.currency(code: "USD")))
+                                    .font(HUDTheme.body(.semibold)).foregroundStyle(HUDTheme.cyan)
+                            }
+                            .padding(.horizontal, HUDTheme.space4).padding(.vertical, HUDTheme.space3)
                         }
+                        List {
+                            ForEach(vehicle.serviceLog) { event in
+                                serviceRow(event)
+                                    .swipeActions {
+                                        Button("Remove", role: .destructive) {
+                                            pendingDeletion = event
+                                        }
+                                    }
+                            }
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
                 }
             }
             .background(HUDTheme.background)
+            .sheet(item: $editingCost) { event in
+                ServiceCostEditor(vehicle: $vehicle, event: event)
+            }
             .navigationTitle("Service History")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -71,6 +87,16 @@ struct ServiceHistoryView: View {
                 }
                 .font(HUDTheme.label())
                 .foregroundStyle(HUDTheme.textSecondary)
+                Button { editingCost = event } label: {
+                    if let cost = event.cost {
+                        Text(cost.formatted(.currency(code: "USD")))
+                            .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.cyan)
+                    } else {
+                        Label("Add cost", systemImage: "plus.circle")
+                            .font(HUDTheme.label()).foregroundStyle(HUDTheme.textTertiary)
+                    }
+                }
+                .buttonStyle(.plain)
             }
             Spacer(minLength: HUDTheme.space2)
             Button { pendingDeletion = event } label: {
@@ -86,5 +112,53 @@ struct ServiceHistoryView: View {
 
     private func displayName(_ event: BuildEvent) -> String {
         event.title.replacingOccurrences(of: Vehicle.servicePrefix, with: "")
+    }
+}
+
+/// Set or clear what a single service cost — so lifetime maintenance spend can be tracked.
+private struct ServiceCostEditor: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var vehicle: Vehicle
+    let event: BuildEvent
+    @State private var costText = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack {
+                        Text("$").foregroundStyle(HUDTheme.textSecondary)
+                        TextField("0", text: $costText)
+                            #if os(iOS)
+                            .keyboardType(.decimalPad)
+                            #endif
+                    }
+                } header: {
+                    Text(event.title.replacingOccurrences(of: Vehicle.servicePrefix, with: ""))
+                } footer: {
+                    Text("What this service cost — parts, fluids, and labor. Adds to the vehicle's total service spend.")
+                }
+                if event.cost != nil {
+                    Button("Clear cost", role: .destructive) {
+                        vehicle.setBuildEventCost(event.id, nil); dismiss()
+                    }
+                }
+            }
+            .navigationTitle("Service Cost")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Save") { save() } }
+            }
+            .onAppear { costText = event.cost.map { String(format: "%g", $0) } ?? "" }
+        }
+        #if os(macOS)
+        .frame(minWidth: 360, minHeight: 220)
+        #endif
+    }
+
+    private func save() {
+        let trimmed = costText.trimmingCharacters(in: .whitespaces)
+        vehicle.setBuildEventCost(event.id, trimmed.isEmpty ? nil : Double(trimmed))
+        dismiss()
     }
 }
