@@ -379,25 +379,40 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         parts.filter { $0.status == .installed }.compactMap(\.cost).reduce(0, +)
     }
 
-    /// The number to show as "total invested" — **live from your priced parts**, so editing a part
-    /// cost moves it immediately. The documented lump-sum figure (from a build sheet) is only a
-    /// fallback for a car with nothing priced to sum yet, so a freshly-imported build still shows a
-    /// total. (This flipped from documented-wins, which silently ignored part edits.)
+    /// The number to show as "total invested" — the **larger** of your live priced-parts sum and any
+    /// documented lump sum. Priced parts win once they meet or exceed the documented figure, so
+    /// editing a part cost moves the total (the bug that started this). But a larger documented total
+    /// stands as the truth while parts are only partly priced — it covers spend the priced parts
+    /// don't yet (unpriced parts, labor, tax, tuning), so pricing one wheel can't collapse a $25k
+    /// build to $150.
     public var totalInvested: Double {
-        itemizedPartsCost > 0 ? itemizedPartsCost : (documentedTotalInvestment ?? 0)
+        max(itemizedPartsCost, documentedTotalInvestment ?? 0)
     }
 
-    /// True when the total is being summed live from priced parts (vs. resting on the documented
-    /// lump sum). Drives honest "logged" vs "documented" wording.
-    public var investmentIsLiveFromParts: Bool { itemizedPartsCost > 0 }
+    /// True when the shown total is the live parts-sum — priced parts meet or exceed any documented
+    /// lump sum, so editing a part price moves it. False when a larger documented total stands in.
+    /// Drives honest "logged" vs "documented" wording.
+    public var investmentIsLiveFromParts: Bool {
+        itemizedPartsCost > 0 && itemizedPartsCost >= (documentedTotalInvestment ?? 0)
+    }
 
-    /// The documented lump-sum figure when it exists *and* meaningfully disagrees with the live
-    /// parts-sum (>= $50) — so the UI can show both instead of hiding the mismatch. Nil when they
-    /// agree, when there's no documented figure, or when there are no priced parts (it's the total).
-    public var documentedTotalMismatch: Double? {
-        guard let doc = documentedTotalInvestment, itemizedPartsCost > 0,
+    /// When the live parts-sum is the shown total *and* a meaningfully different documented lump sum
+    /// also exists (>= $50 apart), that documented figure — so the UI can reconcile the two instead
+    /// of hiding it. Nil when they agree, when nothing's documented, or when the documented total is
+    /// itself the shown number.
+    public var documentedReconcileFigure: Double? {
+        guard investmentIsLiveFromParts, let doc = documentedTotalInvestment, doc > 0,
               abs(doc - itemizedPartsCost) >= 50 else { return nil }
         return doc
+    }
+
+    /// When a larger documented total is the shown number, how much of it is accounted for by priced
+    /// parts so far — so the UI can say "$X priced so far" rather than implying nothing is priced.
+    /// Nil when the parts-sum is itself the total, or when nothing is priced.
+    public var pricedPartsSoFar: Double? {
+        guard !investmentIsLiveFromParts, itemizedPartsCost > 0,
+              let doc = documentedTotalInvestment, doc > itemizedPartsCost else { return nil }
+        return itemizedPartsCost
     }
 
     public var latestPerformance: PerformanceRecord? {
@@ -410,6 +425,19 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
             .sorted { $0.date > $1.date }
             .first?
             .wheelHorsepower ?? factoryHorsepower
+    }
+
+    /// Current output expressed **at the wheels**, so it compares apples-to-apples against a wheel-hp
+    /// goal: the latest wheel dyno if there is one, else the estimated *stock wheel* baseline. Without
+    /// a dyno we can't claim the mods' gains, so this is the honest floor — never the crank figure,
+    /// which would overstate progress toward a wheel target. Nil without a factory figure and no dyno.
+    public var currentWheelHorsepowerEstimate: Double? {
+        if let dyno = performanceRecords
+            .filter({ $0.type == .dyno && $0.wheelHorsepower != nil })
+            .sorted(by: { $0.date > $1.date }).first?.wheelHorsepower {
+            return dyno
+        }
+        return estimatedStockWheelHP
     }
 
     public var powerToWeight: Double? {

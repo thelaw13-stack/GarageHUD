@@ -32,6 +32,8 @@ public enum FleetSheetPDF {
 /// A shareable fleet sheet. Holds the vehicles and defers the (main-actor) PDF render until a share
 /// destination is actually chosen, so putting one in a `ShareLink` costs nothing until it's used.
 public struct SharableFleetSheet: Transferable, Sendable {
+    public enum RenderError: Error { case renderFailed }
+
     public let fileName: String   // without extension
     public let vehicles: [Vehicle]
 
@@ -42,7 +44,13 @@ public struct SharableFleetSheet: Transferable, Sendable {
 
     public static var transferRepresentation: some TransferRepresentation {
         DataRepresentation(exportedContentType: .pdf) { sheet in
-            await MainActor.run { FleetSheetPDF.data(for: sheet.vehicles) } ?? Data()
+            // Fail loudly if the render comes back empty, so the share sheet surfaces an error
+            // rather than silently handing over a 0-byte, un-openable PDF.
+            guard let data = await MainActor.run(body: { FleetSheetPDF.data(for: sheet.vehicles) }),
+                  !data.isEmpty else {
+                throw RenderError.renderFailed
+            }
+            return data
         }
         .suggestedFileName { "\($0.fileName).pdf" }
     }

@@ -69,6 +69,19 @@ final class BuildPlanTests: XCTestCase {
         XCTAssertTrue(BuildPlanner.plan(for: v).advisory!.localizedCaseInsensitiveContains("goal"))
     }
 
+    func testProgressUsesWheelBaselineNotCrankWhenUnmeasured() {
+        // A crank factory rating must not be compared against a wheel target — that overstates
+        // progress. An un-dynoed RWD car rated 300 crank toward a 300 whp goal is NOT at 100%:
+        // the honest current figure is the ~stock wheel baseline (~300 * (1 - RWD loss)).
+        var v = Vehicle(make: "Ford", model: "Mustang", year: 2015, garageSlot: 1, factoryHorsepower: 300)
+        v.drivetrain = .rwd
+        v.buildGoal = BuildGoal(summary: "300 whp", targetWheelHP: 300)
+        let progress = BuildPlanner.plan(for: v).progress
+        XCTAssertFalse(progress.powerMeasured)
+        XCTAssertEqual(progress.currentWHP ?? 0, v.estimatedStockWheelHP ?? 0, accuracy: 0.001)
+        XCTAssertLessThan(progress.powerFraction ?? 1, 1.0)   // not falsely "at goal"
+    }
+
     func testProgressNilWithoutATarget() {
         var v = boostedCar()
         v.parts += [Part(name: "Coilovers", category: .suspension, status: .wishlist, cost: 1200)]

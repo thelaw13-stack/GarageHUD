@@ -34,8 +34,10 @@ public enum BuildSheetExporter {
         if vehicle.totalInvested > 0 {
             header("Investment")
             line("\(dollars(vehicle.totalInvested)) \(vehicle.investmentIsLiveFromParts ? "in logged parts" : "documented")")
-            if let doc = vehicle.documentedTotalMismatch {
-                line("(build sheet noted \(dollars(doc)))")
+            if let doc = vehicle.documentedReconcileFigure {
+                line("(build sheet noted \(dollars(doc)); priced parts sum higher)")
+            } else if let priced = vehicle.pricedPartsSoFar {
+                line("(\(dollars(priced)) of it priced in parts so far)")
             }
         }
 

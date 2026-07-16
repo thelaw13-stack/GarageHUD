@@ -56,7 +56,8 @@ public enum StewardGrounding {
         section("Investment")
         if vehicle.totalInvested > 0 {
             fact("Total invested", "\(dollars(vehicle.totalInvested)) [\(vehicle.investmentIsLiveFromParts ? "sum of logged parts" : "documented lump sum")]")
-            fact("Build-sheet total (not all parts priced yet)", vehicle.documentedTotalMismatch.map(dollars))
+            fact("Build-sheet total (lower than logged parts)", vehicle.documentedReconcileFigure.map(dollars))
+            fact("Priced in parts so far", vehicle.pricedPartsSoFar.map(dollars))
             fact("Cost per wheel-hp gained", vehicle.costPerHpGroundingText)
         }
         fact("Installed parts", vehicle.installedPartsCount > 0 ? "\(vehicle.installedPartsCount)" : nil)

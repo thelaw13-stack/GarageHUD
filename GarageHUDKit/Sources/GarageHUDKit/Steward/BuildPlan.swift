@@ -43,9 +43,9 @@ public struct PlanStep: Identifiable, Equatable, Sendable {
 }
 
 public struct BuildProgress: Equatable, Sendable {
-    public let currentWHP: Double?
+    public let currentWHP: Double?     // wheel-normalized, so the fraction toward a wheel target is honest
     public let targetWHP: Double?
-    public let powerMeasured: Bool     // is currentWHP from a dyno (vs. a factory estimate)?
+    public let powerMeasured: Bool     // is currentWHP from a dyno (vs. an estimated wheel baseline)?
     public let plannedRemaining: Double
     public let plannedCount: Int
 
@@ -86,7 +86,7 @@ public enum BuildPlanner {
         }
 
         let progress = BuildProgress(
-            currentWHP: vehicle.currentHorsepowerEstimate,
+            currentWHP: vehicle.currentWheelHorsepowerEstimate,   // wheel-to-wheel vs. a wheel target
             targetWHP: vehicle.buildGoal?.targetWheelHP,
             powerMeasured: vehicle.latestPerformance?.type == .dyno,
             plannedRemaining: vehicle.plannedSpend,
@@ -130,7 +130,7 @@ public enum BuildPlanner {
         if plansForcedInduction && !hasFuelingCovered {
             return "Your plan adds boost but no fueling is recorded or planned — sort fueling first."
         }
-        if let target = vehicle.buildGoal?.targetWheelHP, let current = vehicle.currentHorsepowerEstimate,
+        if let target = vehicle.buildGoal?.targetWheelHP, let current = vehicle.currentWheelHorsepowerEstimate,
            current >= target {
             return "You're at your \(Int(target)) whp goal — the plan below is refinement from here."
         }
