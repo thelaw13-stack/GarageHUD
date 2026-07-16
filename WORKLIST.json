@@ -358,8 +358,13 @@
       "testing_criteria": [
         "design review (no automated test); record conclusions here"
       ],
-      "status": "incomplete",
-      "result": null
+      "status": "complete",
+      "result": {
+        "tests": "352 green",
+        "commit": "pending",
+        "date": "2026-07-16",
+        "notes": "First-reviewer eye-gravity pass: Garage reviewed from a live Simulator screenshot, other screens from code. Findings recorded in docs/DESIGN_DEBT.md (DD-001). Landed F1 (clear fix): the fleet-health strip clipped SERVICE DUE behind a non-obvious horizontal scroll; now wraps to two rows via ViewThatFits, verified on device before/after. F2 (power competes with state on an out-of-service car), F3 (active car shown twice), F4 (top-right bay-tab/arrow crowding), and a Dashboard condition-summary idea are logged for Tim as second reviewer (DD-001 rule: if two reviewers disagree, hierarchy is not finished)."
+      }
     },
     {
       "id": "W-016",

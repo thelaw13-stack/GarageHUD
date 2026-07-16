@@ -236,29 +236,43 @@ struct GarageOverviewView: View {
         let serviceColor: Color = service.overdue > 0 ? HUDTheme.danger
             : (service.dueSoon > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
 
-        return ScrollView(.horizontal, showsIndicators: false) {
+        let dotView = Circle().fill(dot).frame(width: 8, height: 8)
+        let vehiclesStat = healthStat("\(store.vehicles.count)", "VEHICLES")
+        let oosStat = healthStat("\(outOfService)", "OUT OF SERVICE", outOfService > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
+        let reviewStat = healthStat("\(review)", "TO REVIEW", review > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
+
+        // Fit on one line when the width allows; otherwise wrap to two so no stat is hidden off-screen
+        // (a horizontal scroll used to clip "SERVICE DUE" with no affordance — the eye read it as broken).
+        return ViewThatFits(in: .horizontal) {
             HStack(spacing: HUDTheme.space3) {
-                Circle().fill(dot).frame(width: 8, height: 8)
-                healthStat("\(store.vehicles.count)", "VEHICLES")
-                healthStat("\(outOfService)", "OUT OF SERVICE", outOfService > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
-                healthStat("\(review)", "TO REVIEW", review > 0 ? HUDTheme.amber : HUDTheme.textPrimary)
-                if service.total > 0 {
-                    healthStat("\(service.total)", "SERVICE DUE", serviceColor)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            if let urgentService { selectedVehicleID = urgentService.vehicleID }
-                        }
-                        .accessibilityAddTraits(.isButton)
-                        .accessibilityHint(urgentService.map { "Jump to \($0.vehicleName) for \($0.itemName)" } ?? "Jump to the car most in need of service")
-                }
+                dotView; vehiclesStat; oosStat; reviewStat
+                if service.total > 0 { serviceDueStat(service, urgentService, serviceColor) }
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, HUDTheme.space3).padding(.vertical, HUDTheme.space2)
+            VStack(alignment: .leading, spacing: HUDTheme.space2) {
+                HStack(spacing: HUDTheme.space3) { dotView; vehiclesStat; oosStat; Spacer(minLength: 0) }
+                HStack(spacing: HUDTheme.space3) {
+                    reviewStat
+                    if service.total > 0 { serviceDueStat(service, urgentService, serviceColor) }
+                    Spacer(minLength: 0)
+                }
+            }
         }
+        .padding(.horizontal, HUDTheme.space3).padding(.vertical, HUDTheme.space2)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.panelBackground))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Fleet: \(store.vehicles.count) vehicles, \(outOfService) out of service, \(review) to review\(service.total > 0 ? ", \(service.total) needing service" : "")")
+    }
+
+    private func serviceDueStat(_ service: FleetHealth.ServiceDue,
+                                _ urgentService: FleetHealth.ServiceFocus?,
+                                _ color: Color) -> some View {
+        healthStat("\(service.total)", "SERVICE DUE", color)
+            .contentShape(Rectangle())
+            .onTapGesture { if let urgentService { selectedVehicleID = urgentService.vehicleID } }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint(urgentService.map { "Jump to \($0.vehicleName) for \($0.itemName)" } ?? "Jump to the car most in need of service")
     }
 
     private func healthStat(_ value: String, _ label: String, _ color: Color = HUDTheme.textPrimary) -> some View {

@@ -1,10 +1,42 @@
 # Design Debt Register
 
-## DD-001 — Eye gravity review needed
+## DD-001 — Eye gravity review
 
 Every major screen should be reviewed with one question: where does the eye land first?
-
 If two reviewers answer differently, the hierarchy is not finished.
+
+### First-reviewer pass (Vector, 2026-07-16)
+
+Reviewed from a live Simulator screenshot (Garage) and from the view code (Dashboard, Specs, Ask
+Steward). Vehicle: the seeded out-of-service S2K. Awaiting Tim's second-reviewer read — where two
+answers differ, the item stays open.
+
+**Garage (front door).** Eye lands: `GARAGE` (largest) → the cyan `Brief me` CTA → the hero car +
+its amber `OUT OF SERVICE`. Anchor is the car, so the three-layer vision holds. Findings:
+
+- **F1 — fleet-health strip clipped its last stat. FIXED.** Four long labeled stats couldn't fit one
+  line, so a horizontal scroll hid `SERVICE DUE` (read as a broken "2 S…"). Now wraps to two rows
+  (`ViewThatFits`) so nothing is hidden; unchanged when it does fit. Verified on device.
+- **F2 — power competes with state on an out-of-service car (for Tim).** The hero instrument rail
+  shows `POWER 477 WHP` in bright cyan next to amber `OUT OF SERVICE` and red `TUNE STATE HOLD` —
+  three signal colors in one glance. For a torn-down car, power isn't the story; consider dimming
+  POWER to `textPrimary` (reserving cyan for when power *is* the headline) while out of service.
+- **F3 — the active car appears twice (for Tim).** It's the hero (BAY 1) *and* the first row of the
+  vehicle list directly below. Consider omitting the spotlighted car from the list.
+- **F4 — top-right crowding (verify on device).** The rightmost bay tab and the hero's open-arrow
+  button look close/overlapping in the top-right; nudge spacing if it's a real collision.
+
+**Dashboard (per-car cockpit).** Panels stack identity → build assessment → Build Plan → maintenance
+→ … Car-first holds, but "the condition" (what matters *now*) can fall below the fold on a busy car.
+Consider a one-line condition summary directly under identity. (Log; softer.)
+
+**Specs.** Post-consolidation it's one calm Numbers panel (POWER → INVESTMENT → OWNERSHIP). Eye lands
+on the section it's scrolled to; hierarchy reads clean. No finding.
+
+**Ask Steward.** Eye lands on the reply panel, then the mic. Reasonable; the voice nudge sits quietly
+under the header when applicable. No finding.
+
+Open for Tim: F2, F3, F4 (and the Dashboard condition-summary idea). F1 is done.
 
 ## DD-002 — Driving Mode interaction model
 
