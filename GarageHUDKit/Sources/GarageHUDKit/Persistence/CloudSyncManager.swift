@@ -17,7 +17,14 @@ public final class CloudSyncManager {
     private let garageRecordType = "Garage"
     private let photoRecordType = "Photo"
 
+    /// Whether this build actually carries the iCloud container entitlement — so an *unsigned*
+    /// desktop build degrades to local-only instead of trapping inside `CKContainer`.
+    ///
+    /// The `SecTask` entitlement-inspection APIs are macOS-only (they aren't in the iOS SDK), and
+    /// the check only exists for the unsigned-desktop case in the first place. On iOS the app is
+    /// always provisioned with the container, so the answer is unconditionally yes.
     public static var canUseCloudKitContainer: Bool {
+        #if os(macOS)
         guard let task = SecTaskCreateFromSelf(nil),
               let value = SecTaskCopyValueForEntitlement(
                 task,
@@ -27,6 +34,9 @@ public final class CloudSyncManager {
         if let containers = value as? [String] { return containers.contains(containerID) }
         if let container = value as? String { return container == containerID }
         return false
+        #else
+        return true
+        #endif
     }
 
     public init() {
