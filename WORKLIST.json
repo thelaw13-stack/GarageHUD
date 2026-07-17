@@ -417,6 +417,29 @@
         "date": "2026-07-16",
         "notes": "BuildEvent.cost added; markMaintenanceDone takes an optional cost; setBuildEventCost prices/clears a record after the fact. Editable per record in Service History (tap 'Add cost'), with a running TOTAL SERVICE SPEND header. Vehicle.serviceSpend shown as its own line on Specs, separate from Total Invested and Purchase price. Follow-up (Tim): 'Mark done' now prompts for the cost via an optional alert field — Log works with it blank, so the prompt never restricts the record."
       }
+    },
+    {
+      "id": "W-018",
+      "title": "F2: dim POWER on an out-of-service car (DD-001 eye-gravity)",
+      "why": "On a torn-down car the bright cyan POWER (e.g. 477 WHP) out-competed the amber OUT OF SERVICE and red TUNE STATE for the eye — power isn't the story when the engine is apart.",
+      "depends_on": [
+        "W-015"
+      ],
+      "completion_criteria": [
+        "Hero instrument rail shows POWER in textPrimary (not cyan) while serviceStatus.isInService",
+        "Cyan retained when the car is in service"
+      ],
+      "testing_criteria": [
+        "full suite green",
+        "visually verified in simulator (out-of-service hero)"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "362 green",
+        "commit": "pending",
+        "date": "2026-07-16",
+        "notes": "POWER cell in the hero instrument rail now renders textPrimary (plain white) while serviceStatus.isInService, cyan otherwise. Verified in the simulator: on the out-of-service S2K the eye now lands on OUT OF SERVICE / TUNE STATE HOLD / NEXT ACTION rather than the dyno number. F3 (active car shown twice) and F4 (bay-tab/arrow crowding) remain logged in DESIGN_DEBT.md for Tim."
+      }
     }
   ]
 }

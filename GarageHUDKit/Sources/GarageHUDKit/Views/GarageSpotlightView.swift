@@ -125,7 +125,10 @@ struct GarageSpotlightView: View {
                 "POWER",
                 vehicle.currentHorsepowerEstimate.map { "\(Int($0)) WHP" } ?? "NO DYNO",
                 vehicle.latestPerformance?.summary ?? "No measured baseline",
-                HUDTheme.cyan
+                // On a torn-down car, power isn't the story — dim it to plain white so it stops
+                // out-competing the amber OUT OF SERVICE / red TUNE STATE for the eye (DD-001 F2).
+                // Cyan stays reserved for when the car is running and power is the live headline.
+                vehicle.serviceStatus.isInService ? HUDTheme.textPrimary : HUDTheme.cyan
             )
             railFact(
                 "NEXT ACTION",
