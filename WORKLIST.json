@@ -26,8 +26,8 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 366,
-    "last_updated": "2026-07-16"
+    "test_count_at_last_update": 376,
+    "last_updated": "2026-07-17"
   },
   "items": [
     {
@@ -221,7 +221,6 @@
         "full suite green"
       ],
       "status": "complete",
-      "blocked_reason": "Needs Tim's judgment on his real-car numbers; low priority.",
       "result": {
         "tests": "362 green (no code change)",
         "date": "2026-07-16",
@@ -252,7 +251,7 @@
           "PDFKit: 1 page, 612x1271pt (US-Letter width, well under the 14,400pt CGContext ceiling), with 1003 chars of SELECTABLE vector text — crisp and searchable, not a rasterized image.",
           "Rendered page reflects current honest logic: documented-total labeling (W-001), the dot legend, and goal %."
         ],
-        "remaining_on_device": "Tim taps Share on the garage screen -> Save to Files, then Mail and AirDrop; confirm a titled .pdf arrives and opens, and the iOS share-sheet preview reads well. Report back to flip this to complete."
+        "note": "Stale 'remaining_on_device' checklist removed 2026-07-17 — superseded by Tim's on-device confirmation above."
       }
     },
     {
@@ -510,7 +509,38 @@
         "tests": "366 green (+4)",
         "commit": "pending",
         "date": "2026-07-16",
-        "notes": "Empirically confirmed the lie ('155 whp measured'), fixed, and locked with regression tests. Audit also cleared attacks 2 (installed part overrides stale stock claim) and 3 (planned part reads 'undocumented, planned', not 'covered') as honest. Attack 4 (absurd user-entered dyno reported raw) is garbage-in, not an engine lie — possible future sanity-flag, not tracked."
+        "notes": "Empirically confirmed the lie ('155 whp measured'), fixed, and locked with regression tests. Audit also cleared attacks 2 (installed part overrides stale stock claim) and 3 (planned part reads 'undocumented, planned', not 'covered') as honest. Attack 4 (absurd user-entered dyno reported raw) is garbage-in, not an engine lie — possible future sanity-flag, not tracked. UPDATE 2026-07-17: attack 4 was overruled by the Fable review (W-022) — a non-positive dyno figure no longer counts as a measurement."
+      }
+    },
+    {
+      "id": "W-022",
+      "title": "Fable review fixes — six proven honesty lies, three integrity bugs",
+      "why": "Independent adversarial review (Fable, 2026-07-17) empirically proved the app stating falsehoods: crank labeled 'whp' in BuildAssessment.powerSummary (third instance of the W-004/W-021 class); wishlist costs reported as spend on Specs and in LLM grounding; a 3,000-mi-overdue truck producing zero Steward observations ('Nothing stands out right now.') while the briefing header called it overdue; gap evidence denying a logged wishlist part; grounding denying a logged numberless dyno; '-50 whp (measured)' on the shareable build sheet. Plus: a fresh device could clobber the whole cloud garage (conflict guard skipped when appliedCloudUpdatedAt was nil); mark-done with unknown odometer kept a stale mileage baseline (fresh service read overdue); OBD boost hardcoded sea-level baro; moveParts carried the source car's installDate into the destination's history.",
+      "depends_on": [
+        "W-021"
+      ],
+      "completion_criteria": [
+        "Vehicle.measuredDynoRecords/latestMeasuredDyno is the single source for every measured-power claim; non-positive figures never count",
+        "spendByCategory counts installed parts only",
+        "Steward.observe judges maintenance mileage-aware, same as every other surface; evidence and build-sheet copy name the actual overdue driver",
+        "supportGap acknowledges planned parts; grounding acknowledges numberless dyno sessions and labels power-to-weight basis",
+        "pushNow treats never-applied-cloud-state as a conflict (snapshot + adopt) instead of blind-pushing; stripped-remote exception preserved",
+        "markMaintenanceDone clears the mileage baseline when the odometer is unknown",
+        "OBD decoder reports raw MAP kPa, polls baro PID 0133, computes gauge boost against measured baro",
+        "moveParts re-dates the moved part to the transfer moment"
+      ],
+      "testing_criteria": [
+        "HonestyInvariantsTests regression per lie; PartTransferTests re-date; MileageMaintenanceTests baseline-clear; OBDPIDDecoderTests baro/gauge",
+        "full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "366 -> 376, +10",
+        "commits": [
+          "9763bca"
+        ],
+        "date": "2026-07-17",
+        "notes": "Remaining from the review, deliberately NOT done here (needs owner/architect judgment): a table-driven cross-surface honesty sweep test (adversarial vehicle matrix x every textual surface x global assertions) — the structural guard against instance #4 of the crank-as-wheel class; a PowerFigure/money-bucket type so value+label can't be mis-paired at call sites; odometer input validation; units/locale; a UI path to discover and restore conflict snapshots."
       }
     }
   ]
