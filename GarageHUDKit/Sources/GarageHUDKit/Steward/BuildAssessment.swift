@@ -89,9 +89,11 @@ public extension Steward {
         // Confirmed either way → strong. Any inference from undocumented absence → moderate.
         let confidence: ConfidenceBand = undocumented.isEmpty ? .strong : .moderate
 
+        // The unit and label must follow the measurement, never the record's ambition: a factory
+        // crank rating presented as "whp" is the exact lie this app exists to never tell.
         let powerSummary: String = {
             guard let hp = vehicle.currentHorsepowerEstimate else { return "Power not yet measured" }
-            let base = "\(Int(hp)) whp"
+            let base = vehicle.hasMeasuredPower ? "\(Int(hp)) whp measured" : "\(Int(hp)) hp (factory rated)"
             return gain > 0 ? base + " · +\(Int(gain)) over an estimated stock wheel baseline" : base
         }()
 

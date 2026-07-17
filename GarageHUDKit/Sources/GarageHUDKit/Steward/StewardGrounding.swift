@@ -44,14 +44,21 @@ public enum StewardGrounding {
         }
 
         section("Power")
-        if let dyno = vehicle.performanceRecords.filter({ $0.type == .dyno && $0.wheelHorsepower != nil })
-            .sorted(by: { $0.date > $1.date }).first, let hp = dyno.wheelHorsepower {
+        if let dyno = vehicle.latestMeasuredDyno, let hp = dyno.wheelHorsepower {
             fact("Measured power", "\(Int(hp)) whp on the dyno \(short(dyno.date)) [Strong evidence]")
         } else if let f = vehicle.factoryHorsepower {
-            fact("Power", "\(Int(f)) hp factory rating, no dyno logged [Weak — estimate only]")
+            // Distinguish "no dyno logged" from "a dyno is logged but carries no figure" — the
+            // owner can see that session in the timeline, so denying it would be a false claim
+            // about the record itself.
+            let dynoNote = vehicle.performanceRecords.contains { $0.type == .dyno }
+                ? "a dyno session is logged but carries no measured figure"
+                : "no dyno logged"
+            fact("Power", "\(Int(f)) hp factory rating, \(dynoNote) [Weak — estimate only]")
         }
         fact("Gained over stock", vehicle.horsepowerGainedOverStock.map { "~\(Int($0)) whp [estimate]" })
-        fact("Power-to-weight", vehicle.powerToWeight.map { String(format: "%.1f lb/hp", $0) })
+        fact("Power-to-weight", vehicle.powerToWeight.map {
+            String(format: "%.1f lb/hp", $0) + (vehicle.hasMeasuredPower ? "" : " [from factory rating]")
+        })
 
         section("Investment")
         if vehicle.totalInvested > 0 {
@@ -64,7 +71,7 @@ public enum StewardGrounding {
         fact("Planned (wishlist) parts", vehicle.wishlistPartsCount > 0 ? "\(vehicle.wishlistPartsCount), ~\(dollars(vehicle.plannedSpend)) planned" : nil)
 
         let modifiedSystems = vehicle.spendByCategory.filter { $0.total > 0 }.map { "\($0.category.rawValue) (\(dollars($0.total)))" }
-        if !modifiedSystems.isEmpty { fact("Spend by system", modifiedSystems.joined(separator: ", ")) }
+        if !modifiedSystems.isEmpty { fact("Spend by system (installed parts)", modifiedSystems.joined(separator: ", ")) }
         let stock = vehicle.confirmedStockSystems.map(\.rawValue).sorted()
         if !stock.isEmpty { fact("Confirmed factory-stock", stock.joined(separator: ", ")) }
 

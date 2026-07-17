@@ -32,17 +32,37 @@ final class OBDPIDDecoderTests: XCTestCase {
         XCTAssertEqual(OBDPIDDecoder.decode("41 11 FF")?.value ?? 0, 100, accuracy: 0.001)
     }
 
-    func testBoostFromManifoldPressure() {
-        // 010B reply "41 0B 96" → 0x96=150 kPa → (150-101.325)*0.145038 ≈ 7.06 psi gauge
+    func testManifoldPressureDecodesRawKPa() {
+        // 010B reply "41 0B 96" → 0x96 = 150 kPa absolute. The decoder reports raw MAP; gauge
+        // boost is computed against *measured* baro (or sea level until baro answers).
         let r = OBDPIDDecoder.decode("41 0B 96")
         XCTAssertEqual(r?.pid, .intakeManifoldPressure)
-        XCTAssertEqual(r?.value ?? 0, (150 - 101.325) * 0.145038, accuracy: 0.001)
+        XCTAssertEqual(r?.value ?? 0, 150, accuracy: 0.001)
+        XCTAssertEqual(OBDPIDDecoder.gaugeBoostPsi(mapKPa: 150, baroKPa: OBDPIDDecoder.seaLevelKPa),
+                       (150 - 101.325) * 0.145038, accuracy: 0.001)
+    }
+
+    func testBarometricPressureDecodesKPa() {
+        // 0133 reply "41 33 63" → 0x63 = 99 kPa ambient.
+        let r = OBDPIDDecoder.decode("41 33 63")
+        XCTAssertEqual(r?.pid, .barometricPressure)
+        XCTAssertEqual(r?.value ?? 0, 99, accuracy: 0.001)
+    }
+
+    func testGaugeBoostUsesMeasuredBaroNotSeaLevel() {
+        // Denver: baro ~83 kPa. 10 psi of real boost is MAP ≈ 152 kPa. Against measured baro the
+        // gauge figure is right; against the old hardcoded sea-level constant it read ~2.7 psi low.
+        let mapKPa = 83.0 + 10.0 / 0.145038
+        XCTAssertEqual(OBDPIDDecoder.gaugeBoostPsi(mapKPa: mapKPa, baroKPa: 83), 10, accuracy: 0.01)
+        XCTAssertLessThan(OBDPIDDecoder.gaugeBoostPsi(mapKPa: mapKPa, baroKPa: OBDPIDDecoder.seaLevelKPa), 7.4)
     }
 
     func testVacuumReadsNegativeBoost() {
         // 30 kPa manifold vacuum → negative gauge psi, physically correct off-throttle
         let r = OBDPIDDecoder.decode("410B1E") // 0x1E = 30
-        XCTAssertLessThan(r?.value ?? 0, 0)
+        XCTAssertEqual(r?.value ?? 0, 30, accuracy: 0.001)
+        XCTAssertLessThan(OBDPIDDecoder.gaugeBoostPsi(mapKPa: r?.value ?? 0,
+                                                      baroKPa: OBDPIDDecoder.seaLevelKPa), 0)
     }
 
     func testTolerantOfNoSpacesAndPrompt() {

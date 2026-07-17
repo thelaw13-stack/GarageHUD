@@ -87,12 +87,9 @@ public extension Vehicle {
             .min()
     }
 
-    /// The date of the most recent dyno pull that carries a horsepower figure, if any.
+    /// The date of the most recent dyno pull that carries a real horsepower figure, if any.
     var latestDynoDate: Date? {
-        performanceRecords
-            .filter { $0.type == .dyno && $0.wheelHorsepower != nil }
-            .map(\.date)
-            .max()
+        latestMeasuredDyno?.date
     }
 
     /// The newest dated, still-present install among the given categories — the part and its

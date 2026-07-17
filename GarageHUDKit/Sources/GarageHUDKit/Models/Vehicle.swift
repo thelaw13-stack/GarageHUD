@@ -206,9 +206,14 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
             previousServicedAt: maintenance[i].lastServiced,
             previousServicedMileage: maintenance[i].lastServicedMileage)
         maintenance[i].lastServiced = date
-        // Re-baseline the mileage interval too, so "every 5,000 mi" counts from the current odometer.
-        if maintenance[i].intervalMiles != nil, let odo = currentMileage {
-            maintenance[i].lastServicedMileage = odo
+        // Re-baseline the mileage interval too, so "every 5,000 mi" counts from the current
+        // odometer. When the odometer is unknown, the old baseline must be CLEARED, not kept —
+        // holding it would claim the service happened at the old mileage and read a fresh oil
+        // change as thousands of miles overdue the moment an odometer is finally logged. With no
+        // baseline the mileage leg stays dormant (time interval still applies) until the next
+        // service records one.
+        if maintenance[i].intervalMiles != nil {
+            maintenance[i].lastServicedMileage = currentMileage
         }
         let odoNote = currentMileage.map { " @ \($0.formatted(.number.grouping(.automatic))) mi" } ?? ""
         buildEvents.append(BuildEvent(date: date, title: "\(Vehicle.servicePrefix)\(maintenance[i].name)\(odoNote)",
@@ -440,15 +445,25 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         performanceRecords.sorted { $0.date > $1.date }.first
     }
 
+    /// Dyno records carrying a real, physically possible wheel figure (> 0), newest first — the
+    /// single source every "measured" claim must read from. A dyno session logged with no value
+    /// (or a nonsense non-positive one) is not a measurement. Centralized because three separate
+    /// call sites re-deriving this query is exactly how a crank figure got labeled "whp" twice.
+    public var measuredDynoRecords: [PerformanceRecord] {
+        performanceRecords
+            .filter { $0.type == .dyno && ($0.wheelHorsepower ?? 0) > 0 }
+            .sorted { $0.date != $1.date ? $0.date > $1.date : $0.id.uuidString < $1.id.uuidString }
+    }
+
+    /// The most recent real dyno measurement, if any.
+    public var latestMeasuredDyno: PerformanceRecord? { measuredDynoRecords.first }
+
     /// The latest *actually measured* wheel horsepower — a dyno record that carries a real number.
     /// This, and only this, may ever be presented as "measured". A dyno session logged with no value
     /// is not a measurement, and must not shadow an earlier real one or dress the factory figure up
     /// as measured (the honesty leak a numberless dyno used to cause).
     public var measuredWheelHorsepower: Double? {
-        performanceRecords
-            .filter { $0.type == .dyno && $0.wheelHorsepower != nil }
-            .sorted { $0.date > $1.date }
-            .first?.wheelHorsepower
+        latestMeasuredDyno?.wheelHorsepower
     }
 
     /// True only when there is a real measured wheel figure. Gate any "measured" label on this —
@@ -467,12 +482,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// a dyno we can't claim the mods' gains, so this is the honest floor — never the crank figure,
     /// which would overstate progress toward a wheel target. Nil without a factory figure and no dyno.
     public var currentWheelHorsepowerEstimate: Double? {
-        if let dyno = performanceRecords
-            .filter({ $0.type == .dyno && $0.wheelHorsepower != nil })
-            .sorted(by: { $0.date > $1.date }).first?.wheelHorsepower {
-            return dyno
-        }
-        return estimatedStockWheelHP
+        measuredWheelHorsepower ?? estimatedStockWheelHP
     }
 
     public var powerToWeight: Double? {
@@ -530,9 +540,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// actual wheel dyno — you can't measure a wheel gain without one. Still an estimate,
     /// because the baseline is derived, but now wheel-to-wheel rather than wheel-to-crank.
     public var horsepowerGainedOverStock: Double? {
-        guard let dyno = performanceRecords
-                .filter({ $0.type == .dyno && $0.wheelHorsepower != nil })
-                .sorted(by: { $0.date > $1.date }).first?.wheelHorsepower,
+        guard let dyno = measuredWheelHorsepower,
               let baseline = estimatedStockWheelHP else { return nil }
         let gained = dyno - baseline
         return gained > 0 ? gained : nil
@@ -550,12 +558,13 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         return totalInvested / Double(installedPartsCount)
     }
 
-    /// Recorded spend grouped by system, highest first — only categories with priced parts
-    /// (removed parts and undocumented-price parts are excluded). Note this sums *itemized*
-    /// part prices, which can differ from `documentedTotalInvestment` (a lump-sum figure).
+    /// Recorded spend grouped by system, highest first — *installed*, priced parts only.
+    /// Wishlist parts are planned money (`plannedSpend`), not spend, and removed parts aren't
+    /// in the car; counting either here would state money as spent that wasn't. Note this sums
+    /// *itemized* part prices, which can differ from `documentedTotalInvestment` (a lump sum).
     public var spendByCategory: [(category: PartCategory, total: Double)] {
         var sums: [PartCategory: Double] = [:]
-        for part in parts where part.status != .removed {
+        for part in parts where part.status == .installed {
             if let cost = part.cost, cost > 0 { sums[part.category, default: 0] += cost }
         }
         return sums.map { (category: $0.key, total: $0.value) }.sorted { $0.total > $1.total }

@@ -7,6 +7,9 @@ public enum OBDPID: String, CaseIterable, Sendable {
     case vehicleSpeed       = "010D"
     case coolantTemp        = "0105"
     case throttlePosition   = "0111"
+    // Baro is declared before MAP so the poll rotation (which follows allCases order) measures
+    // ambient pressure before the first boost computation needs it.
+    case barometricPressure = "0133"
     case intakeManifoldPressure = "010B"
 
     /// The response header a valid reply carries: 0x41 (0x01 + 0x40) followed by the PID byte.
@@ -57,12 +60,25 @@ public enum OBDPIDDecoder {
         case .throttlePosition:
             guard let A = a() else { return nil }
             return OBDReading(pid: pid, value: A * 100 / 255)                  // %
+        case .barometricPressure:
+            guard let A = a() else { return nil }
+            return OBDReading(pid: pid, value: A)                              // kPa, absolute
         case .intakeManifoldPressure:
             guard let A = a() else { return nil }
-            // Manifold absolute pressure (kPa) relative to sea-level baro → gauge boost (psi).
-            // Negative under vacuum, which is physically correct off-throttle.
-            return OBDReading(pid: pid, value: (A - 101.325) * 0.145038)       // kPa → psi (gauge)
+            // Raw manifold absolute pressure in kPa. Gauge boost is MAP minus the *measured*
+            // barometric pressure (`gaugeBoostPsi`) — subtracting a hardcoded sea-level constant
+            // here would make "measured" boost silently wrong by ~2.7 psi in Denver.
+            return OBDReading(pid: pid, value: A)                              // kPa, absolute
         }
+    }
+
+    /// Standard atmosphere, used only when the vehicle hasn't answered the baro PID yet.
+    public static let seaLevelKPa = 101.325
+
+    /// Gauge boost from manifold absolute pressure and barometric pressure, both kPa.
+    /// Negative under vacuum, which is physically correct off-throttle.
+    public static func gaugeBoostPsi(mapKPa: Double, baroKPa: Double) -> Double {
+        (mapKPa - baroKPa) * 0.145038                                          // kPa → psi
     }
 
     /// Extract hex byte values from a raw ELM327 line, ignoring spaces, the ">" prompt, and

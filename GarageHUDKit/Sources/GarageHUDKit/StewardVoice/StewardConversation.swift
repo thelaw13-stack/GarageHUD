@@ -63,8 +63,7 @@ public enum StewardConversation {
             return StewardReply(text: "Go ahead.")
 
         case .power:
-            if let dyno = vehicle.performanceRecords.filter({ $0.type == .dyno && $0.wheelHorsepower != nil })
-                .sorted(by: { $0.date > $1.date }).first, let hp = dyno.wheelHorsepower {
+            if let dyno = vehicle.latestMeasuredDyno, let hp = dyno.wheelHorsepower {
                 return StewardReply(
                     text: "I observed \(Int(hp)) wheel-hp — measured on the dyno \(short(dyno.date)).",
                     confidence: .strong)

@@ -106,6 +106,9 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
 
     // Per-metric measurements, each stamped when its reply actually arrives.
     private var rpm, speedMph, coolant, boost, throttle: TimedMeasurement<Double>?
+    /// Last measured barometric pressure (kPa) — the honest reference for gauge boost. Sea level
+    /// is only assumed until the vehicle answers PID 0133 (polled every rotation, before MAP).
+    private var lastBaroKPa: Double?
 
     deinit { continuation.finish() }
 
@@ -134,6 +137,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
 
     private func resetMeasurements() {
         rpm = nil; speedMph = nil; coolant = nil; boost = nil; throttle = nil
+        lastBaroKPa = nil
         pidCursor = 0; consecutivePollTimeouts = 0; handshake = ELM327Handshake()
         hasRecordedFirstMeasurement = false
         pendingCharacteristicServices = []
@@ -367,7 +371,13 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         case .vehicleSpeed: speedMph = m
         case .coolantTemp: coolant = m
         case .throttlePosition: throttle = m
-        case .intakeManifoldPressure: boost = m
+        case .barometricPressure:
+            lastBaroKPa = reading.value   // reference only; not a displayed metric
+        case .intakeManifoldPressure:
+            boost = TimedMeasurement(
+                OBDPIDDecoder.gaugeBoostPsi(mapKPa: reading.value,
+                                            baroKPa: lastBaroKPa ?? OBDPIDDecoder.seaLevelKPa),
+                source: .obdAdapter, at: Date())
         }
         if !hasRecordedFirstMeasurement {
             hasRecordedFirstMeasurement = true

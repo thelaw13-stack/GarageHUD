@@ -63,9 +63,7 @@ public enum Steward {
         }
 
         // 3d. Plateau — parts added between the last two pulls but the dyno barely moved.
-        let dynos = vehicle.performanceRecords
-            .filter { $0.type == .dyno && $0.wheelHorsepower != nil }
-            .sorted { $0.date > $1.date }
+        let dynos = vehicle.measuredDynoRecords
         if dynos.count >= 2,
            let latest = dynos.first?.wheelHorsepower, let latestDate = dynos.first?.date,
            let prior = dynos.dropFirst().first?.wheelHorsepower, let priorDate = dynos.dropFirst().first?.date {
@@ -95,20 +93,38 @@ public enum Steward {
                 confidence: .confirmed, tone: .informational, provenance: .recorded))
         }
 
-        // 3f. Upkeep — overdue or soon-due scheduled maintenance. A confirmed date fact.
+        // 3f. Upkeep — overdue or soon-due scheduled maintenance. A confirmed fact, judged the
+        //     same way every other surface judges it: whichever of the time interval and the
+        //     mileage interval arrives first. (This rule once used the time-only overload, so a
+        //     truck 3,000 mi over its oil interval produced no observation while the briefing
+        //     header called it overdue — two surfaces contradicting each other.)
+        let odo = vehicle.currentMileage
         for item in vehicle.maintenance {
-            switch item.due(now: context.now, calendar: context.calendar) {
+            let milesRemaining = item.milesUntilDue(currentMileage: odo)
+            switch item.due(now: context.now, calendar: context.calendar, currentMileage: odo) {
             case .overdue:
+                let evidence: String
+                if let m = milesRemaining, m <= 0, let target = item.dueMileage, let odo {
+                    evidence = "Odometer \(odo.formatted(.number.grouping(.automatic))) mi is \((-m).formatted(.number.grouping(.automatic))) mi past the \(target.formatted(.number.grouping(.automatic))) mi mark."
+                } else {
+                    evidence = "Due \(short(item.dueDate(context.calendar))); last done \(short(item.lastServiced)) on a \(item.intervalMonths)-month interval."
+                }
                 out.append(StewardObservation(
                     ruleID: "maintenance.overdue.\(item.id.uuidString)", subjectID: vid,
                     statement: "\(item.name) is overdue.",
-                    evidence: "Due \(short(item.dueDate(context.calendar))); last done \(short(item.lastServiced)) on a \(item.intervalMonths)-month interval.",
+                    evidence: evidence,
                     confidence: .confirmed, tone: .advisory, provenance: .derived))
             case .dueSoon:
+                let evidence: String
+                if let m = milesRemaining, m > 0, m <= 500 {
+                    evidence = "Due in \(m.formatted(.number.grouping(.automatic))) mi."
+                } else {
+                    evidence = "Due \(short(item.dueDate(context.calendar)))."
+                }
                 out.append(StewardObservation(
                     ruleID: "maintenance.dueSoon.\(item.id.uuidString)", subjectID: vid,
                     statement: "\(item.name) is due soon.",
-                    evidence: "Due \(short(item.dueDate(context.calendar))).",
+                    evidence: evidence,
                     confidence: .confirmed, tone: .caution, provenance: .derived))
             case .ok:
                 break
@@ -191,6 +207,17 @@ public enum Steward {
                 confidence: .strong, tone: .caution, provenance: .recorded)
         case .undocumented:
             let strong = vehicle.isWellDocumented
+            // A wishlist part in this category is on the record — the evidence must acknowledge
+            // it (saying "no parts are logged" would deny a logged part), while the gap itself
+            // stays open: planned is intent, not coverage.
+            if vehicle.hasPlanned(in: support) {
+                return StewardObservation(
+                    ruleID: ruleID, subjectID: vehicle.id,
+                    statement: "\(capitalizedFirst(subsystem)) support is planned but not yet installed.",
+                    evidence: "\(trigger) A \(subsystem) part is on the wishlist — the gap stays open until it's on the car.",
+                    confidence: strong ? .moderate : .weak,
+                    tone: strong ? .caution : .informational, provenance: .derived)
+            }
             return StewardObservation(
                 ruleID: ruleID, subjectID: vehicle.id,
                 statement: "\(capitalizedFirst(subsystem)) support hasn't been documented.",

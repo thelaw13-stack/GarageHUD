@@ -66,8 +66,7 @@ public enum FleetDigestBuilder {
                 id: v.id, name: v.displayName, inService: v.serviceStatus.isInService,
                 maintenanceDueRank: dueRank(v.maintenanceDue(now: date, calendar: context.calendar)),
                 mileage: v.currentMileage,
-                dynoWHP: v.performanceRecords.filter { $0.type == .dyno && $0.wheelHorsepower != nil }
-                    .sorted { $0.date > $1.date }.first?.wheelHorsepower.map { Int($0) },
+                dynoWHP: v.measuredWheelHorsepower.map { Int($0) },
                 pullCount: v.pullReports.count,
                 installedParts: v.installedPartsCount,
                 attentionCount: Steward.observe(v, context: context).filter { $0.tone != .informational }.count)

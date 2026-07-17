@@ -252,14 +252,18 @@ public final class GarageStore: ObservableObject {
         guard await cloud.accountAvailable() else { syncStatus = .offline; return }
         syncStatus = .syncing
 
-        // Conservative conflict guard: if another device has already pushed a newer
-        // garage than the one this device last applied, do not overwrite it. Preserve
-        // this device's attempted local state for manual recovery, then accept the
-        // newer cloud state. This is still whole-document sync, but it prevents the
-        // worst failure mode: silent cross-device data loss.
+        // Conservative conflict guard: never overwrite cloud state this device hasn't seen.
+        // That means (a) another device pushed a newer garage than the one we last applied, OR
+        // (b) this device has never successfully applied ANY cloud state (`appliedCloudUpdatedAt`
+        // is nil — e.g. the launch-time account check failed) yet a real cloud garage exists.
+        // The old guard skipped case (b), so a fresh device with one local edit could silently
+        // clobber the whole cloud garage it had just fetched. Preserve this device's attempted
+        // local state for manual recovery, then accept the cloud state. The one exception is a
+        // stripped/empty remote against a real local build (`shouldPreferLocal`) — there, local
+        // is authoritative, as everywhere else.
         if let remote = await cloud.pull(),
-           let appliedCloudUpdatedAt,
-           remote.updatedAt > appliedCloudUpdatedAt {
+           !shouldPreferLocal(over: remote.vehicles),
+           appliedCloudUpdatedAt.map({ remote.updatedAt > $0 }) ?? true {
             let snapshotURL = writeConflictSnapshot(snapshot, remoteUpdatedAt: remote.updatedAt)
             applyRemote(remote.vehicles)
             self.appliedCloudUpdatedAt = remote.updatedAt
@@ -426,7 +430,11 @@ public final class GarageStore: ObservableObject {
               let pi = vehicles[si].parts.firstIndex(where: { $0.id == partID })
         else { return false }
 
-        let part = vehicles[si].parts.remove(at: pi)
+        var part = vehicles[si].parts.remove(at: pi)
+        // The move is the *destination* car's install moment. Carrying the source car's install
+        // date over would fabricate the new car's history — a turbo "installed 2021" on a car it
+        // only reached today reads as years of undocumented boost to the sequence/stale-tune rules.
+        if part.status == .installed { part.installDate = Date() }
         vehicles[di].parts.append(part)
 
         let sourceName = vehicles[si].displayName

@@ -31,6 +31,29 @@ final class PartTransferTests: XCTestCase {
         XCTAssertTrue(dst.buildEvents.contains { $0.title.contains("Installed") })
     }
 
+    /// The moved part is re-dated to the transfer moment. Carrying the source car's install date
+    /// over fabricated the destination's history — a 2021-dated turbo landing next to 2026-dated
+    /// injectors read as years of "forced induction ran ahead of the fueling" on a car that never
+    /// ran boost unfueled.
+    func testMoveRedatesInstallSoDestinationHistoryIsHonest() {
+        var civic = Vehicle(make: "Honda", model: "Civic", year: 2000, garageSlot: 1)
+        var s2k = Vehicle(make: "Honda", model: "S2000", year: 2004, garageSlot: 2)
+        let turbo = Part(name: "T3 turbo", category: .forcedInduction, status: .installed,
+                         installDate: Date(timeIntervalSinceNow: -2_000 * 86_400))
+        civic.parts = [turbo]
+        s2k.parts = [Part(name: "Injectors", category: .fueling, status: .installed,
+                          installDate: Date(timeIntervalSinceNow: -30 * 86_400))]
+        let s = store(with: [civic, s2k])
+        XCTAssertTrue(s.moveParts(partID: turbo.id, from: civic.id, to: s2k.id))
+
+        let dst = s.vehicles.first { $0.id == s2k.id }!
+        let moved = dst.parts.first { $0.id == turbo.id }!
+        XCTAssertGreaterThan(moved.installDate!, Date(timeIntervalSinceNow: -60),
+                             "install date must be the transfer moment, not the source car's history")
+        XCTAssertFalse(Steward.observe(dst).contains { $0.ruleID == "sequence.fiAheadOfFueling" },
+                       "no fabricated boost-before-fueling history on the destination")
+    }
+
     func testMoveToSameVehicleIsNoOp() {
         var v = Vehicle(make: "Honda", model: "S2000", year: 2006, garageSlot: 1)
         let p = Part(name: "Coilovers", category: .suspension, status: .installed)

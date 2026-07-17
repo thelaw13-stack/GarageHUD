@@ -80,15 +80,28 @@ public enum BuildSheetExporter {
         if !vehicle.maintenance.isEmpty {
             header("Maintenance")
             for item in vehicle.maintenance {
+                let odo = vehicle.currentMileage
+                let milesRemaining = item.milesUntilDue(currentMileage: odo)
                 let status: String
-                switch item.due(now: context.now, calendar: context.calendar, currentMileage: vehicle.currentMileage) {
+                switch item.due(now: context.now, calendar: context.calendar, currentMileage: odo) {
                 case .overdue: status = "OVERDUE"
                 case .dueSoon: status = "due soon"
                 case .ok: status = "ok"
                 }
                 var interval = "every \(item.intervalMonths) mo"
                 if let miles = item.intervalMiles { interval += " / \(miles) mi" }
-                line("  \(item.name): \(status) — \(interval), due \(short(item.dueDate(context.calendar)))")
+                // Name the leg that's actually driving the state — "OVERDUE … due <next year>"
+                // (time date shown while the mileage interval is what's blown) reads as a
+                // contradiction on a document a buyer may see.
+                let dueText: String
+                if let m = milesRemaining, m <= 0, let target = item.dueMileage {
+                    dueText = "\((-m).formatted(.number.grouping(.automatic))) mi past the \(target.formatted(.number.grouping(.automatic))) mi mark"
+                } else if let m = milesRemaining, m <= 500 {
+                    dueText = "due in \(m.formatted(.number.grouping(.automatic))) mi"
+                } else {
+                    dueText = "due \(short(item.dueDate(context.calendar)))"
+                }
+                line("  \(item.name): \(status) — \(interval), \(dueText)")
             }
         }
 

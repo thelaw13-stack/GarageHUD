@@ -49,4 +49,21 @@ final class MileageMaintenanceTests: XCTestCase {
         XCTAssertEqual(v.maintenance[0].lastServicedMileage, 41_000) // baseline moved to now
         XCTAssertEqual(v.maintenanceDue(), .ok)                      // reset by both time and miles
     }
+
+    /// Marking done with an *unknown* odometer must clear the stale mileage baseline, not keep it.
+    /// Keeping it claimed the service happened at the old mileage — so a fresh oil change read as
+    /// thousands of miles overdue the moment an odometer was finally logged.
+    func testMarkDoneWithoutOdometerClearsStaleBaseline() {
+        var v = Vehicle(make: "Toyota", model: "Tundra", year: 2021, garageSlot: 1)
+        let item = oil(interval: 5_000, lastAt: 50_000, monthsAgo: 10)
+        v.maintenance = [item]                                       // no odometer events at all
+
+        v.markMaintenanceDone(item.id)
+        XCTAssertNil(v.maintenance[0].lastServicedMileage, "unknown odometer → no mileage baseline")
+
+        // A week later the owner logs the odometer; the fresh service must NOT be overdue by miles.
+        v.buildEvents.append(BuildEvent(title: "Odometer", mileage: 58_000))
+        XCTAssertEqual(v.maintenanceDue(), .ok)
+        XCTAssertNil(v.maintenance[0].milesUntilDue(currentMileage: v.currentMileage))
+    }
 }
