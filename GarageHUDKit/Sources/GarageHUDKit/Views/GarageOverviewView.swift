@@ -286,9 +286,14 @@ struct GarageOverviewView: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 280), spacing: HUDTheme.space3)], spacing: HUDTheme.space3) {
             ForEach(1...maxSlots, id: \.self) { slot in
                 if let vehicle = store.vehicles.first(where: { $0.garageSlot == slot }) {
-                    VehicleOverviewCard(vehicle: vehicle)
-                        .contentShape(Rectangle())
-                        .onTapGesture { selectedVehicleID = vehicle.id }
+                    // The active car is already the hero above (labeled ACTIVE BAY) — don't repeat its
+                    // card here, so the fleet map shows the *rest* of the garage (DD-001 F3). The grid
+                    // reflows to fill the gap.
+                    if vehicle.id != spotlightVehicle?.id {
+                        VehicleOverviewCard(vehicle: vehicle)
+                            .contentShape(Rectangle())
+                            .onTapGesture { selectedVehicleID = vehicle.id }
+                    }
                 } else {
                     EmptyBayCard(slot: slot).contentShape(Rectangle()).onTapGesture { onAddVehicle(slot) }
                 }

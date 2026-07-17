@@ -83,12 +83,18 @@ struct VehicleVisualFallback: View {
     }
 
     private func heroMark(size: CGFloat) -> some View {
-        ZStack(alignment: .trailing) {
+        ZStack {
+            // Bay number sits top-LEFT, clear of the top-right open-arrow the garage spotlight
+            // overlays in this same corner (DD-001 F4 — the two used to collide).
+            Text("BAY \(vehicle?.garageSlot ?? 0)")
+                .font(HUDTheme.label(.semibold))
+                .tracking(1.4)
+                .foregroundStyle(accent.opacity(0.72))
+                .padding(.leading, HUDTheme.space5)
+                .padding(.top, HUDTheme.space5)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
             VStack(alignment: .trailing, spacing: HUDTheme.space2) {
-                Text("BAY \(vehicle?.garageSlot ?? 0)")
-                    .font(HUDTheme.label(.semibold))
-                    .tracking(1.4)
-                    .foregroundStyle(accent.opacity(0.72))
                 Text(initials)
                     .font(HUDTheme.monoFont(72, weight: .black))
                     .foregroundStyle(HUDTheme.textPrimary.opacity(0.14))
@@ -100,7 +106,7 @@ struct VehicleVisualFallback: View {
                     .foregroundStyle(HUDTheme.textTertiary)
             }
             .padding(.trailing, HUDTheme.space5)
-            .padding(.top, HUDTheme.space5)
+            .padding(.top, HUDTheme.space5 * 2)   // clear the arrow button, then the watermark below
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
 
             Image(systemName: "car.side.fill")

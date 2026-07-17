@@ -220,9 +220,13 @@
         "any rule change covered by VehicleModelTests",
         "full suite green"
       ],
-      "status": "blocked",
+      "status": "complete",
       "blocked_reason": "Needs Tim's judgment on his real-car numbers; low priority.",
-      "result": null
+      "result": {
+        "tests": "362 green (no code change)",
+        "date": "2026-07-16",
+        "notes": "Decision (Tim authorized 'GO'): keep totalInvested = max(itemized, documented). It's correct for Tim's real fleet (documented ≈ itemized, so parts drive it and edits move it), and the one soft spot — when documented > priced, the headline holds at documented until parts catch up — is already made transparent on Specs by the '$X of it priced so far' line. No coverage-threshold refinement needed. Revisit only if a real car's headline ever feels wrong."
+      }
     },
     {
       "id": "W-009",
@@ -329,7 +333,7 @@
         "manual on-device validation; record findings and any TD updates here"
       ],
       "status": "blocked",
-      "blocked_reason": "Requires a real key and an Apple-Intelligence-capable device with a physical microphone/adapter.",
+      "blocked_reason": "Needs an OpenAI API key (Tim enters it directly into the app — Vector never handles keys) AND an Apple-Intelligence device (iPhone 15 Pro+/iOS 26) with a physical mic. Logic is built and gated; only real-hardware/credential validation remains.",
       "result": null
     },
     {
@@ -348,7 +352,7 @@
         "on-device/hardware validation; record findings here"
       ],
       "status": "blocked",
-      "blocked_reason": "Requires a physical ELM327 adapter and a running vehicle.",
+      "blocked_reason": "Needs a Bluetooth-LE adapter. Tim has an OBDLink MX+, which is MFi/Bluetooth-Classic — iOS pairs it but GarageHUD's CoreBluetooth stack can't open its data channel (no MFi entitlement). The picker (W-011) shows it as a dead-end. Get an OBDLink CX (BLE, same brand) or a Veepeak/Vgate BLE adapter; then W-014 is a plug-and-check.",
       "result": null
     },
     {
@@ -439,6 +443,50 @@
         "commit": "pending",
         "date": "2026-07-16",
         "notes": "POWER cell in the hero instrument rail now renders textPrimary (plain white) while serviceStatus.isInService, cyan otherwise. Verified in the simulator: on the out-of-service S2K the eye now lands on OUT OF SERVICE / TUNE STATE HOLD / NEXT ACTION rather than the dyno number. F3 (active car shown twice) and F4 (bay-tab/arrow crowding) remain logged in DESIGN_DEBT.md for Tim."
+      }
+    },
+    {
+      "id": "W-019",
+      "title": "F3: active car not shown twice on the garage",
+      "why": "The spotlighted (active-bay) car appeared as both the hero and the first grid card below it.",
+      "depends_on": [
+        "W-015"
+      ],
+      "completion_criteria": [
+        "Grid omits the spotlighted vehicle (LazyVGrid reflows); the fleet map shows the rest of the garage"
+      ],
+      "testing_criteria": [
+        "full suite green",
+        "visually verified in simulator"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "362 green",
+        "commit": "pending",
+        "date": "2026-07-16",
+        "notes": "Verified: with S2K spotlighted, the grid now leads with FOZZY, not a second S2K card."
+      }
+    },
+    {
+      "id": "W-020",
+      "title": "F4: bay label vs open-arrow collision on the hero",
+      "why": "VehicleVisualFallback rendered 'BAY N' top-right, the exact corner the spotlight overlays its open-arrow button — they overlapped.",
+      "depends_on": [
+        "W-015"
+      ],
+      "completion_criteria": [
+        "'BAY N' moved to the top-left of the hero art, clear of the top-right arrow, in both the garage spotlight and the per-car detail hero"
+      ],
+      "testing_criteria": [
+        "full suite green",
+        "visually verified in simulator"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "362 green",
+        "commit": "pending",
+        "date": "2026-07-16",
+        "notes": "Verified: BAY 1 now sits top-left, arrow alone top-right, no overlap."
       }
     }
   ]
