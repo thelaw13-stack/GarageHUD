@@ -59,9 +59,20 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     /// The validated profile assembled once bring-up succeeds. The app persists this so future
     /// sessions can set `knownPeripheralID` and skip blind discovery.
     public private(set) var discoveredProfile: OBDAdapterProfile?
+    /// Fresh pairing runs in scan-first mode: candidates are surfaced to the UI and *nothing* is
+    /// connected until the owner taps one. Legacy/auto callers keep the old "first serial adapter
+    /// wins" behavior. Reconnection to a `knownPeripheralID` always connects regardless.
+    private let autoConnectDiscoveredPeripheral: Bool
+    /// Called (on the main queue) for every OBD-looking adapter a scan sees — drives the picker.
+    public var onCandidateDiscovered: ((OBDAdapterCandidate) -> Void)?
+    /// Called (on the main queue) after ELM327 identity + serial-channel pairing succeed, with the
+    /// validated profile — so the picker can remember only a device that actually handshook.
+    public var onProfileValidated: ((OBDAdapterProfile) -> Void)?
 
     public init(knownPeripheralID: UUID? = nil, knownProfile: OBDAdapterProfile? = nil,
-                adapterSelection: OBDAdapterSelection = .obdLinkCX) {
+                adapterSelection: OBDAdapterSelection = .obdLinkCX,
+                autoConnectDiscoveredPeripheral: Bool = true) {
+        self.autoConnectDiscoveredPeripheral = autoConnectDiscoveredPeripheral
         self.knownPeripheralID = knownProfile?.peripheralID ?? knownPeripheralID
         self.adapterName = knownProfile?.name ?? adapterSelection.displayName
         self.adapterSelection = adapterSelection
@@ -321,7 +332,10 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
             notifyCharUUID: notifyChar.uuid.uuidString,
             writeWithoutResponse: writeChar.properties.contains(.writeWithoutResponse),
             lastConnected: Date())
-        if let discoveredProfile { OBDAdapterProfileStore.save(discoveredProfile) }
+        if let discoveredProfile {
+            OBDAdapterProfileStore.save(discoveredProfile)
+            onProfileValidated?(discoveredProfile)
+        }
     }
 
     private func startPolling() {
@@ -474,6 +488,21 @@ extension OBDLiveDataSource: CBCentralManagerDelegate, CBPeripheralDelegate {
             guard looksLikeOBDAdapter(peripheral, advertisementData) else { return }
         }
         let name = (advertisementData[CBAdvertisementDataLocalNameKey] as? String) ?? peripheral.name
+
+        // Surface every OBD-looking candidate to the picker, whether or not we connect to it.
+        if let onCandidateDiscovered {
+            let advertised = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
+            onCandidateDiscovered(OBDAdapterCandidate(
+                peripheralID: peripheral.identifier,
+                name: name ?? "OBD-II Adapter",
+                rssi: RSSI.intValue,
+                advertisedServiceUUIDs: advertised.map(\.uuidString).sorted(),
+                discoveredAt: Date()))
+        }
+
+        // Scan-first pairing waits for the owner's tap (which re-creates this source with a
+        // knownPeripheralID); only auto callers or a targeted reconnect proceed here.
+        guard knownPeripheralID != nil || autoConnectDiscoveredPeripheral else { return }
         OBDConnectionJournalStore.append(
             stage: "FOUND",
             message: "Saw \(name ?? "a compatible BLE serial adapter") at signal \(RSSI.intValue) dBm")

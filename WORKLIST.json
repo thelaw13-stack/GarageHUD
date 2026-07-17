@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 352,
+    "test_count_at_last_update": 362,
     "last_updated": "2026-07-16"
   },
   "items": [
@@ -286,8 +286,13 @@
         "view-model logic unit-tested where possible",
         "full suite green"
       ],
-      "status": "incomplete",
-      "result": null
+      "status": "complete",
+      "result": {
+        "tests": "362 green (+6)",
+        "commit": "pending",
+        "date": "2026-07-16",
+        "notes": "Reconciled with the other dev's Jul-13 prior art (a6f65ae scan-first picker) instead of my from-scratch abstraction (dropped OBDPairing/MockOBDPairingService). Their architecture — scan-first hooks on OBDLiveDataSource reusing its proven bring-up — is better and I adopted it. Added on main's evolved base: catalog-awareness (OBDAdapterCandidate.isReachableOverBLE/unreachableReason so an MFi MX+ is a shown dead-end, not an inviting tap) and a persistence fix (record impliedSelection on pick so the saved profile is accepted next launch via acceptsSavedProfile). Picker rendered and visually verified. On-device BLE scan/validate is exercised in W-014 (blocked on hardware)."
+      }
     },
     {
       "id": "W-012",

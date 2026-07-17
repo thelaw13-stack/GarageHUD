@@ -9,6 +9,9 @@ struct LiveSessionView: View {
     @State private var source: LiveDataSource?
     @State private var savedAdapterProfile: OBDAdapterProfile? = OBDAdapterProfileStore.load()
     @State private var adapterSelection = OBDAdapterSelectionStore.load()
+    // Scan-first pairing: adapters seen this scan, and the one the owner tapped to validate.
+    @State private var discoveredAdapters: [OBDAdapterCandidate] = []
+    @State private var selectedAdapterID: UUID?
     @State private var lastConnectionJournal = OBDConnectionJournalStore.load()
     @State private var isRunning = false
     @State private var frame: LiveTelemetryFrame?
@@ -46,6 +49,11 @@ struct LiveSessionView: View {
 
             if feed == .adapter {
                 adapterConnectionPanel
+                // Fresh pairing: surface discovered adapters to choose from. Hidden once a known
+                // adapter is saved (that path reconnects straight to the validated device).
+                if compatibleSavedProfile == nil && isRunning && !discoveredAdapters.isEmpty {
+                    adapterCandidatePanel
+                }
                 if !isRunning, let journal = lastConnectionJournal {
                     connectionJournalPanel(journal)
                 }
@@ -238,6 +246,27 @@ struct LiveSessionView: View {
         }
     }
 
+    private var adapterCandidatePanel: some View {
+        HUDPanel(title: "Discovered Adapters", caption: "tap to validate") {
+            VStack(spacing: 10) {
+                Text("GarageHUD remembers an adapter only after its ELM327 identity check succeeds.")
+                    .font(HUDTheme.label())
+                    .foregroundStyle(HUDTheme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                ForEach(discoveredAdapters) { candidate in
+                    candidateRow(candidate)
+                }
+            }
+        }
+        .frame(maxWidth: 560)
+    }
+
+    private func candidateRow(_ candidate: OBDAdapterCandidate) -> some View {
+        AdapterCandidateRow(candidate: candidate,
+                            selected: selectedAdapterID == candidate.peripheralID,
+                            enabled: isRunning) { connect(to: candidate) }
+    }
+
     private func connectionRail(_ state: OBDConnectionState) -> some View {
         let active = connectionProgress(state)
         return HStack(spacing: 3) {
@@ -383,8 +412,15 @@ struct LiveSessionView: View {
         displayed = nil
         frame = nil
         sessionPulls = []
+        discoveredAdapters = []
+        selectedAdapterID = nil
         detector = PullDetector(feedLabel: feed.rawValue, envelope: vehicle.operatingEnvelope)
-        let newSource: LiveDataSource = makeSource()
+        run(makeSource())
+    }
+
+    /// Own a source and consume its frame stream. Shared by `start()` and by `connect(to:)` when the
+    /// owner taps a discovered adapter, so re-targeting a scan reuses the exact same live loop.
+    private func run(_ newSource: LiveDataSource) {
         source = newSource
         newSource.start()
         isRunning = true
@@ -413,6 +449,23 @@ struct LiveSessionView: View {
         }
     }
 
+    /// Re-target the live scan at the adapter the owner tapped: connect to that exact peripheral and
+    /// validate it. Recording its implied model first is what lets the saved profile be accepted on
+    /// the next launch (reconnection is gated by `adapterSelection.acceptsSavedProfile`).
+    private func connect(to candidate: OBDAdapterCandidate) {
+        #if canImport(CoreBluetooth)
+        guard isRunning, candidate.isReachableOverBLE else { return }
+        selectedAdapterID = candidate.peripheralID
+        adapterSelection = candidate.impliedSelection
+        OBDAdapterSelectionStore.save(candidate.impliedSelection)
+        source?.stop()
+        streamTask?.cancel()
+        streamTask = nil
+        frame = nil
+        run(makeAdapterSource(knownPeripheralID: candidate.peripheralID, autoConnect: true))
+        #endif
+    }
+
     private func pullRow(_ pull: PullReport) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -432,11 +485,36 @@ struct LiveSessionView: View {
     private func makeSource() -> LiveDataSource {
         #if canImport(CoreBluetooth)
         if feed == .adapter {
-            return OBDLiveDataSource(knownProfile: compatibleSavedProfile, adapterSelection: adapterSelection)
+            if let profile = compatibleSavedProfile {
+                // Known adapter: reconnect straight to the validated device.
+                return makeAdapterSource(knownProfile: profile, autoConnect: true)
+            }
+            // Fresh pairing: scan-first — surface candidates and wait for the owner's tap.
+            return makeAdapterSource(autoConnect: false)
         }
         #endif
         return SimulatedLiveDataSource()
     }
+
+    #if canImport(CoreBluetooth)
+    /// Build an OBD source wired to the pairing UI: it feeds discovered candidates to the picker and
+    /// reports a validated profile so only a device that actually handshook is remembered.
+    private func makeAdapterSource(knownPeripheralID: UUID? = nil,
+                                   knownProfile: OBDAdapterProfile? = nil,
+                                   autoConnect: Bool) -> OBDLiveDataSource {
+        let adapter = OBDLiveDataSource(knownPeripheralID: knownPeripheralID,
+                                        knownProfile: knownProfile,
+                                        adapterSelection: adapterSelection,
+                                        autoConnectDiscoveredPeripheral: autoConnect)
+        adapter.onCandidateDiscovered = { candidate in
+            discoveredAdapters = OBDAdapterCandidateList.upserting(candidate, into: discoveredAdapters)
+        }
+        adapter.onProfileValidated = { profile in
+            savedAdapterProfile = profile   // now compatibleSavedProfile is non-nil → picker hides
+        }
+        return adapter
+    }
+    #endif
 
     private func stop() {
         source?.stop()
