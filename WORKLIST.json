@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 362,
+    "test_count_at_last_update": 366,
     "last_updated": "2026-07-16"
   },
   "items": [
@@ -487,6 +487,30 @@
         "commit": "pending",
         "date": "2026-07-16",
         "notes": "Verified: BAY 1 now sits top-left, arrow alone top-right, no overlap."
+      }
+    },
+    {
+      "id": "W-021",
+      "title": "Honesty audit: a numberless dyno was labeled measured",
+      "why": "Adversarial audit — a .dyno record with no wheelHorsepower made currentHorsepowerEstimate fall back to the CRANK factory figure while 'measured' was gated on record TYPE, so the build sheet and fleet sheet (both shareable) stated e.g. '155 whp measured' for a car that never measured wheel power. Crank shown as wheel, estimate shown as measured. Adjacent to W-004, which fixed only the Build-Plan number and left the label paths leaky.",
+      "depends_on": [
+        "W-004"
+      ],
+      "completion_criteria": [
+        "measuredWheelHorsepower + hasMeasuredPower on Vehicle (a real dyno number is the only thing that counts as measured)",
+        "currentHorsepowerEstimate = measuredWheelHorsepower ?? factory (no crank-via-numberless-dyno, no shadowing an earlier real dyno)",
+        "every measured label gated on hasMeasuredPower, not record type (build sheet, fleet sheet, BuildProgress, dashboard torque)"
+      ],
+      "testing_criteria": [
+        "HonestyInvariantsTests: numberless dyno never labeled measured; earlier real dyno not shadowed; installed part overrides confirmed-stock; planned part not counted as covered",
+        "full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "366 green (+4)",
+        "commit": "pending",
+        "date": "2026-07-16",
+        "notes": "Empirically confirmed the lie ('155 whp measured'), fixed, and locked with regression tests. Audit also cleared attacks 2 (installed part overrides stale stock claim) and 3 (planned part reads 'undocumented, planned', not 'covered') as honest. Attack 4 (absurd user-entered dyno reported raw) is garbage-in, not an engine lie — possible future sanity-flag, not tracked."
       }
     }
   ]

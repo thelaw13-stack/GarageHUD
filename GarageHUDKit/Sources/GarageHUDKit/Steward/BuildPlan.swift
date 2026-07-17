@@ -88,7 +88,7 @@ public enum BuildPlanner {
         let progress = BuildProgress(
             currentWHP: vehicle.currentWheelHorsepowerEstimate,   // wheel-to-wheel vs. a wheel target
             targetWHP: vehicle.buildGoal?.targetWheelHP,
-            powerMeasured: vehicle.latestPerformance?.type == .dyno,
+            powerMeasured: vehicle.hasMeasuredPower,
             plannedRemaining: vehicle.plannedSpend,
             plannedCount: planned.count)
 

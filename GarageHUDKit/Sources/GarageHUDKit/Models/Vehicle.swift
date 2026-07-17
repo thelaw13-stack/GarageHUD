@@ -440,12 +440,26 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         performanceRecords.sorted { $0.date > $1.date }.first
     }
 
-    public var currentHorsepowerEstimate: Double? {
+    /// The latest *actually measured* wheel horsepower — a dyno record that carries a real number.
+    /// This, and only this, may ever be presented as "measured". A dyno session logged with no value
+    /// is not a measurement, and must not shadow an earlier real one or dress the factory figure up
+    /// as measured (the honesty leak a numberless dyno used to cause).
+    public var measuredWheelHorsepower: Double? {
         performanceRecords
-            .filter { $0.type == .dyno }
+            .filter { $0.type == .dyno && $0.wheelHorsepower != nil }
             .sorted { $0.date > $1.date }
-            .first?
-            .wheelHorsepower ?? factoryHorsepower
+            .first?.wheelHorsepower
+    }
+
+    /// True only when there is a real measured wheel figure. Gate any "measured" label on this —
+    /// never on record *type*, which is true even for a dyno logged without a number.
+    public var hasMeasuredPower: Bool { measuredWheelHorsepower != nil }
+
+    /// The best current power figure to show: the measured wheel number if there is one, else the
+    /// factory rating. The *label* (measured vs estimated) must come from `hasMeasuredPower`, not from
+    /// this — this can be a crank estimate.
+    public var currentHorsepowerEstimate: Double? {
+        measuredWheelHorsepower ?? factoryHorsepower
     }
 
     /// Current output expressed **at the wheels**, so it compares apples-to-apples against a wheel-hp

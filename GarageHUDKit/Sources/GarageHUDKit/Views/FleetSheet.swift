@@ -63,7 +63,7 @@ struct FleetSheetDocument: View {
 
     private var ordered: [Vehicle] { vehicles.sorted { $0.garageSlot < $1.garageSlot } }
     private var totalInvested: Double { vehicles.reduce(0) { $0 + $1.totalInvested } }
-    private var measuredCount: Int { vehicles.filter { $0.latestPerformance?.type == .dyno }.count }
+    private var measuredCount: Int { vehicles.filter { $0.hasMeasuredPower }.count }
 
     var body: some View {
         VStack(alignment: .leading, spacing: HUDTheme.space4) {
@@ -188,7 +188,7 @@ struct FleetSheetCard: View {
     @ViewBuilder
     private var powerReadout: some View {
         if let hp = vehicle.currentHorsepowerEstimate {
-            let measured = vehicle.latestPerformance?.type == .dyno
+            let measured = vehicle.hasMeasuredPower
             VStack(alignment: .trailing, spacing: 1) {
                 Text("\(Int(hp))").font(HUDTheme.title()).foregroundStyle(measured ? HUDTheme.cyan : HUDTheme.textPrimary)
                 Text(measured ? "whp measured" : "hp est").font(HUDTheme.label())

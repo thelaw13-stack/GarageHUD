@@ -449,7 +449,7 @@ struct VehicleDashboardView: View {
                 }
                 HStack(spacing: HUDTheme.space5) {
                     detailStat("\(vehicle.installedPartsCount)", "PARTS")
-                    if let torque = vehicle.performanceRecords.filter({ $0.type == .dyno }).sorted(by: { $0.date > $1.date }).first?.wheelTorque ?? vehicle.factoryTorque {
+                    if let torque = vehicle.performanceRecords.filter({ $0.type == .dyno && $0.wheelTorque != nil }).sorted(by: { $0.date > $1.date }).first?.wheelTorque ?? vehicle.factoryTorque {
                         detailStat("\(Int(torque))", "LB-FT")
                     }
                     if let ratio = vehicle.powerToWeight { detailStat(String(format: "%.1f", ratio), "LB/HP") }
