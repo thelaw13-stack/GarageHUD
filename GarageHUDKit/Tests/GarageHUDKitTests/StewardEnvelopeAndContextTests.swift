@@ -99,9 +99,11 @@ final class StewardEnvelopeAndContextTests: XCTestCase {
         v.factoryHorsepower = 200
         v.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 320)]
         v.documentedTotalInvestment = 12_000
-        let cost = Steward.observe(v).first { $0.ruleID == "efficiency.costPerHp" }
-        XCTAssertTrue(cost!.evidence.localizedCaseInsensitiveContains("wheel"))
-        XCTAssertTrue(cost!.evidence.localizedCaseInsensitiveContains("not dyno-corrected"))
+        // The efficiency figure (a Specs/grounding statistic since W-046) stays wheel-normalized
+        // and caveated at its home surface.
+        let record = StewardGrounding.record(for: v)
+        XCTAssertTrue(record.localizedCaseInsensitiveContains("per wheel-hp"))
+        XCTAssertTrue(record.localizedCaseInsensitiveContains("not dyno-corrected"))
     }
 
     // MARK: Crank -> wheel normalization

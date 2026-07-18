@@ -47,7 +47,7 @@ public enum StewardResolution {
                     .init("Add the \(cat.rawValue.lowercased()) part", .addPart(cat))]
         }
         switch id {
-        case StewardRuleID.tuneStale, StewardRuleID.dynoPlateau, StewardRuleID.efficiencyCostPerHp:
+        case StewardRuleID.tuneStale, StewardRuleID.dynoPlateau:
             return [.init("Log a dyno result", .logPerformance)]
         case StewardRuleID.buildQuiet, StewardRuleID.fleetNeglect:
             return [.init("Log recent work", .logActivity)]

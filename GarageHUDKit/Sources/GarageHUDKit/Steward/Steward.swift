@@ -190,22 +190,10 @@ public enum Steward {
                 confidence: .confirmed, tone: .caution, provenance: .derived))
         }
 
-        // 5. Cost-to-power — an approximation, and labeled as one. Comparing a measured wheel
-        //    figure against a factory *crank* rating is not dyno-corrected truth.
-        // Only meaningful once real power has been added — a $/hp figure over a handful of wheel-hp
-        // is volatile noise (and pointless on a utility/OEM build), so require a genuine gain.
-        if let costPerHp = vehicle.costPerHorsepowerGained,
-           let gained = vehicle.horsepowerGainedOverStock, gained >= 25,
-           let baseline = vehicle.estimatedStockWheelHP {
-            let lossNote = vehicle.stockWheelBaselineIsAssumed
-                ? "assuming ~\(Int(Drivetrain.unknown.typicalLossFraction * 100))% driveline loss"
-                : "~\(Int(vehicle.drivetrain.typicalLossFraction * 100))% \(vehicle.drivetrain.label) driveline loss"
-            out.append(StewardObservation(
-                ruleID: StewardRuleID.efficiencyCostPerHp, subjectID: vid,
-                statement: "This build runs about \(dollars(costPerHp)) per wheel-hp gained.",
-                evidence: "~\(Int(gained)) whp over an estimated \(Int(baseline)) whp stock baseline, \(dollars(vehicle.totalInvested)) invested. Wheel-to-wheel estimate, \(lossNote); not dyno-corrected.",
-                confidence: .moderate, tone: .informational, provenance: .derived))
-        }
+        // NOTE (W-046, Tim): cost-per-hp is deliberately NOT an observation. It's a statistic —
+        // permanent, unresolvable arithmetic — and a statistic is not a task. It lives where
+        // stats belong: Specs (with a provenance tap), the grounding record, and the voice's
+        // efficiency answer when asked. The attention panel is for things that can be acted on.
 
         return out.sorted(by: ordered)
     }

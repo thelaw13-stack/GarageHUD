@@ -19,7 +19,8 @@ public enum StewardRuleID {
     public static let buildQuiet = "build.quiet"
     public static let dataUndatedParts = "data.undatedParts"
     public static let dataOdometerRegression = "data.odometerRegression"
-    public static let efficiencyCostPerHp = "efficiency.costPerHp"
+    // efficiency.costPerHp was retired in W-046: a statistic is not a task, so cost-per-hp is
+    // a Specs/grounding figure, not an observation.
     public static let fleetValueLeader = "fleet.valueLeader"
     public static let fleetNeglect = "fleet.neglect"
     public static let liveCoolantCritical = "live.coolantCritical"

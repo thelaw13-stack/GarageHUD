@@ -52,18 +52,18 @@ final class StewardTests: XCTestCase {
         XCTAssertTrue(obs.filter { $0.ruleID.hasPrefix("gap.") }.isEmpty)
     }
 
+    /// Cost efficiency stays an approximate, caveated figure — now asserted at its real home
+    /// (the grounding record) since W-046 removed it from the attention stream.
     func testCostEfficiencyIsApproximateModerateFact() {
         var v = vehicle()
         v.factoryHorsepower = 200
         v.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 350)]
         v.documentedTotalInvestment = 15_000
 
-        let cost = Steward.observe(v).first { $0.ruleID == "efficiency.costPerHp" }
-        XCTAssertNotNil(cost)
-        XCTAssertEqual(cost!.confidence, .moderate)         // approximate, not 97%
-        XCTAssertTrue(cost!.evidence.localizedCaseInsensitiveContains("wheel"))
-        XCTAssertTrue(cost!.evidence.localizedCaseInsensitiveContains("not dyno-corrected"))
-        XCTAssertEqual(cost!.provenance, .derived)
+        XCTAssertNotNil(v.costPerHorsepowerGained)
+        let record = StewardGrounding.record(for: v)
+        XCTAssertTrue(record.contains("Cost per wheel-hp gained"))
+        XCTAssertTrue(record.contains("[Moderate — wheel-estimate, not dyno-corrected]"))
     }
 
     func testQuietBuildProducesFreshnessObservation() {

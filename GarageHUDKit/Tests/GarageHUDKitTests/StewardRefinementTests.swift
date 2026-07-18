@@ -6,21 +6,20 @@ import XCTest
 final class StewardRefinementTests: XCTestCase {
     private func day(_ n: Int) -> Date { Calendar.current.date(byAdding: .day, value: n, to: .now)! }
 
-    func testCostPerHpStaysSilentOnTinyGain() {
-        // A near-stock build (dyno barely over the wheel baseline) shouldn't get a $/hp note.
-        var v = Vehicle(make: "Toyota", model: "Tundra", year: 2021, garageSlot: 1, factoryHorsepower: 381)
-        v.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 330)]  // ~near stock at the wheels
-        v.documentedTotalInvestment = 12_000
-        XCTAssertFalse(Steward.observe(v).contains { $0.ruleID == "efficiency.costPerHp" })
-    }
-
-    func testCostPerHpFiresOnceRealPowerIsAdded() {
+    /// W-046 (Tim): a statistic is not a task. Cost-per-hp is permanent, unresolvable
+    /// arithmetic — it must NEVER appear in the attention stream, at any gain level. It lives
+    /// on Specs, in the grounding record, and in the voice's efficiency answer when asked.
+    func testCostPerHpIsAStatisticNotAnObservation() {
         var v = Vehicle(make: "Honda", model: "S2000", year: 2006, garageSlot: 1, factoryHorsepower: 240)
         v.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 400)]   // big gain
         v.documentedTotalInvestment = 20_000
-        let cost = Steward.observe(v).first { $0.ruleID == "efficiency.costPerHp" }
-        XCTAssertNotNil(cost)
-        XCTAssertTrue(cost!.statement.contains("per wheel-hp"))   // leads with the figure, not "I observed…"
+        XCTAssertFalse(Steward.observe(v).contains { $0.ruleID.hasPrefix("efficiency.") },
+                       "no statistic in the attention stream")
+        // The figure's real homes still carry it, caveats intact.
+        XCTAssertTrue(StewardGrounding.record(for: v).contains("per wheel-hp [Moderate — wheel-estimate, not dyno-corrected]"))
+        let spoken = StewardConversation.reply(to: "cost per hp", vehicle: v).text
+        XCTAssertTrue(spoken.contains("per wheel-hp gained"), spoken)
+        XCTAssertTrue(spoken.contains("not dyno-corrected"), spoken)
     }
 
     func testQuietBuildIsInformationalNotAdvisory() {

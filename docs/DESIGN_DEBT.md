@@ -66,6 +66,10 @@ The rules, binding on every future control:
   When in doubt, ship the boring version and ask Tim before the clever one.
 - **Batch UI changes into one deploy.** Repeated patch-deploy rounds on one control are
   themselves excess motion.
+- **A statistic is not a task** (Tim, W-046). Permanent, unresolvable arithmetic (cost-per-hp)
+  must never sit in an attention stream wearing a "Resolve" affordance whose action can't make
+  it go away. Stats live on Specs/grounding; the attention panel is only for things that can be
+  acted on. The dual of "every ask carries a door": no door on something that isn't an ask.
 
 ## DD-003 — Steward tone
 
