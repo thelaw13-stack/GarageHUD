@@ -990,7 +990,7 @@
       "result": {
         "tests": "409 green",
         "commits": [
-          "pending"
+          "a1b3819"
         ],
         "date": "2026-07-18",
         "notes": "Lesson attached to DD-004's ledger: before adding a surface, check whether the information already has a home — the dashboard NEXT line duplicated the hero rail from birth."
