@@ -18,25 +18,20 @@ struct VehicleDashboardView: View {
     @State private var resolving: StewardObservation?
 
     /// One calm line of "what matters now" directly under the identity (DD-001, Dashboard).
-    /// One gesture, one response (Tim's fundamental rule): tapping it opens the standard
-    /// resolution dialog — the exact interaction the Steward rows already use — every time, on
-    /// every car. Never a scroll-jump, never a different behavior per state, nothing to learn.
+    /// NEXT is information, not a control (DD-004, settled by Tim after the tappable versions):
+    /// making it tappable wired "Finish the teardown" to a dialog whose only action was the
+    /// opposite — mark back in service and clear the checklist. The label and the action can't
+    /// be guaranteed coherent across every step source, so it doesn't act at all. Acting lives
+    /// on the Steward rows below, where each row's text matches its own resolutions.
     @ViewBuilder
     private var conditionLine: some View {
-        if let step = Steward.nextStep(vehicle), let source = step.source,
-           StewardResolution.isActionable(source, in: vehicle) {
-            Button { resolving = source } label: {
-                HStack(alignment: .firstTextBaseline, spacing: HUDTheme.space2) {
-                    Text("NEXT").font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textTertiary).tracking(1.5)
-                    Text(step.action).font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right").font(.caption2).foregroundStyle(HUDTheme.textTertiary)
-                }
-                .contentShape(Rectangle())
+        if let step = Steward.nextStep(vehicle) {
+            HStack(alignment: .firstTextBaseline, spacing: HUDTheme.space2) {
+                Text("NEXT").font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textTertiary).tracking(1.5)
+                Text(step.action).font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
-            .accessibilityHint("Shows ways to resolve this")
         }
     }
 

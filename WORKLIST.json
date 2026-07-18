@@ -946,6 +946,31 @@
         "date": "2026-07-18",
         "notes": "The principle is also saved to agent memory so future sessions inherit it. If the line still doesn't earn its place, the next move per DD-004 is removal, not another variant."
       }
+    },
+    {
+      "id": "W-039",
+      "title": "NEXT is information, not a control — the tappable versions retired",
+      "why": "Tim walked the S2K flow: the line says 'Finish the engine teardown', the tap's only offered action was 'Mark back in service' — the OPPOSITE of the label — and confirming would clear his 5 open checklist items. Label and action cannot be guaranteed coherent across every step source, so per DD-004 (boring beats clever, prefer removal over teaching) the line stops acting entirely.",
+      "depends_on": [
+        "W-038"
+      ],
+      "completion_criteria": [
+        "conditionLine is a plain one-line summary: no Button, no chevron, no dialog — DD-001's original purpose only",
+        "Acting stays on the Steward rows, where each row's text matches its own resolution options",
+        "NextStep.source stays in the model (tested, used by rule-id round-trips) but no UI wires a tap to it"
+      ],
+      "testing_criteria": [
+        "full suite green; deployed to Tim's device"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "409 green",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Standing offer to Tim remains: if the line doesn't earn its place as pure information, removal is one commit. Lesson recorded under DD-004: a summary label must never be a door to an action that contradicts it, especially not one that clears user data two taps away."
+      }
     }
   ]
 }
