@@ -172,6 +172,20 @@ public enum Steward {
                 confidence: .confirmed, tone: .informational, provenance: .derived))
         }
 
+        // 4c. Data honesty — the odometer record disagrees with itself. A later-dated event
+        //     with a LOWER reading poisons current mileage, the learned driving rate, and every
+        //     mileage projection; surface the contradiction rather than silently reasoning on it.
+        let odoReadings = vehicle.buildEvents
+            .compactMap { e in e.mileage.map { (date: e.date, miles: $0) } }
+            .sorted { $0.date < $1.date }
+        if let pair = zip(odoReadings, odoReadings.dropFirst()).first(where: { $1.miles < $0.miles }) {
+            out.append(StewardObservation(
+                ruleID: "data.odometerRegression", subjectID: vid,
+                statement: "The odometer record disagrees with itself.",
+                evidence: "\(short(pair.1.date)) logs \(pair.1.miles.formatted(.number.grouping(.automatic))) mi — lower than the \(pair.0.miles.formatted(.number.grouping(.automatic))) mi recorded \(short(pair.0.date)). One of them is off, and mileage projections lean on these.",
+                confidence: .confirmed, tone: .caution, provenance: .derived))
+        }
+
         // 5. Cost-to-power — an approximation, and labeled as one. Comparing a measured wheel
         //    figure against a factory *crank* rating is not dyno-corrected truth.
         // Only meaningful once real power has been added — a $/hp figure over a handful of wheel-hp

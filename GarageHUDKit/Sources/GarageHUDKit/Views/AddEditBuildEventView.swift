@@ -21,6 +21,14 @@ struct AddEditBuildEventView: View {
                         #if os(iOS)
                         .keyboardType(.numberPad)
                         #endif
+                    // Warn, never block: the odometer is the reasoning spine (due states, driving
+                    // rate, projections), so a slipped digit deserves a nudge — but a genuine
+                    // correction must always be saveable.
+                    if let anomaly = odometerAnomaly {
+                        Text(anomaly.caution)
+                            .font(.footnote)
+                            .foregroundStyle(.orange)
+                    }
                     TextEditor(text: $eventDescription).frame(minHeight: 80)
                 }
                 Section("Photos") {
@@ -40,6 +48,15 @@ struct AddEditBuildEventView: View {
         #if os(macOS)
         .frame(minWidth: 420, minHeight: 480)
         #endif
+    }
+
+    /// The anomaly (if any) the current mileage text would introduce. When editing, the event
+    /// under edit is excluded so a reading isn't compared against itself.
+    private var odometerAnomaly: OdometerAnomaly? {
+        guard let proposed = Int(mileageText) else { return nil }
+        var check = vehicle
+        if let eventID { check.buildEvents.removeAll { $0.id == eventID } }
+        return check.odometerAnomaly(proposing: proposed, on: date)
     }
 
     private func populateIfEditing() {

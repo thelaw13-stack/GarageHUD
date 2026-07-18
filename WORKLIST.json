@@ -595,6 +595,30 @@
         "date": "2026-07-17",
         "notes": "View-layer visual checks (spotlight rail, identity surface, comparison grid) still deserve Tim's on-device eyeball — copy lengths changed slightly ('240 HP' where 'XXX WHP' used to render)."
       }
+    },
+    {
+      "id": "W-025",
+      "title": "Odometer sanity — entry-time anomaly warnings and a self-contradiction observation",
+      "why": "The odometer is the reasoning spine (currentMileage, milesPerDay, every mileage due state and projection derive from event readings), yet any typo was accepted silently — one slipped digit (50,000 -> 580,000) poisoned all of it with no warning and no surfacing. The review ranked this the biggest unmodeled input risk.",
+      "depends_on": [],
+      "completion_criteria": [
+        "Vehicle.odometerAnomaly(proposing:on:) flags regressions (below an already-recorded reading of the same era) and implausible rates (> 1,000 mi/day implied), era-aware for backdated entries",
+        "AddEditBuildEventView shows a calm, NON-BLOCKING caution next to the mileage field (warn, never restrict the record); editing excludes the event under edit",
+        "Steward rule data.odometerRegression surfaces a record that already disagrees with itself (later date, lower reading) as a confirmed caution"
+      ],
+      "testing_criteria": [
+        "OdometerSanityTests: quiet pass, first-reading pass, regression, slipped digit, road-trip day not flagged, backdated-era consistency, Steward surfacing, consistent record quiet",
+        "full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "378 -> 386, +8",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-17",
+        "notes": "MaintenanceEditorView's baseline field intentionally not gated — it sets a schedule baseline, not a biography reading. The caution never blocks: a genuine correction (replaced cluster, fixing an old typo) must always be loggable."
+      }
     }
   ]
 }
