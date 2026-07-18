@@ -39,7 +39,9 @@ public extension Steward {
     /// Assess a *modified* build's coherence. Returns nil for an unmodified or effectively empty
     /// record (nothing to assess), or a car whose knowledge is `.unknown` throughout.
     static func assess(_ vehicle: Vehicle) -> BuildAssessment? {
-        let forcedInduction = vehicle.knowledge(of: .forcedInduction) == .confirmedPresent
+        // Elevated boost includes a factory-boosted platform whose tune has been turned up
+        // (W-045) — but never a stock factory-turbo car, whose support was engineered in.
+        let forcedInduction = vehicle.runsElevatedBoost
         let gain = vehicle.horsepowerGainedOverStock ?? 0
         // Owner-calibrated (W-044): driveline/brake scrutiny keys on crossing an absolute
         // wheel-power level, not a flat gain — see Vehicle.drivelineAttentionWheelHP.

@@ -79,12 +79,12 @@ public struct OperatingEnvelope: Sendable, Equatable, Hashable, Codable {
         expectedBoostByRPM = try c.decodeIfPresent([BoostBand].self, forKey: .expectedBoostByRPM) ?? []
     }
 
-    /// A sane default derived from the record: boost only matters if forced induction is
-    /// confirmed present. Coolant limits are conservative street values; no tune profile is
-    /// assumed (that must be entered by the owner).
+    /// A sane default derived from the record: boost matters on any car that makes it —
+    /// aftermarket forced induction OR a factory-boosted platform (W-045; a stock FXT's boost
+    /// gauge is as real as a big-turbo build's). Coolant limits are conservative street values;
+    /// no tune profile is assumed (that must be entered by the owner).
     public static func `default`(for vehicle: Vehicle) -> OperatingEnvelope {
-        let boosted = vehicle.knowledge(of: .forcedInduction) == .confirmedPresent
-        return OperatingEnvelope(coolantCautionF: 215, coolantCriticalF: 235,
-                                 boostCautionPsi: boosted ? 18 : nil)
+        OperatingEnvelope(coolantCautionF: 215, coolantCriticalF: 235,
+                          boostCautionPsi: vehicle.runsBoost ? 18 : nil)
     }
 }

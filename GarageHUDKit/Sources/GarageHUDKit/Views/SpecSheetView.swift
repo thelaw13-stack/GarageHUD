@@ -226,6 +226,16 @@ struct SpecSheetView: View {
                 pickerRow("Factory HP basis", selection: $vehicle.factoryPowerBasis,
                           options: PowerBasis.allCases, label: { $0.displayName })
 
+                Toggle(isOn: Binding(
+                    get: { vehicle.hasFactoryForcedInduction },
+                    set: { vehicle.factoryForcedInductionOverride = $0 })) {
+                    Text("Factory turbocharged / supercharged")
+                        .font(HUDTheme.label())
+                }
+                .hudCheckboxStyle()
+                Text("Boosted from the showroom. Steward treats boost as a real live signal and a boost map as legitimate — without calling the stock charger a modification. Support scrutiny still waits until the tune is turned up (a calibration on record, or a big measured gain).")
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+
                 Divider().overlay(HUDTheme.cyan.opacity(0.2))
 
                 Text("CONFIRMED FACTORY-STOCK SYSTEMS")

@@ -45,11 +45,15 @@ public struct TuneReadiness: Equatable, Sendable {
 public extension Steward {
     static func tuneReadiness(_ vehicle: Vehicle, context: StewardContext = .live) -> TuneReadiness {
         var checks: [TuneReadiness.Check] = []
-        let boosted = vehicle.knowledge(of: .forcedInduction) == .confirmedPresent
+        // Two distinct gates (W-045): support scrutiny applies when the boost is turned UP
+        // (aftermarket FI, or a tuned/over-stock factory platform); a boost target map is
+        // legitimate on ANY car that makes boost — including a bone-stock factory turbo.
+        let elevated = vehicle.runsElevatedBoost
+        let makesBoost = vehicle.runsBoost
         let envelope = vehicle.operatingEnvelope
 
         checks.append(serviceCheck(vehicle, context: context))
-        if boosted {
+        if elevated {
             checks.append(supportCheck(vehicle, category: .fueling, title: "Fuel delivery",
                                        role: "Fueling support is recorded for the current air load."))
             checks.append(supportCheck(vehicle, category: .cooling, title: "Thermal control",
@@ -61,14 +65,14 @@ public extension Steward {
             checks.append(pullHistoryCheck(vehicle.pullReports))
         }
 
-        if boosted {
+        if makesBoost {
             checks.append(contentsOf: boostProfileChecks(envelope))
         } else if envelope.boostCautionPsi != nil || envelope.maxSustainedBoostPsi != nil
                     || !envelope.expectedBoostByRPM.isEmpty {
             checks.append(.init(
                 id: "profile.unexpectedBoost",
                 title: "Boost profile",
-                detail: "Boost targets are configured, but forced induction is not confirmed in the parts record.",
+                detail: "Boost targets are configured, but nothing on record says this car makes boost.",
                 state: .hold))
         } else {
             checks.append(.init(
@@ -148,13 +152,9 @@ public extension Steward {
     }
 
     private static func calibrationCheck(_ vehicle: Vehicle) -> TuneReadiness.Check {
-        let calibrationTerms = ["tune", "tuning", "ecu", "flash", "calibration", "hondata", "cobb", "standalone"]
-        let calibration = vehicle.parts.first { part in
-            guard part.status == .installed && part.category == .electronics else { return false }
-            let text = "\(part.name) \(part.brand) \(part.notes)".lowercased()
-            return calibrationTerms.contains { text.contains($0) }
-        }
-        if let calibration {
+        // Shared with the elevated-boost gate (Vehicle.calibrationTerms), so "is there a tune
+        // on record?" has exactly one definition.
+        if let calibration = vehicle.calibrationPartOnRecord {
             return .init(id: "calibration.recorded", title: "Calibration record",
                          detail: "\(calibration.name) is recorded on the current setup.", state: .ready)
         }

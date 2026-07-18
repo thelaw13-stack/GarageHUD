@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 412,
+    "test_count_at_last_update": 419,
     "last_updated": "2026-07-18"
   },
   "items": [
@@ -1097,6 +1097,34 @@
         ],
         "date": "2026-07-18",
         "notes": "Effect on the real fleet: the stage-1 Fozzy stops being told it needs a clutch; the 477-whp S2K remains correctly in scope. Open question deliberately NOT built without Tim: factory-forced-induction awareness (a factory-turbo car's fueling/cooling was engineered for boost — the FI-triggered support reasoning still assumes aftermarket boost). On the board when Tim wants it."
+      }
+    },
+    {
+      "id": "W-045",
+      "title": "Factory-turbocharged awareness — a factory charger is the car, not a mod",
+      "why": "Tim: 'teach the app this platform is boosted from the factory… it's a must to understand.' The reasoning treated forced induction as always-aftermarket: a factory-turbo car with no FI part logged got NO live boost envelope, a HOLD for daring to have a boost map, and — once anything triggered assessment — 'Forced induction is installed.' wording that isn't true of a stock charger.",
+      "depends_on": [
+        "W-044"
+      ],
+      "completion_criteria": [
+        "Vehicle.hasFactoryForcedInduction: owner override (Steward Inputs toggle) ?? inference from engine description ('turbo'/'supercharged') and known factory-boosted model markers (XT, WRX, STI, Evo, GTR, Mazdaspeed, Supra, SRT4)",
+        "Two gates, one definition each: runsBoost (any boost — live envelope defaults, boost maps legitimate in the tuner) vs runsElevatedBoost (support scrutiny — aftermarket FI, or factory platform with a calibration on record or a measured gain >= 25% over stock baseline)",
+        "A SHOWROOM-STOCK factory-turbo car gets: a live boost envelope, a legitimate boost map, and ZERO support-gap nags — the factory engineered that support",
+        "Gap trigger wording is honest per path: 'Forced induction is installed.' only for aftermarket; 'running a tune (Cobb Accessport)' / 'making well over its stock power' for factory platforms",
+        "Vehicle.calibrationTerms/calibrationPartOnRecord shared by the tuner's calibration check and the elevated-boost gate (one definition of 'a tune is on record'); grounding states 'factory turbocharged… not a modification' to the LLM"
+      ],
+      "testing_criteria": [
+        "FactoryBoostTests: inference/override, stock-stays-quiet, tuned-earns-scrutiny with honest wording, gain-only path, envelope default, boost-map-not-a-hold, Cobb recognized",
+        "factoryTurboTuned car added to the honesty sweep matrix; full suite green; deployed to Tim's device"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "412 -> 419, +7",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Effect on the real Fozzy (Cobb, bolt-ons, 381 whp E85): live boost envelope by default, boost map legitimate, fueling/cooling now honestly in scope because the tune turned the boost up — phrased as 'running a tune (Cobb Accessport)', never as installed FI. Tim is checking whether the fuel pump is already logged; if it is, the fueling check reads supported."
       }
     }
   ]

@@ -38,6 +38,9 @@ public enum StewardGrounding {
         fact("Vehicle", "\(vehicle.year) \(vehicle.make) \(vehicle.model)\(vehicle.trim.isEmpty ? "" : " " + vehicle.trim)")
         fact("Drivetrain", vehicle.drivetrain == .unknown ? nil : vehicle.drivetrain.displayName)
         fact("Engine", vehicle.engineDescription.isEmpty ? nil : vehicle.engineDescription)
+        fact("Induction", vehicle.hasFactoryForcedInduction
+            ? "factory turbocharged/supercharged (the stock charger is part of the car, not a modification)"
+            : nil)
         fact("Odometer", vehicle.currentMileage.map { "\($0.formatted(.number.grouping(.automatic))) mi" })
         if vehicle.serviceStatus.isInService {
             fact("Status", "OUT OF SERVICE" + (vehicle.serviceStatus.reason.isEmpty ? "" : " — \(vehicle.serviceStatus.reason)"))

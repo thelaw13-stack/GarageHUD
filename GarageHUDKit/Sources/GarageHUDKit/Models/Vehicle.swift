@@ -43,6 +43,12 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// from `totalInvested` (build/mod spend) and `serviceSpend` (maintenance): three distinct money
     /// facts, never conflated. Nil until recorded.
     public var purchasePrice: Double?
+    /// Whether this platform is boosted from the showroom (factory turbo/supercharger). Nil =
+    /// infer from the engine description and known model markers; the owner can override either
+    /// way in Steward Inputs. See `hasFactoryForcedInduction` (W-045): a factory charger is part
+    /// of the car, never a modification — but its boost still matters to live limits, the tuner,
+    /// and (once the tune is turned up) support-system reasoning.
+    public var factoryForcedInductionOverride: Bool?
 
     public var parts: [Part] = []
     public var buildEvents: [BuildEvent] = []
@@ -115,6 +121,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         drivetrain = try c.decodeIfPresent(Drivetrain.self, forKey: .drivetrain) ?? .unknown
         documentedTotalInvestment = try c.decodeIfPresent(Double.self, forKey: .documentedTotalInvestment)
         purchasePrice = try c.decodeIfPresent(Double.self, forKey: .purchasePrice)
+        factoryForcedInductionOverride = try c.decodeIfPresent(Bool.self, forKey: .factoryForcedInductionOverride)
         confirmedStockSystems = try c.decodeIfPresent(Set<PartCategory>.self, forKey: .confirmedStockSystems) ?? []
         operatingEnvelopeOverride = try c.decodeIfPresent(OperatingEnvelope.self, forKey: .operatingEnvelopeOverride)
         serviceStatus = try c.decodeIfPresent(ServiceStatus.self, forKey: .serviceStatus) ?? .operational

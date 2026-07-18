@@ -16,13 +16,16 @@ public enum Steward {
         let vid = vehicle.id
         let hasForcedInduction = vehicle.knowledge(of: .forcedInduction) == .confirmedPresent
 
-        // 1–2. Fueling and cooling should keep up with forced induction — phrased by what we
-        //       actually know, never conflating "not logged" with "not installed".
-        if hasForcedInduction {
+        // 1–2. Fueling and cooling should keep up with elevated boost — phrased by what we
+        //       actually know, never conflating "not logged" with "not installed", and never
+        //       calling a factory charger "installed" (W-045). A stock factory-turbo car stays
+        //       quiet: its support systems were engineered for that boost at the showroom.
+        if vehicle.runsElevatedBoost {
+            let trigger = boostScrutinyTrigger(vehicle)
             if let o = supportGap(vehicle, support: .fueling, subsystem: "fuel system",
-                                  trigger: "Forced induction is installed.") { out.append(o) }
+                                  trigger: trigger) { out.append(o) }
             if let o = supportGap(vehicle, support: .cooling, subsystem: "cooling",
-                                  trigger: "Forced induction is installed.") { out.append(o) }
+                                  trigger: trigger) { out.append(o) }
         }
 
         // 3. Braking should keep pace with power and grip. The power leg keys on the owner's
@@ -205,6 +208,19 @@ public enum Steward {
         }
 
         return out.sorted(by: ordered)
+    }
+
+    /// The honest one-line reason boost support is under scrutiny for THIS car: an aftermarket
+    /// install is "installed"; a factory-boosted platform is described by what actually raised
+    /// the load (the tune on record, or the measured gain) — never as a modification.
+    static func boostScrutinyTrigger(_ vehicle: Vehicle) -> String {
+        if vehicle.knowledge(of: .forcedInduction) == .confirmedPresent {
+            return "Forced induction is installed."
+        }
+        if let calibration = vehicle.calibrationPartOnRecord {
+            return "The factory-boosted engine is running a tune (\(calibration.name))."
+        }
+        return "This factory-boosted platform is making well over its stock power."
     }
 
     /// Builds a support-gap observation honestly from what we *know* about the subsystem.

@@ -123,6 +123,63 @@ public extension Vehicle {
     /// build with a missing category is more suspicious than a sparse imported record.
     var isWellDocumented: Bool { installedPartsCount >= 6 }
 
+    // MARK: Factory forced induction (W-045)
+
+    /// True when this platform is boosted from the showroom: the owner's explicit setting, or
+    /// inferred from the engine description ("turbo"/"supercharged") and well-known factory-
+    /// boosted model markers. The distinction matters everywhere boost is reasoned about: a
+    /// factory charger is part of the car — never "forced induction is installed" — but its
+    /// boost is still a meaningful live signal, its tune map is legitimate, and once the boost
+    /// is turned UP (a tune on record, or a big measured gain) the support systems answer for
+    /// it just like an aftermarket setup.
+    var hasFactoryForcedInduction: Bool {
+        if let override = factoryForcedInductionOverride { return override }
+        let engine = engineDescription.lowercased()
+        if engine.contains("turbo") || engine.contains("supercharg") || engine.contains("twincharg") {
+            return true
+        }
+        let tokens = Set("\(model) \(trim)".lowercased()
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init))
+        let factoryBoostedMarkers: Set<String> = ["xt", "wrx", "sti", "evo", "gtr", "mazdaspeed",
+                                                  "mazdaspeed3", "mazdaspeed6", "supra", "srt4"]
+        return !tokens.isDisjoint(with: factoryBoostedMarkers)
+    }
+
+    /// The car makes boost at all — aftermarket forced induction on record, or a factory-boosted
+    /// platform. Gates the things that are true of ANY boosted car: live boost is a meaningful
+    /// signal, a boost target map is legitimate.
+    var runsBoost: Bool {
+        knowledge(of: .forcedInduction) == .confirmedPresent || hasFactoryForcedInduction
+    }
+
+    /// The car runs boost the support systems must answer for: aftermarket forced induction, or
+    /// a factory-boosted platform whose record shows the boost has been turned up — a
+    /// tune/calibration on record, or a measured gain well past the stock baseline (≥ 25%).
+    /// A STOCK factory-turbo car stays out of support scrutiny: its fueling, cooling, and
+    /// driveline were engineered for that boost at the factory.
+    var runsElevatedBoost: Bool {
+        if knowledge(of: .forcedInduction) == .confirmedPresent { return true }
+        guard hasFactoryForcedInduction else { return false }
+        if calibrationPartOnRecord != nil { return true }
+        if let dyno = measuredWheelHorsepower, let base = estimatedStockWheelHP, base > 0,
+           dyno >= base * 1.25 { return true }
+        return false
+    }
+
+    /// Terms that identify a tune/calibration in an installed electronics part. Shared by the
+    /// tuner's calibration check and the elevated-boost gate.
+    static let calibrationTerms = ["tune", "tuning", "ecu", "flash", "calibration", "hondata",
+                                   "cobb", "standalone", "accessport", "access port"]
+
+    /// The installed electronics part that documents a tune/calibration, if any.
+    var calibrationPartOnRecord: Part? {
+        parts.first { part in
+            guard part.status == .installed && part.category == .electronics else { return false }
+            let text = "\(part.name) \(part.brand) \(part.notes)".lowercased()
+            return Self.calibrationTerms.contains { text.contains($0) }
+        }
+    }
+
     /// The owner's calibration (Tim, 2026-07-18, W-044): "I won't touch the transmission till
     /// over 450 HP, wouldn't touch the clutch till then." Driveline and brake attention keys on
     /// crossing this absolute wheel-power level — NOT on a flat gain-over-stock, which flagged

@@ -69,7 +69,7 @@ public struct BuildPlan: Equatable, Sendable {
 public enum BuildPlanner {
     public static func plan(for vehicle: Vehicle, context: StewardContext = .live) -> BuildPlan {
         let planned = vehicle.plannedParts
-        let boosted = vehicle.knowledge(of: .forcedInduction) == .confirmedPresent
+        let boosted = vehicle.runsElevatedBoost   // incl. a tuned-up factory-boosted platform (W-045)
         // Support categories that matter more once the car is past the owner's
         // driveline-attention level (W-044).
         let powerUp = vehicle.powerDemandsDrivelineAttention

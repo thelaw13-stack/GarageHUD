@@ -115,6 +115,14 @@ final class HonestySweepTests: XCTestCase {
         mileageOverdue.buildEvents = [BuildEvent(date: day(0), title: "Odometer check", mileage: 58_000)]
         out.append(("mileageOverdue", mileageOverdue))
 
+        var factoryTurbo = Vehicle(make: "Subaru", model: "Forester XT", year: 2008, garageSlot: 1,
+                                   factoryHorsepower: 224)
+        factoryTurbo.engineDescription = "2.5L turbocharged flat-4"
+        factoryTurbo.drivetrain = .awd
+        factoryTurbo.parts = [Part(name: "Cobb Accessport", category: .electronics, status: .installed)]
+        factoryTurbo.performanceRecords = [PerformanceRecord(date: day(-20), type: .dyno, wheelHorsepower: 381)]
+        out.append(("factoryTurboTuned", factoryTurbo))
+
         var timeOverdue = bare
         timeOverdue.maintenance = [MaintenanceItem(name: "Coolant flush", intervalMonths: 6, lastServiced: day(-300))]
         out.append(("timeOverdue", timeOverdue))
