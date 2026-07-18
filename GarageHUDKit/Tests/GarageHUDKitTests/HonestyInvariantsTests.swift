@@ -132,6 +132,22 @@ final class HonestyInvariantsTests: XCTestCase {
         XCTAssertTrue(sheet.contains("140 hp (factory rated)"), sheet)
     }
 
+    /// PowerFigure pairs value and label in one type — the structural fix for the recurring
+    /// crank-as-whp mis-pair. The unit follows the measurement, never the record's ambition.
+    func testPowerFigurePairsValueAndLabelHonestly() {
+        var v = Vehicle(make: "Honda", model: "S2000", year: 2004, garageSlot: 1, factoryHorsepower: 240)
+        XCTAssertEqual(v.currentPowerFigure?.compactLabel, "240 hp")
+        XCTAssertEqual(v.currentPowerFigure?.labeled, "240 hp (factory rated)")
+
+        v.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 477)]
+        XCTAssertEqual(v.currentPowerFigure?.compactLabel, "477 whp")
+        XCTAssertEqual(v.currentPowerFigure?.labeled, "477 whp (measured)")
+
+        v.performanceRecords = []
+        v.factoryHorsepower = nil
+        XCTAssertNil(v.currentPowerFigure, "no record → no figure → no number on any surface")
+    }
+
     /// A planned (wishlist) part is intent, not a fact. It must never read as a supported/covered
     /// system — only as an open item with a plan against it.
     func testPlannedPartIsNotCountedAsCovered() {

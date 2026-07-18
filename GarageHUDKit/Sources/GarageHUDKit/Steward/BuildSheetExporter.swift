@@ -20,9 +20,8 @@ public enum BuildSheetExporter {
 
         // Power
         header("Power")
-        if let hp = vehicle.currentHorsepowerEstimate {
-            let measured = vehicle.hasMeasuredPower
-            line("\(Int(hp)) \(measured ? "whp" : "hp") (\(measured ? "measured" : "factory rated"))")
+        if let figure = vehicle.currentPowerFigure {
+            line(figure.labeled)
             if let gained = vehicle.horsepowerGainedOverStock, let base = vehicle.estimatedStockWheelHP {
                 line("+\(Int(gained)) whp over ~\(Int(base)) whp estimated stock (\(vehicle.drivetrain.displayName))")
             }

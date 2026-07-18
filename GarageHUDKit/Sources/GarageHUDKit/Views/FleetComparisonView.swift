@@ -53,7 +53,9 @@ struct FleetComparisonView: View {
 
     private var rows: [Row] {
         [
-            numericRow("POWER", unit: "whp", { $0.currentHorsepowerEstimate }, format: { "\(Int($0))" }),
+            // Wheel-normalized so the shared "whp" header is true for every row — a measured wheel
+            // figure and a factory crank rating must never sit in the same column under one unit.
+            numericRow("POWER", unit: "whp", { $0.currentWheelHorsepowerEstimate }, format: { "\(Int($0))" }),
             numericRow("ODOMETER", unit: "mi", { $0.currentMileage.map(Double.init) },
                        format: { Int($0).formatted(.number.grouping(.automatic)) }, higherIsBetter: false),
             numericRow("INVESTED", unit: "", { $0.totalInvested > 0 ? $0.totalInvested : nil },

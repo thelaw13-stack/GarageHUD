@@ -92,8 +92,8 @@ public extension Steward {
         // The unit and label must follow the measurement, never the record's ambition: a factory
         // crank rating presented as "whp" is the exact lie this app exists to never tell.
         let powerSummary: String = {
-            guard let hp = vehicle.currentHorsepowerEstimate else { return "Power not yet measured" }
-            let base = vehicle.hasMeasuredPower ? "\(Int(hp)) whp measured" : "\(Int(hp)) hp (factory rated)"
+            guard let figure = vehicle.currentPowerFigure else { return "Power not yet measured" }
+            let base = figure.isMeasured ? "\(figure.compactLabel) measured" : figure.labeled
             return gain > 0 ? base + " · +\(Int(gain)) over an estimated stock wheel baseline" : base
         }()
 

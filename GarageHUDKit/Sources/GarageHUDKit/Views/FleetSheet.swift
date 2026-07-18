@@ -187,11 +187,11 @@ struct FleetSheetCard: View {
 
     @ViewBuilder
     private var powerReadout: some View {
-        if let hp = vehicle.currentHorsepowerEstimate {
-            let measured = vehicle.hasMeasuredPower
+        if let figure = vehicle.currentPowerFigure {
+            let measured = figure.isMeasured
             VStack(alignment: .trailing, spacing: 1) {
-                Text("\(Int(hp))").font(HUDTheme.title()).foregroundStyle(measured ? HUDTheme.cyan : HUDTheme.textPrimary)
-                Text(measured ? "whp measured" : "hp est").font(HUDTheme.label())
+                Text("\(Int(figure.value))").font(HUDTheme.title()).foregroundStyle(measured ? HUDTheme.cyan : HUDTheme.textPrimary)
+                Text(measured ? "\(figure.unit) \(figure.qualifier)" : "\(figure.unit) est").font(HUDTheme.label())
                     .foregroundStyle(measured ? HUDTheme.cyan : HUDTheme.textTertiary)
                 if let gain = vehicle.horsepowerGainedOverStock, gain >= 1 {
                     Text("+\(Int(gain)) over stock").font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)

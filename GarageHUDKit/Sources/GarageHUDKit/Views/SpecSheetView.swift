@@ -79,8 +79,10 @@ struct SpecSheetView: View {
             VStack(alignment: .leading, spacing: HUDTheme.space3) {
                 numbersSubhead("POWER")
                 LazyVGrid(columns: cols, spacing: 16) {
-                    if let hp = vehicle.currentHorsepowerEstimate {
-                        StatReadout(label: "Current", value: "\(Int(hp))", unit: "HP", color: HUDTheme.textPrimary)
+                    if let figure = vehicle.currentPowerFigure {
+                        StatReadout(label: figure.isMeasured ? "Current (measured)" : "Current (factory)",
+                                    value: "\(Int(figure.value))", unit: figure.unit.uppercased(),
+                                    color: HUDTheme.textPrimary)
                     }
                     if let ratio = vehicle.powerToWeight {
                         StatReadout(label: "Power / Weight", value: String(format: "%.2f", ratio), unit: "lb/hp", color: HUDTheme.textPrimary)

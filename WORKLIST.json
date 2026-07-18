@@ -563,10 +563,37 @@
       "result": {
         "tests": "376 -> 377, +1 (one sweep test, ~110 vehicle x surface x rule checks inside)",
         "commits": [
-          "pending"
+          "65f50c0"
         ],
         "date": "2026-07-17",
         "notes": "New textual surfaces must be added to HonestySweepTests.surfaces to inherit coverage — noted in the test header. Fleet-sheet PDF is SwiftUI-rendered and not sweepable as text; its logic reads the same shared helpers."
+      }
+    },
+    {
+      "id": "W-024",
+      "title": "PowerFigure — value and honest label paired in one type",
+      "why": "The recurring crank-as-whp bug was structural: currentHorsepowerEstimate (which can be a crank rating) and hasMeasuredPower lived apart, and every surface re-paired them by hand. Wiring the type up found FOUR MORE live view-layer instances the text sweep can't reach: VehicleIdentitySurface, GarageSpotlightView (the garage hero rail printed a crank rating as 'WHP'), GarageOverviewView, and FleetComparisonView (crank and wheel figures mixed in one column under a shared 'whp' header).",
+      "depends_on": [
+        "W-023"
+      ],
+      "completion_criteria": [
+        "PowerFigure { value, isMeasured, unit, qualifier, compactLabel, labeled }; Vehicle.currentPowerFigure is the display source",
+        "BuildAssessment, BuildSheetExporter, FleetSheet, SpecSheet, VehicleIdentitySurface, GarageSpotlightView, GarageOverviewView render through it",
+        "FleetComparisonView POWER column wheel-normalized (currentWheelHorsepowerEstimate) so the shared 'whp' header is true for every row",
+        "SpecSheet 'Current' labels measured vs factory and uses the figure's unit"
+      ],
+      "testing_criteria": [
+        "HonestyInvariantsTests PowerFigure pairing test; HonestySweepTests still green over refactored surfaces",
+        "full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "377 -> 378, +1",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-17",
+        "notes": "View-layer visual checks (spotlight rail, identity surface, comparison grid) still deserve Tim's on-device eyeball — copy lengths changed slightly ('240 HP' where 'XXX WHP' used to render)."
       }
     }
   ]

@@ -123,7 +123,7 @@ struct GarageSpotlightView: View {
             }
             railFact(
                 "POWER",
-                vehicle.currentHorsepowerEstimate.map { "\(Int($0)) WHP" } ?? "NO DYNO",
+                vehicle.currentPowerFigure.map { $0.compactLabel.uppercased() } ?? "NO DYNO",
                 vehicle.latestPerformance?.summary ?? "No measured baseline",
                 // On a torn-down car, power isn't the story — dim it to plain white so it stops
                 // out-competing the amber OUT OF SERVICE / red TUNE STATE for the eye (DD-001 F2).

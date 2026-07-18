@@ -155,7 +155,7 @@ struct VehicleIdentitySurface: View {
         VStack(alignment: alignment, spacing: HUDTheme.space3) {
             statusChips(alignment: alignment)
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: HUDTheme.space2)], spacing: HUDTheme.space2) {
-                identityMetric("POWER", vehicle.currentHorsepowerEstimate.map { "\(Int($0)) whp" } ?? "No dyno")
+                identityMetric("POWER", vehicle.currentPowerFigure?.compactLabel ?? "No dyno")
                 identityMetric("SERVICE", serviceMetric)
                 identityMetric("ACTIVITY", vehicle.lastActivityDate.map { $0.formatted(.dateTime.month(.abbreviated).day()) } ?? "No log")
             }

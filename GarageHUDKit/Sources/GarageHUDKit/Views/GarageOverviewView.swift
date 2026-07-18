@@ -408,7 +408,7 @@ private struct VehicleOverviewCard: View {
             }
 
             HStack(spacing: HUDTheme.space2) {
-                Text(vehicle.latestPerformance?.summary ?? vehicle.currentHorsepowerEstimate.map { "\(Int($0)) whp" } ?? "No data yet")
+                Text(vehicle.latestPerformance?.summary ?? vehicle.currentPowerFigure?.compactLabel ?? "No data yet")
                     .font(HUDTheme.body()).foregroundStyle(HUDTheme.textPrimary)
                 Spacer(minLength: 0)
                 if attentionCount > 0 {
