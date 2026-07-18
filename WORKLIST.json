@@ -1147,7 +1147,7 @@
       "result": {
         "tests": "419 -> 418 (net -1: one statistic-rule test retired, replacements folded into repurposed tests)",
         "commits": [
-          "pending"
+          "1beebe3"
         ],
         "date": "2026-07-18",
         "notes": "fleet.valueLeader is the same class at fleet level (informational stat, unresolvable) — it's rarer (needs 2+ dynoed cars) and un-actionable already, so left in place but WATCHED: if Tim reports it as noise, retire it the same way."
