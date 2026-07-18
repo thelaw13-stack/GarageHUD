@@ -916,7 +916,7 @@
       "result": {
         "tests": "409 green (presentation wiring)",
         "commits": [
-          "pending"
+          "bbc2990"
         ],
         "date": "2026-07-18",
         "notes": "Awaiting Tim's on-device confirmation that the tap now lands on both the S2K (scroll) and an actionable car (dialog)."
