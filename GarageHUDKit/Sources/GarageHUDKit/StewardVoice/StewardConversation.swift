@@ -69,8 +69,13 @@ public enum StewardConversation {
                     confidence: .strong)
             }
             if let factory = vehicle.factoryHorsepower {
+                // Same honesty as the grounding record: never deny a dyno session the owner can
+                // see in the timeline just because it carries no usable figure.
+                let dynoNote = vehicle.performanceRecords.contains { $0.type == .dyno }
+                    ? "A dyno session is logged but carries no measured figure"
+                    : "No dyno is logged yet"
                 return StewardReply(
-                    text: "The factory rating is \(Int(factory)) hp (\(vehicle.factoryPowerBasis.describes)). No dyno is logged yet, so treat that as an estimate.",
+                    text: "The factory rating is \(Int(factory)) hp (\(vehicle.factoryPowerBasis.describes)). \(dynoNote), so treat that as an estimate.",
                     confidence: .weak)
             }
             return StewardReply(text: "No horsepower is on record yet — log a dyno pull and I can speak to it.")

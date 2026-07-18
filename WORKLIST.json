@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 376,
+    "test_count_at_last_update": 377,
     "last_updated": "2026-07-17"
   },
   "items": [
@@ -540,7 +540,33 @@
           "9763bca"
         ],
         "date": "2026-07-17",
-        "notes": "Remaining from the review, deliberately NOT done here (needs owner/architect judgment): a table-driven cross-surface honesty sweep test (adversarial vehicle matrix x every textual surface x global assertions) — the structural guard against instance #4 of the crank-as-wheel class; a PowerFigure/money-bucket type so value+label can't be mis-paired at call sites; odometer input validation; units/locale; a UI path to discover and restore conflict snapshots."
+        "notes": "Remaining from the review, deliberately NOT done here (needs owner/architect judgment): a table-driven cross-surface honesty sweep test (adversarial vehicle matrix x every textual surface x global assertions) — the structural guard against instance #4 of the crank-as-wheel class; a PowerFigure/money-bucket type so value+label can't be mis-paired at call sites; odometer input validation; units/locale; a UI path to discover and restore conflict snapshots. UPDATE: Tim authorized continuing — tracked as W-023..W-026."
+      }
+    },
+    {
+      "id": "W-023",
+      "title": "Cross-surface honesty sweep test",
+      "why": "Three reviews found the same value/label mis-pair (crank as 'whp', estimate as 'measured') in three different places — point fixes don't stop instance #4; a quantified invariant does. Designing the sweep immediately caught a fourth live instance: the voice Steward's power answer said 'No dyno is logged yet' for a car with a numberless dyno session on record (the H5 denial, in a surface the grounding fix missed).",
+      "depends_on": [
+        "W-022"
+      ],
+      "completion_criteria": [
+        "HonestySweepTests renders every pure textual surface (build sheet, grounding, observations, assessment, next step, four voice replies, briefing, tune readiness, build plan) for an adversarial vehicle matrix",
+        "Global assertions: whp earned or estimate-framed; 'measured' earned or negated; the record never denied; planned money always framed planned; a bare car yields no numbers; surfaces agree on overdue-ness",
+        "Mutation-verified: reintroducing the W-022 crank-as-whp bug makes the sweep fail with a pointed message",
+        "StewardConversation numberless-dyno denial fixed (same wording as grounding)"
+      ],
+      "testing_criteria": [
+        "HonestySweepTests green; full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "376 -> 377, +1 (one sweep test, ~110 vehicle x surface x rule checks inside)",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-17",
+        "notes": "New textual surfaces must be added to HonestySweepTests.surfaces to inherit coverage — noted in the test header. Fleet-sheet PDF is SwiftUI-rendered and not sweepable as text; its logic reads the same shared helpers."
       }
     }
   ]
