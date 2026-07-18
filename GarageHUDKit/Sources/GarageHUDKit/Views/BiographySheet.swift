@@ -58,6 +58,21 @@ public struct SharableBiographySheet: Transferable, Sendable {
 
 // MARK: - The document
 
+/// Paper-first palette (W-047, Tim: "Black is a touch background to print into"). The cockpit
+/// dark is the app's identity ON SCREEN; a biography's natural habitat is print — handed to a
+/// buyer, filed with insurance — so the page is white ground, ink-dark text, with the brand
+/// cyan surviving only as a restrained accent that stays legible on paper.
+private enum PrintTheme {
+    static let paper = Color.white
+    static let ink = Color(red: 0.09, green: 0.11, blue: 0.13)
+    static let inkSecondary = Color(red: 0.32, green: 0.35, blue: 0.38)
+    static let inkTertiary = Color(red: 0.52, green: 0.55, blue: 0.58)
+    /// The HUD cyan darkened to survive a white ground (and a laser printer).
+    static let accent = Color(red: 0.0, green: 0.42, blue: 0.52)
+    static let panel = Color(red: 0.965, green: 0.97, blue: 0.975)
+    static let hairline = Color.black.opacity(0.12)
+}
+
 struct BiographySheetDocument: View {
     let model: BiographyModel
 
@@ -76,23 +91,23 @@ struct BiographySheetDocument: View {
         }
         .padding(HUDTheme.space5)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(HUDTheme.background)
-        .environment(\.colorScheme, .dark)
+        .background(PrintTheme.paper)
+        .environment(\.colorScheme, .light)
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: HUDTheme.space2) {
             HStack(alignment: .firstTextBaseline) {
                 Text(model.headerLines.first ?? "").font(HUDTheme.label(.semibold))
-                    .foregroundStyle(HUDTheme.cyan).tracking(3)
+                    .foregroundStyle(PrintTheme.accent).tracking(3)
                 Spacer()
             }
             ForEach(Array(model.headerLines.dropFirst().enumerated()), id: \.offset) { index, line in
                 Text(line)
                     .font(index == 0 ? HUDTheme.title() : HUDTheme.body())
-                    .foregroundStyle(index == 0 ? HUDTheme.textPrimary : HUDTheme.textSecondary)
+                    .foregroundStyle(index == 0 ? PrintTheme.ink : PrintTheme.inkSecondary)
             }
-            Rectangle().fill(HUDTheme.cyan.opacity(0.6)).frame(height: 2)
+            Rectangle().fill(PrintTheme.accent.opacity(0.7)).frame(height: 2)
         }
     }
 
@@ -101,27 +116,29 @@ struct BiographySheetDocument: View {
         let omitted = section.lines.count - capped.count
         return VStack(alignment: .leading, spacing: HUDTheme.space1) {
             Text(section.title.uppercased()).font(HUDTheme.label(.semibold))
-                .foregroundStyle(HUDTheme.textTertiary).tracking(1.5)
+                .foregroundStyle(PrintTheme.accent).tracking(1.5)
             ForEach(Array(capped.enumerated()), id: \.offset) { _, line in
-                Text(line).font(HUDTheme.body()).foregroundStyle(HUDTheme.textSecondary)
+                Text(line).font(HUDTheme.body()).foregroundStyle(PrintTheme.ink)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if omitted > 0 {
                 Text("… and \(omitted) more — the full history is in the text export.")
-                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textTertiary)
+                    .font(HUDTheme.label()).foregroundStyle(PrintTheme.inkTertiary)
             }
         }
         .padding(HUDTheme.space3)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(HUDTheme.elevatedSurface))
+        .background(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).fill(PrintTheme.panel))
+        .overlay(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius)
+            .strokeBorder(PrintTheme.hairline, lineWidth: 0.5))
     }
 
     private var footer: some View {
         HStack {
-            Text(model.footer).font(HUDTheme.label()).foregroundStyle(HUDTheme.textTertiary)
+            Text(model.footer).font(HUDTheme.label()).foregroundStyle(PrintTheme.inkTertiary)
             Spacer()
             Text(Date.now.formatted(date: .abbreviated, time: .omitted))
-                .font(HUDTheme.label()).foregroundStyle(HUDTheme.textTertiary)
+                .font(HUDTheme.label()).foregroundStyle(PrintTheme.inkTertiary)
         }
     }
 }
