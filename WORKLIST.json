@@ -966,7 +966,7 @@
       "result": {
         "tests": "409 green",
         "commits": [
-          "pending"
+          "eecedc9"
         ],
         "date": "2026-07-18",
         "notes": "Standing offer to Tim remains: if the line doesn't earn its place as pure information, removal is one commit. Lesson recorded under DD-004: a summary label must never be a door to an action that contradicts it, especially not one that clears user data two taps away."
