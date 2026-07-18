@@ -46,6 +46,8 @@ final class HonestySweepTests: XCTestCase {
             let p = BuildPlanner.plan(for: $0)
             return (p.advisory ?? "") + " " + p.steps.map { "\($0.name): \($0.rationale)" }.joined(separator: " | ")
         }),
+        // The buyer-facing PDF's words — the card renders exclusively from this model.
+        ("fleetSheetCard", { FleetSheetCardModel.make(for: $0).sweepText }),
     ]
 
     // MARK: - The adversarial matrix

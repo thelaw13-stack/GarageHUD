@@ -81,12 +81,11 @@ public enum StewardConversation {
             return StewardReply(text: "No horsepower is on record yet — log a dyno pull and I can speak to it.")
 
         case .investment:
-            guard vehicle.totalInvested > 0 else {
+            guard let investment = vehicle.investmentFigure else {
                 return StewardReply(text: "No spend is documented yet.")
             }
-            let word = vehicle.investmentIsLiveFromParts ? "logged" : "documented"
             return StewardReply(
-                text: "You've \(word) \(dollars(vehicle.totalInvested)) invested so far.")
+                text: "You've \(investment.spokenVerb) \(dollars(investment.total)) invested so far.")
 
         case .efficiency:
             if let costPerHp = vehicle.costPerHorsepowerGained, let gained = vehicle.horsepowerGainedOverStock {

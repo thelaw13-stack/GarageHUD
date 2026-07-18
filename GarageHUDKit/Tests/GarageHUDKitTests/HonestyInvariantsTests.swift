@@ -148,6 +148,52 @@ final class HonestyInvariantsTests: XCTestCase {
         XCTAssertNil(v.currentPowerFigure, "no record → no figure → no number on any surface")
     }
 
+    /// InvestmentFigure pairs the money headline with its source wording in one place — a
+    /// parts-driven total must always read "logged", a documented stand-in always "documented".
+    func testInvestmentFigurePairsSourceWording() {
+        var v = Vehicle(make: "Honda", model: "S2000", year: 2004, garageSlot: 1)
+        v.parts = [Part(name: "Intake", category: .engine, status: .installed, cost: 800)]
+        XCTAssertEqual(v.investmentFigure?.sourceShort, "logged parts")
+        XCTAssertNil(v.investmentFigure?.pricedSoFar)
+
+        v.documentedTotalInvestment = 25_000        // documented leads while parts are underpriced
+        XCTAssertEqual(v.investmentFigure?.sourceShort, "documented")
+        XCTAssertEqual(v.investmentFigure?.total, 25_000)
+        XCTAssertEqual(v.investmentFigure?.pricedSoFar, 800)
+
+        v.parts = []
+        v.documentedTotalInvestment = nil
+        XCTAssertNil(v.investmentFigure, "no spend → no figure → no money on any surface")
+    }
+
+    /// The fleet-sheet card model (the buyer-facing PDF's words) labels power by measurement.
+    func testFleetSheetCardModelLabelsPowerHonestly() {
+        var v = Vehicle(make: "Honda", model: "S2000", year: 2004, garageSlot: 1, factoryHorsepower: 240)
+        var m = FleetSheetCardModel.make(for: v)
+        XCTAssertEqual(m.powerValue, "240")
+        XCTAssertEqual(m.powerCaption, "hp est")
+        XCTAssertFalse(m.powerMeasured)
+
+        v.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 477)]
+        m = FleetSheetCardModel.make(for: v)
+        XCTAssertEqual(m.powerCaption, "whp measured")
+        XCTAssertTrue(m.powerMeasured)
+
+        v.performanceRecords = []
+        v.factoryHorsepower = nil
+        m = FleetSheetCardModel.make(for: v)
+        XCTAssertNil(m.powerValue)
+        XCTAssertEqual(m.noPowerText, "NOT YET MEASURED")
+    }
+
+    /// A record row's summary never prints a physically impossible dyno figure.
+    func testRecordSummaryGatesNonPositiveFigures() {
+        let junk = PerformanceRecord(type: .dyno, wheelHorsepower: -50)
+        XCTAssertEqual(junk.summary, "Dyno", "falls back to the type name, never '-50 whp'")
+        let real = PerformanceRecord(type: .dyno, wheelHorsepower: 477)
+        XCTAssertEqual(real.summary, "477 whp")
+    }
+
     /// A planned (wishlist) part is intent, not a fact. It must never read as a supported/covered
     /// system — only as an open item with a plan against it.
     func testPlannedPartIsNotCountedAsCovered() {

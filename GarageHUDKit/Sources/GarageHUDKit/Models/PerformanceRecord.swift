@@ -45,7 +45,9 @@ public struct PerformanceRecord: Identifiable, Codable, Hashable, Sendable {
     public var summary: String {
         switch type {
         case .dyno:
-            if let hp = wheelHorsepower { return "\(Int(hp)) whp" }
+            // A non-positive figure is not a measurement (same gate as measuredDynoRecords) —
+            // the row falls back to the plain type name rather than printing "-50 whp".
+            if let hp = wheelHorsepower, hp > 0 { return "\(Int(hp)) whp" }
         case .quarterMile:
             if let et = elapsedTimeSeconds { return String(format: "%.2fs @ %.0f mph", et, trapSpeedMph ?? 0) }
         case .zeroToSixty:

@@ -95,17 +95,15 @@ struct SpecSheetView: View {
                 numbersDivider
                 numbersSubhead("INVESTMENT")
                 StatReadout(label: "Total Invested", value: vehicle.totalInvested.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary)
-                Text(vehicle.investmentIsLiveFromParts
-                     ? "Summed live from your installed parts — edit a part's price and this updates."
-                     : (vehicle.pricedPartsSoFar != nil
-                        ? "Your build-sheet total is higher than the parts you've priced — it likely covers labor or parts not yet priced — so this shows the build-sheet figure."
-                        : "No parts priced yet, so this shows your build-sheet total."))
-                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                if let investment = vehicle.investmentFigure {
+                    Text(investment.explanation)
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                }
                 editableStat(label: "Build-Sheet Total (optional)", value: $vehicle.documentedTotalInvestment, unit: "USD", color: HUDTheme.textSecondary)
-                if let doc = vehicle.documentedReconcileFigure {
+                if let doc = vehicle.investmentFigure?.documentedReconcile {
                     Text("Your priced parts sum to \(vehicle.itemizedPartsCost.formatted(.currency(code: "USD"))), above the \(doc.formatted(.currency(code: "USD"))) on your build sheet — this total reflects your parts.")
                         .font(HUDTheme.label()).foregroundStyle(HUDTheme.amber)
-                } else if let priced = vehicle.pricedPartsSoFar {
+                } else if let priced = vehicle.investmentFigure?.pricedSoFar {
                     Text("\(priced.formatted(.currency(code: "USD"))) of it priced in parts so far.")
                         .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 }

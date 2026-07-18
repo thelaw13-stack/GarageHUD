@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 390,
+    "test_count_at_last_update": 393,
     "last_updated": "2026-07-17"
   },
   "items": [
@@ -643,6 +643,82 @@
         ],
         "date": "2026-07-17",
         "notes": "Restore is user-confirmed in UI and always undoable at the store level. Recovery row placement (garage overview, under data-safety notices) deserves Tim's eye for DD-001 gravity; it only appears when preserved files exist."
+      }
+    },
+    {
+      "id": "W-027",
+      "title": "InvestmentFigure — money headline and source wording paired in one type",
+      "why": "The 'total invested' label logic (logged-parts vs documented, reconcile figure, priced-so-far, the three-way Specs explanation) was re-derived by hand on five surfaces (build sheet, grounding, fleet sheet, Specs, voice) — the same mis-pair structure that produced eight crank-as-whp instances, waiting to happen to money.",
+      "depends_on": [
+        "W-024"
+      ],
+      "completion_criteria": [
+        "InvestmentFigure { total, isLiveFromParts, documentedReconcile, pricedSoFar } with every wording variant (sourceShort/sourceLong/sheetPhrase/spokenVerb/explanation) defined once",
+        "Vehicle.investmentFigure nil when nothing invested; all five surfaces refactored onto it"
+      ],
+      "testing_criteria": [
+        "HonestyInvariantsTests source-wording pairing test",
+        "full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "390 -> 391, +1",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-17",
+        "notes": null
+      }
+    },
+    {
+      "id": "W-028",
+      "title": "Fleet-sheet card as a pure, sweep-covered model",
+      "why": "The fleet sheet is the buyer-facing artifact, but as SwiftUI it was the one honesty-critical surface the cross-surface sweep (W-023) could not check. Extracting its words into FleetSheetCardModel closes that hole: the sweep checks the model, the card only inks it.",
+      "depends_on": [
+        "W-023"
+      ],
+      "completion_criteria": [
+        "FleetSheetCardModel.make(for:) produces every string the card prints (power value/caption/gain, investment, stock baseline, goal, subsystem statuses, headline)",
+        "FleetSheetCard renders exclusively from the model (documented rule: a string added directly to the card bypasses the sweep)",
+        "sweepText added to HonestySweepTests.surfaces"
+      ],
+      "testing_criteria": [
+        "FleetSheetCardModel honesty test; HonestySweepTests green over the new surface; FleetSheetTests (PDF render) green",
+        "full suite green; iOS simulator build green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "391 -> 392, +1",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-17",
+        "notes": "Rendered output unchanged by construction (strings extracted verbatim); PDF render test still green. Worth one visual diff of the exported sheet on device."
+      }
+    },
+    {
+      "id": "W-029",
+      "title": "Non-positive figures gated in record summaries and dashboard torque",
+      "why": "PerformanceRecord.summary printed any entered wheelHorsepower ('-50 whp') on record rows and the garage overview; the dashboard torque stat had the same hole for wheelTorque. Same gate as measuredDynoRecords: a non-positive figure is not a measurement.",
+      "depends_on": [
+        "W-022"
+      ],
+      "completion_criteria": [
+        "PerformanceRecord.summary falls back to the type name for non-positive dyno figures",
+        "Dashboard torque stat ignores non-positive wheelTorque"
+      ],
+      "testing_criteria": [
+        "HonestyInvariantsTests summary gating test",
+        "full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "392 -> 393, +1",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-17",
+        "notes": null
       }
     }
   ]

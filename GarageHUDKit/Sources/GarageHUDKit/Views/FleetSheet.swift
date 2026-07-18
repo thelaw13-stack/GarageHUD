@@ -142,20 +142,22 @@ struct FleetSheetDocument: View {
 struct FleetSheetCard: View {
     let vehicle: Vehicle
 
-    private var assessment: BuildAssessment? { Steward.assess(vehicle) }
-    private var progress: BuildProgress { BuildPlanner.plan(for: vehicle).progress }
+    /// Every string on this card comes from the model — the sweep checks the model, the card
+    /// only inks it. A string added directly here would bypass the honesty sweep.
+    private var model: FleetSheetCardModel { FleetSheetCardModel.make(for: vehicle) }
 
     var body: some View {
+        let model = self.model
         VStack(alignment: .leading, spacing: HUDTheme.space3) {
-            titleRow
-            if !vehicle.engineDescription.isEmpty {
-                Text(vehicle.engineDescription).font(HUDTheme.body()).foregroundStyle(HUDTheme.textSecondary)
+            titleRow(model)
+            if let engine = model.engine {
+                Text(engine).font(HUDTheme.body()).foregroundStyle(HUDTheme.textSecondary)
             }
-            statsRow
-            if let goal = vehicle.buildGoal, goal.isSet { goalRow(goal) }
-            if let a = assessment, !a.subsystems.isEmpty { systemsRow(a) }
-            if let a = assessment {
-                Text(a.headline).font(HUDTheme.body()).foregroundStyle(HUDTheme.textSecondary)
+            statsRow(model)
+            if model.goalText != nil { goalRow(model) }
+            if !model.subsystems.isEmpty { systemsRow(model.subsystems) }
+            if let headline = model.headline {
+                Text(headline).font(HUDTheme.body()).foregroundStyle(HUDTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -165,51 +167,50 @@ struct FleetSheetCard: View {
         .overlay(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).strokeBorder(HUDTheme.hairline, lineWidth: 1))
     }
 
-    private var titleRow: some View {
+    private func titleRow(_ model: FleetSheetCardModel) -> some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: HUDTheme.space2) {
-                    Text(vehicle.displayName).font(HUDTheme.section()).foregroundStyle(HUDTheme.textPrimary)
-                    if vehicle.serviceStatus.isInService {
+                    Text(model.title).font(HUDTheme.section()).foregroundStyle(HUDTheme.textPrimary)
+                    if model.outOfService {
                         Text("OUT OF SERVICE").font(HUDTheme.label(.semibold))
                             .foregroundStyle(HUDTheme.amber).tracking(1)
                             .padding(.horizontal, 6).padding(.vertical, 2)
                             .overlay(Capsule().strokeBorder(HUDTheme.amber.opacity(0.5), lineWidth: 1))
                     }
                 }
-                Text(vehicle.subtitle.uppercased()).font(HUDTheme.label())
+                Text(model.subtitle).font(HUDTheme.label())
                     .foregroundStyle(HUDTheme.textTertiary).tracking(1)
             }
             Spacer(minLength: HUDTheme.space3)
-            powerReadout
+            powerReadout(model)
         }
     }
 
     @ViewBuilder
-    private var powerReadout: some View {
-        if let figure = vehicle.currentPowerFigure {
-            let measured = figure.isMeasured
+    private func powerReadout(_ model: FleetSheetCardModel) -> some View {
+        if let value = model.powerValue, let caption = model.powerCaption {
+            let measured = model.powerMeasured
             VStack(alignment: .trailing, spacing: 1) {
-                Text("\(Int(figure.value))").font(HUDTheme.title()).foregroundStyle(measured ? HUDTheme.cyan : HUDTheme.textPrimary)
-                Text(measured ? "\(figure.unit) \(figure.qualifier)" : "\(figure.unit) est").font(HUDTheme.label())
+                Text(value).font(HUDTheme.title()).foregroundStyle(measured ? HUDTheme.cyan : HUDTheme.textPrimary)
+                Text(caption).font(HUDTheme.label())
                     .foregroundStyle(measured ? HUDTheme.cyan : HUDTheme.textTertiary)
-                if let gain = vehicle.horsepowerGainedOverStock, gain >= 1 {
-                    Text("+\(Int(gain)) over stock").font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                if let gain = model.powerGain {
+                    Text(gain).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 }
             }
-        } else {
-            Text("NOT YET MEASURED").font(HUDTheme.label()).foregroundStyle(HUDTheme.textTertiary).tracking(1)
+        } else if let noPower = model.noPowerText {
+            Text(noPower).font(HUDTheme.label()).foregroundStyle(HUDTheme.textTertiary).tracking(1)
         }
     }
 
-    private var statsRow: some View {
+    private func statsRow(_ model: FleetSheetCardModel) -> some View {
         HStack(alignment: .top, spacing: HUDTheme.space5) {
-            if vehicle.totalInvested > 0 {
-                miniStat("INVESTMENT", money(vehicle.totalInvested),
-                         vehicle.investmentIsLiveFromParts ? "logged parts" : "documented")
+            if let value = model.investmentValue, let caption = model.investmentCaption {
+                miniStat("INVESTMENT", value, caption)
             }
-            if let base = vehicle.estimatedStockWheelHP {
-                miniStat("STOCK BASELINE", "\(Int(base)) whp", vehicle.drivetrain.displayName)
+            if let base = model.stockBaselineValue {
+                miniStat("STOCK BASELINE", base, model.stockBaselineCaption ?? "")
             }
         }
     }
@@ -222,22 +223,22 @@ struct FleetSheetCard: View {
         }
     }
 
-    private func goalRow(_ goal: BuildGoal) -> some View {
+    private func goalRow(_ model: FleetSheetCardModel) -> some View {
         HStack(alignment: .center, spacing: HUDTheme.space2) {
             Image(systemName: "flag.fill").font(.system(size: 10)).foregroundStyle(HUDTheme.green)
-            Text(goal.summary.isEmpty ? "\(Int(goal.targetWheelHP ?? 0)) whp goal" : goal.summary)
+            Text(model.goalText ?? "")
                 .font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
             Spacer(minLength: 0)
-            if let frac = progress.powerFraction {
-                Text("\(Int((frac * 100).rounded()))% to goal")
-                    .font(HUDTheme.label(.semibold)).foregroundStyle(frac >= 1 ? HUDTheme.green : HUDTheme.cyan)
+            if let percent = model.goalPercent {
+                Text(percent)
+                    .font(HUDTheme.label(.semibold)).foregroundStyle(model.goalReached ? HUDTheme.green : HUDTheme.cyan)
             }
         }
     }
 
-    private func systemsRow(_ a: BuildAssessment) -> some View {
+    private func systemsRow(_ subsystems: [BuildAssessment.Subsystem]) -> some View {
         HStack(spacing: HUDTheme.space3) {
-            ForEach(a.subsystems.prefix(5)) { sub in
+            ForEach(subsystems) { sub in
                 HStack(spacing: 5) {
                     Circle().fill(statusColor(sub)).frame(width: 6, height: 6)
                     Text(sub.label).font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
