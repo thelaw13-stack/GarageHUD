@@ -1121,7 +1121,7 @@
       "result": {
         "tests": "412 -> 419, +7",
         "commits": [
-          "pending"
+          "48ede3d"
         ],
         "date": "2026-07-18",
         "notes": "Effect on the real Fozzy (Cobb, bolt-ons, 381 whp E85): live boost envelope by default, boost map legitimate, fueling/cooling now honestly in scope because the tune turned the boost up — phrased as 'running a tune (Cobb Accessport)', never as installed FI. Tim is checking whether the fuel pump is already logged; if it is, the fueling check reads supported."
