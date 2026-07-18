@@ -351,7 +351,7 @@
         "on-device/hardware validation; record findings here"
       ],
       "status": "blocked",
-      "blocked_reason": "Needs a Bluetooth-LE adapter. Tim has an OBDLink MX+, which is MFi/Bluetooth-Classic — iOS pairs it but GarageHUD's CoreBluetooth stack can't open its data channel (no MFi entitlement). The picker (W-011) shows it as a dead-end. Get an OBDLink CX (BLE, same brand) or a Veepeak/Vgate BLE adapter; then W-014 is a plug-and-check.",
+      "blocked_reason": "READY — Veepeak OBDCheck BLE (a supported BLE adapter) ordered, arriving in hours. Current main (with Dad C3 baro fix + the W-011 pairing picker) is installed on the device. Run docs/W-014_DRIVEWAY_CHECKLIST.md; capture the Connection Report + gauge screenshots. Flip to complete when the three criteria pass on the real car.",
       "result": null
     },
     {
