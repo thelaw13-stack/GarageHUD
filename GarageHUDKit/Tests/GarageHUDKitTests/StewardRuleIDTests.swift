@@ -22,6 +22,28 @@ final class StewardRuleIDTests: XCTestCase {
         XCTAssertTrue(StewardRuleID.isMaintenanceDueSoon(StewardRuleID.maintenanceDueSoon(item)))
     }
 
+    /// A NextStep that names an action must be actionable: it carries its source observation,
+    /// and that observation resolves to concrete options (the tappable NEXT line's contract).
+    func testNextStepCarriesAResolvableSource() {
+        // Overdue maintenance → advisory next step → "Mark serviced" in place.
+        var truck = Vehicle(make: "Toyota", model: "Tundra", year: 2021, garageSlot: 1)
+        let oil = MaintenanceItem(name: "Oil change", intervalMonths: 6,
+                                  lastServiced: Date(timeIntervalSinceNow: -300 * 86_400))
+        truck.maintenance = [oil]
+        let step = Steward.nextStep(truck)
+        XCTAssertNotNil(step?.source, "an observation-driven step must carry its source")
+        XCTAssertTrue(StewardResolution.options(for: step!.source!, in: truck)
+            .contains { $0.action == .markServiced(oil.id) })
+
+        // Assessment-driven step (undocumented fueling on a boosted car) → the matching gap
+        // observation rides along, so the step resolves to confirm-stock / add-part.
+        var s2k = Vehicle(make: "Honda", model: "S2000", year: 2004, garageSlot: 1)
+        s2k.parts = [Part(name: "SC kit", category: .forcedInduction, status: .installed)]
+        let gapStep = Steward.nextStep(s2k)
+        XCTAssertNotNil(gapStep?.source, "the gap observation must ride along with the assessment step")
+        XCTAssertTrue(StewardResolution.isActionable(gapStep!.source!, in: s2k))
+    }
+
     /// End-to-end: an emitted observation must reach its intended resolution options.
     func testEmittedObservationsRouteToTheirResolutions() {
         // A mileage-overdue item → Mark serviced targeting exactly that item.

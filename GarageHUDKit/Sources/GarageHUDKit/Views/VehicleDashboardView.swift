@@ -19,15 +19,29 @@ struct VehicleDashboardView: View {
 
     /// One calm line of "what matters now" directly under the identity, so the condition never
     /// falls below the fold on a busy car (DD-001, Dashboard). It's the Steward's next step —
-    /// an existing, tested judgment — not a new claim.
+    /// an existing, tested judgment — not a new claim. A line that names an action must BE
+    /// actionable: tapping it opens the source observation's resolution options (the same flow
+    /// as the Steward rows). Only when the fix lives elsewhere on this screen (e.g. the rebuild
+    /// checklist right below) does it stay a plain line.
     @ViewBuilder
     private var conditionLine: some View {
         if let step = Steward.nextStep(vehicle) {
-            HStack(alignment: .firstTextBaseline, spacing: HUDTheme.space2) {
+            let resolvable = step.source.map { StewardResolution.isActionable($0, in: vehicle) } ?? false
+            let row = HStack(alignment: .firstTextBaseline, spacing: HUDTheme.space2) {
                 Text("NEXT").font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textTertiary).tracking(1.5)
                 Text(step.action).font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
+                if resolvable {
+                    Image(systemName: "chevron.right").font(.caption2).foregroundStyle(HUDTheme.textTertiary)
+                }
+            }
+            if resolvable, let source = step.source {
+                Button { resolving = source } label: { row }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Shows ways to resolve this")
+            } else {
+                row
             }
         }
     }

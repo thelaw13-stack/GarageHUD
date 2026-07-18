@@ -8,6 +8,18 @@ public struct NextStep: Equatable, Sendable {
     public let action: String
     public let rationale: String
     public let confidence: ConfidenceBand
+    /// The observation this step was drawn from, when there is one — so the UI can offer that
+    /// observation's resolution options in place. A step that names an action must be actionable;
+    /// nil only when the fix lives elsewhere on the same screen (e.g. the rebuild checklist).
+    public let source: StewardObservation?
+
+    public init(action: String, rationale: String, confidence: ConfidenceBand,
+                source: StewardObservation? = nil) {
+        self.action = action
+        self.rationale = rationale
+        self.confidence = confidence
+        self.source = source
+    }
 }
 
 public extension Steward {
@@ -32,35 +44,43 @@ public extension Steward {
         // 2. A safety- or time-sensitive advisory outranks build coherence.
         if let advisory = observations.first(where: { $0.tone == .advisory }) {
             return NextStep(action: advisoryAction(advisory),
-                            rationale: advisory.evidence, confidence: advisory.confidence)
+                            rationale: advisory.evidence, confidence: advisory.confidence,
+                            source: advisory)
         }
 
         // 3. The build's own open item — shore up support for the power it makes. If a part is
-        //    already planned for it, the step is to install it, not to go find one.
+        //    already planned for it, the step is to install it, not to go find one. The matching
+        //    gap observation (when the Steward emitted one) rides along so the step resolves in
+        //    place (confirm stock / add the part).
         if let a = assess(vehicle),
            let open = a.subsystems.first(where: { $0.status != .supported }) {
+            let gapObservation = PartCategory(rawValue: open.id).flatMap { category in
+                observations.first { $0.ruleID == StewardRuleID.gap(category) }
+            }
             if open.planned {
                 return NextStep(action: "Install the planned \(open.label.lowercased()) upgrade",
                                 rationale: "\(a.powerSummary); \(open.label.lowercased()) is on your wishlist but not yet installed.",
-                                confidence: .strong)
+                                confidence: .strong, source: gapObservation)
             }
             let verb = open.status == .openItem ? "Address" : "Document"
             return NextStep(action: "\(verb) \(open.label.lowercased()) for this power level",
                             rationale: "\(a.powerSummary); \(open.label.lowercased()) "
                                 + (open.status == .openItem ? "is the open item." : "isn't documented."),
-                            confidence: a.confidence)
+                            confidence: a.confidence, source: gapObservation)
         }
 
         // 4. A tune that no longer matches the hardware.
         if let stale = observations.first(where: { $0.ruleID == StewardRuleID.tuneStale }) {
             return NextStep(action: "Re-dyno the current setup",
-                            rationale: stale.evidence, confidence: stale.confidence)
+                            rationale: stale.evidence, confidence: stale.confidence,
+                            source: stale)
         }
 
         // 5. Any remaining caution.
         if let caution = observations.first(where: { $0.tone == .caution }) {
             return NextStep(action: cautionAction(caution),
-                            rationale: caution.evidence, confidence: caution.confidence)
+                            rationale: caution.evidence, confidence: caution.confidence,
+                            source: caution)
         }
 
         return nil

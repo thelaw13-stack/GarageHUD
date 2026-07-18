@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 408,
+    "test_count_at_last_update": 409,
     "last_updated": "2026-07-18"
   },
   "items": [
@@ -870,6 +870,31 @@
         ],
         "date": "2026-07-18",
         "notes": "Specs keeps its in-context share buttons too — reachable both where you're looking at the numbers and from anywhere on the car."
+      }
+    },
+    {
+      "id": "W-036",
+      "title": "NEXT line is actionable — a step that names an action resolves in place",
+      "why": "Tim tapped the W-033 NEXT line and nothing happened — a dead affordance that names an action, violating the app's own actionable-in-place principle. The resolution engine already existed; the line just wasn't wired to it.",
+      "depends_on": [
+        "W-033"
+      ],
+      "completion_criteria": [
+        "NextStep carries its source observation (advisory, gap-matched assessment step, stale tune, caution); nil only when the fix lives elsewhere on the same screen (rebuild checklist)",
+        "Tapping the NEXT line opens the source observation's resolution dialog (same flow as Steward rows), with a chevron affordance so it reads tappable; a non-resolvable step renders as a plain line"
+      ],
+      "testing_criteria": [
+        "StewardRuleIDTests: overdue step resolves to markServiced(item); assessment step carries an actionable gap observation",
+        "full suite green; installed to Tim's device"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "408 -> 409, +1",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Deployed to the iPhone (Release) immediately — this one came straight from Tim's thumb."
       }
     }
   ]
