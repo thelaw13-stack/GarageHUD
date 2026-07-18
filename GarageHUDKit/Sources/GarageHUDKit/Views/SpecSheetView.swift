@@ -55,7 +55,8 @@ struct SpecSheetView: View {
 
                 // The whole story — full timeline, service record with costs, performance history,
                 // and the provenance appendix. The document for a sale, a claim, or a legacy.
-                ShareLink(item: BiographyExporter.file(for: vehicle),
+                // Exports as a styled PDF; the same words are available as text via the exporter.
+                ShareLink(item: SharableBiographySheet(vehicle: vehicle),
                           preview: SharePreview("\(vehicle.displayName) biography")) {
                     Label("Share vehicle biography", systemImage: "book").frame(maxWidth: .infinity)
                 }

@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 405,
+    "test_count_at_last_update": 408,
     "last_updated": "2026-07-18"
   },
   "items": [
@@ -820,6 +820,32 @@
         ],
         "date": "2026-07-18",
         "notes": "DD-001 second-reviewer eye-gravity check on device is Tim's: the NEXT line should support, not compete with, the identity surface."
+      }
+    },
+    {
+      "id": "W-034",
+      "title": "Biography as a styled PDF — one model, two inks",
+      "why": "The biography is the buyer/legacy artifact; a styled PDF reads like GarageHUD where a .txt reads like a printout. Built on the W-028 principle: BiographyModel holds the words, the text export and the PDF document both render from it, so the two inks can never diverge and the sweep keeps covering the content.",
+      "depends_on": [
+        "W-031"
+      ],
+      "completion_criteria": [
+        "BiographyExporter refactored around BiographyModel { headerLines, sections, footer }; text output derives from it (existing tests/sweep unchanged)",
+        "BiographySheetDocument renders the model in HUDTheme; per-section 48-line cap with a DISCLOSED cut ('… and N more — the full history is in the text export') so a decade-long timeline stays inside the 14,400pt CGContext ceiling",
+        "SharableBiographySheet (deferred render, throws on empty) replaces the text file behind Specs' 'Share vehicle biography'"
+      ],
+      "testing_criteria": [
+        "BiographyPDFTests: valid non-trivial PDF, 400-event timeline renders within limits while the text export keeps the full history, bare car renders",
+        "full suite green; iOS simulator build green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "405 -> 408, +3",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Visual polish of the rendered page (panel spacing, header scale) deserves Tim's eyeball on a real export, same as W-009 did for the fleet sheet."
       }
     }
   ]
