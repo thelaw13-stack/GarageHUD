@@ -28,30 +28,28 @@ public enum StewardResolution {
     public static func options(for obs: StewardObservation, in vehicle: Vehicle) -> [ResolutionOption] {
         let id = obs.ruleID
 
-        if id.hasPrefix("maintenance.overdue."), let item = maintenanceID(id) {
+        if StewardRuleID.isMaintenance(id), let item = StewardRuleID.maintenanceItemID(from: id) {
             return [.init("Mark serviced", .markServiced(item)),
                     .init("Adjust interval…", .editSchedule(item))]
         }
-        if id.hasPrefix("maintenance.dueSoon."), let item = maintenanceID(id) {
-            return [.init("Mark serviced", .markServiced(item)),
-                    .init("Adjust interval…", .editSchedule(item))]
-        }
-        if id == "service.inService" {
+        if id == StewardRuleID.serviceInService {
             return [.init("Mark back in service", .markBackInService)]
         }
-        if id.hasPrefix("gap."), let cat = PartCategory(rawValue: String(id.dropFirst("gap.".count))) {
+        if let cat = StewardRuleID.gapCategory(from: id) {
             return [.init("Confirm \(cat.rawValue.lowercased()) is factory-stock", .confirmStock(cat)),
                     .init("Add the \(cat.rawValue.lowercased()) part", .addPart(cat))]
         }
         switch id {
-        case "tune.stale", "dyno.plateau", "efficiency.costPerHp":
+        case StewardRuleID.tuneStale, StewardRuleID.dynoPlateau, StewardRuleID.efficiencyCostPerHp:
             return [.init("Log a dyno result", .logPerformance)]
-        case "build.quiet", "fleet.neglect":
+        case StewardRuleID.buildQuiet, StewardRuleID.fleetNeglect:
             return [.init("Log recent work", .logActivity)]
-        case "data.undatedParts", "sequence.fiAheadOfFueling":
+        case StewardRuleID.dataUndatedParts, StewardRuleID.sequenceFIAheadOfFueling:
             return [.init("Review parts", .reviewParts)]
+        case StewardRuleID.dataOdometerRegression:
+            return [.init("Review the timeline", .logActivity)]
         default:
-            if id.hasPrefix("live.") { return [.init("Adjust operating envelope", .editEnvelope)] }
+            if StewardRuleID.isLive(id) { return [.init("Adjust operating envelope", .editEnvelope)] }
             return []
         }
     }
@@ -59,10 +57,5 @@ public enum StewardResolution {
     /// True when the observation has at least one concrete fix (so its row should be tappable).
     public static func isActionable(_ obs: StewardObservation, in vehicle: Vehicle) -> Bool {
         !options(for: obs, in: vehicle).isEmpty
-    }
-
-    /// The maintenance item UUID embedded in a `maintenance.*.<uuid>` rule id.
-    static func maintenanceID(_ ruleID: String) -> UUID? {
-        ruleID.split(separator: ".").last.flatMap { UUID(uuidString: String($0)) }
     }
 }

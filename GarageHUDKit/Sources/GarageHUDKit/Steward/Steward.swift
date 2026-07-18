@@ -41,7 +41,7 @@ public enum Steward {
             let days = context.days(from: fiDate, to: fuelDate)
             if days >= 14 {
                 out.append(StewardObservation(
-                    ruleID: "sequence.fiAheadOfFueling", subjectID: vid,
+                    ruleID: StewardRuleID.sequenceFIAheadOfFueling, subjectID: vid,
                     statement: "Based on your history, forced induction ran ahead of the fueling for a stretch.",
                     evidence: "Boost was installed \(short(fiDate)); fueling support followed \(days) days later (\(short(fuelDate))).",
                     confidence: .moderate, tone: .caution, provenance: .derived))
@@ -55,7 +55,7 @@ public enum Steward {
             let days = context.days(from: dyno, to: hwDate)
             if days >= 7 {
                 out.append(StewardObservation(
-                    ruleID: "tune.stale", subjectID: vid,
+                    ruleID: StewardRuleID.tuneStale, subjectID: vid,
                     statement: "Based on your history, your last dyno predates your current hardware.",
                     evidence: "\(part.name) went on \(short(hwDate)), \(days) days after your latest pull (\(short(dyno))) — the recorded figure may not reflect the car now.",
                     confidence: .strong, tone: .caution, provenance: .derived))
@@ -71,7 +71,7 @@ public enum Steward {
             let gain = latest - prior
             if !changed.isEmpty && gain <= max(3, prior * 0.02) {
                 out.append(StewardObservation(
-                    ruleID: "dyno.plateau", subjectID: vid,
+                    ruleID: StewardRuleID.dynoPlateau, subjectID: vid,
                     statement: "Based on your history, recent changes haven't shown up on the dyno.",
                     evidence: "\(changed.count) part\(changed.count == 1 ? "" : "s") added since your \(short(priorDate)) pull, but the latest reads \(Int(latest)) whp vs \(Int(prior)) — \(gain <= 0 ? "no gain" : "+\(Int(gain)) whp").",
                     confidence: .moderate, tone: .caution, provenance: .derived))
@@ -87,7 +87,7 @@ public enum Steward {
             let flaggedCount = vehicle.partsFlaggedForRebuild.count
             let flagged = flaggedCount > 0 ? " \(flaggedCount) part\(flaggedCount == 1 ? "" : "s") flagged for replacement." : ""
             out.append(StewardObservation(
-                ruleID: "service.inService", subjectID: vid,
+                ruleID: StewardRuleID.serviceInService, subjectID: vid,
                 statement: "This car is currently out of service.",
                 evidence: "\(reason)\(sinceNote).\(progress)\(flagged)",
                 confidence: .confirmed, tone: .informational, provenance: .recorded))
@@ -110,7 +110,7 @@ public enum Steward {
                     evidence = "Due \(short(item.dueDate(context.calendar))); last done \(short(item.lastServiced)) on a \(item.intervalMonths)-month interval."
                 }
                 out.append(StewardObservation(
-                    ruleID: "maintenance.overdue.\(item.id.uuidString)", subjectID: vid,
+                    ruleID: StewardRuleID.maintenanceOverdue(item.id), subjectID: vid,
                     statement: "\(item.name) is overdue.",
                     evidence: evidence,
                     confidence: .confirmed, tone: .advisory, provenance: .derived))
@@ -122,7 +122,7 @@ public enum Steward {
                     evidence = "Due \(short(item.dueDate(context.calendar)))."
                 }
                 out.append(StewardObservation(
-                    ruleID: "maintenance.dueSoon.\(item.id.uuidString)", subjectID: vid,
+                    ruleID: StewardRuleID.maintenanceDueSoon(item.id), subjectID: vid,
                     statement: "\(item.name) is due soon.",
                     evidence: evidence,
                     confidence: .confirmed, tone: .caution, provenance: .derived))
@@ -139,7 +139,7 @@ public enum Steward {
             .max(by: { $0.endedAt < $1.endedAt }),
            context.days(from: flagged.endedAt, to: context.now) <= 14 {
             out.append(StewardObservation(
-                ruleID: "live.pullFlagged.\(flagged.id.uuidString)", subjectID: vid,
+                ruleID: StewardRuleID.pullFlagged(flagged.id), subjectID: vid,
                 statement: flagged.verdictStatement,
                 evidence: "\(flagged.verdictEvidence) Captured \(short(flagged.endedAt)) (\(flagged.feedLabel)).",
                 confidence: flagged.confidence, tone: .caution, provenance: .recorded))
@@ -153,7 +153,7 @@ public enum Steward {
             let days = context.days(from: last, to: context.now)
             if days >= 180 {
                 out.append(StewardObservation(
-                    ruleID: "build.quiet", subjectID: vid,
+                    ruleID: StewardRuleID.buildQuiet, subjectID: vid,
                     statement: "The log for this car has been quiet for a while.",
                     evidence: "Nothing new has been recorded in \(days) days (last was \(short(last))) — not necessarily inactivity, just an aging record.",
                     confidence: .confirmed, tone: .informational, provenance: .derived))
@@ -166,7 +166,7 @@ public enum Steward {
         if installedParts.count >= 5, undated.count >= 3,
            Double(undated.count) / Double(installedParts.count) >= 0.4 {
             out.append(StewardObservation(
-                ruleID: "data.undatedParts", subjectID: vid,
+                ruleID: StewardRuleID.dataUndatedParts, subjectID: vid,
                 statement: "Based on your history, dating a few more parts would sharpen what I can tell you.",
                 evidence: "\(undated.count) of \(installedParts.count) installed parts have no install date — the timeline, and my read on sequence, only see dated ones.",
                 confidence: .confirmed, tone: .informational, provenance: .derived))
@@ -180,7 +180,7 @@ public enum Steward {
             .sorted { $0.date < $1.date }
         if let pair = zip(odoReadings, odoReadings.dropFirst()).first(where: { $1.miles < $0.miles }) {
             out.append(StewardObservation(
-                ruleID: "data.odometerRegression", subjectID: vid,
+                ruleID: StewardRuleID.dataOdometerRegression, subjectID: vid,
                 statement: "The odometer record disagrees with itself.",
                 evidence: "\(short(pair.1.date)) logs \(pair.1.miles.formatted(.number.grouping(.automatic))) mi — lower than the \(pair.0.miles.formatted(.number.grouping(.automatic))) mi recorded \(short(pair.0.date)). One of them is off, and mileage projections lean on these.",
                 confidence: .confirmed, tone: .caution, provenance: .derived))
@@ -197,7 +197,7 @@ public enum Steward {
                 ? "assuming ~\(Int(Drivetrain.unknown.typicalLossFraction * 100))% driveline loss"
                 : "~\(Int(vehicle.drivetrain.typicalLossFraction * 100))% \(vehicle.drivetrain.label) driveline loss"
             out.append(StewardObservation(
-                ruleID: "efficiency.costPerHp", subjectID: vid,
+                ruleID: StewardRuleID.efficiencyCostPerHp, subjectID: vid,
                 statement: "This build runs about \(dollars(costPerHp)) per wheel-hp gained.",
                 evidence: "~\(Int(gained)) whp over an estimated \(Int(baseline)) whp stock baseline, \(dollars(vehicle.totalInvested)) invested. Wheel-to-wheel estimate, \(lossNote); not dyno-corrected.",
                 confidence: .moderate, tone: .informational, provenance: .derived))
@@ -209,7 +209,7 @@ public enum Steward {
     /// Builds a support-gap observation honestly from what we *know* about the subsystem.
     static func supportGap(_ vehicle: Vehicle, support: PartCategory,
                            subsystem: String, trigger: String) -> StewardObservation? {
-        let ruleID = "gap.\(support.rawValue)"
+        let ruleID = StewardRuleID.gap(support)
         switch vehicle.knowledge(of: support) {
         case .confirmedPresent, .unknown:
             return nil
@@ -261,13 +261,13 @@ public enum Steward {
             let prov: StewardObservation.Provenance = measured ? .measuredLive : .estimatedLive
             if coolant.value >= env.coolantCriticalF {
                 out.append(StewardObservation(
-                    ruleID: "live.coolantCritical", subjectID: vid,
+                    ruleID: StewardRuleID.liveCoolantCritical, subjectID: vid,
                     statement: "The data suggests coolant is running hot.",
                     evidence: "\(word) coolant \(Int(coolant.value))°F, at/above this car's \(Int(env.coolantCriticalF))°F limit.",
                     confidence: measured ? .strong : .weak, tone: .advisory, provenance: prov))
             } else if coolant.value >= env.coolantCautionF {
                 out.append(StewardObservation(
-                    ruleID: "live.coolantCaution", subjectID: vid,
+                    ruleID: StewardRuleID.liveCoolantCaution, subjectID: vid,
                     statement: "I observed coolant climbing toward the upper range.",
                     evidence: "\(word) coolant \(Int(coolant.value))°F (caution from \(Int(env.coolantCautionF))°F).",
                     confidence: measured ? .moderate : .weak, tone: .caution, provenance: prov))
@@ -286,7 +286,7 @@ public enum Steward {
             // 1. A hard ceiling the owner set — over-boost is the most serious live boost event.
             if let ceiling = env.maxSustainedBoostPsi, boost.value > ceiling {
                 out.append(StewardObservation(
-                    ruleID: "live.boostCeiling", subjectID: vid,
+                    ruleID: StewardRuleID.liveBoostCeiling, subjectID: vid,
                     statement: "The data suggests boost is above your set ceiling.",
                     evidence: "\(word) \(psi) psi at \(Int(throttle.value))% throttle, over your \(String(format: "%.1f", ceiling)) psi ceiling.",
                     confidence: measured ? .strong : .weak, tone: .advisory, provenance: prov))
@@ -298,13 +298,13 @@ public enum Steward {
                let band = env.expectedBoostByRPM.first(where: { $0.contains(rpm: rpm.value) }) {
                 if boost.value > band.expectedHighPsi {
                     out.append(StewardObservation(
-                        ruleID: "live.boostOverTarget", subjectID: vid,
+                        ruleID: StewardRuleID.liveBoostOverTarget, subjectID: vid,
                         statement: "I observed boost above target for this RPM.",
                         evidence: "\(word) \(psi) psi at \(Int(rpm.value)) rpm; tune target tops out at \(String(format: "%.1f", band.expectedHighPsi)) psi here.",
                         confidence: measured ? .moderate : .weak, tone: .caution, provenance: prov))
                 } else if boost.value < band.expectedLowPsi {
                     out.append(StewardObservation(
-                        ruleID: "live.boostUnderTarget", subjectID: vid,
+                        ruleID: StewardRuleID.liveBoostUnderTarget, subjectID: vid,
                         statement: "I observed boost below target for this RPM.",
                         evidence: "\(word) \(psi) psi at \(Int(rpm.value)) rpm; tune target starts at \(String(format: "%.1f", band.expectedLowPsi)) psi here — could be a leak, wastegate, or just spool.",
                         confidence: measured ? .moderate : .weak, tone: .informational, provenance: prov))
@@ -312,7 +312,7 @@ public enum Steward {
             } else if let boostCaution = env.boostCautionPsi, boost.value >= boostCaution {
                 // 3. No tune profile: the single generic caution.
                 out.append(StewardObservation(
-                    ruleID: "live.boost", subjectID: vid,
+                    ruleID: StewardRuleID.liveBoost, subjectID: vid,
                     statement: "I observed boost near the top of this car's expected range.",
                     evidence: "\(word) \(psi) psi at \(Int(throttle.value))% throttle (caution from \(String(format: "%.0f", boostCaution)) psi).",
                     confidence: measured ? .moderate : .weak, tone: .informational, provenance: prov))

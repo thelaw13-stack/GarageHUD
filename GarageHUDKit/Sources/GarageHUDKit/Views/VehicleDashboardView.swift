@@ -17,10 +17,26 @@ struct VehicleDashboardView: View {
     @State private var serviceCostText = ""
     @State private var resolving: StewardObservation?
 
+    /// One calm line of "what matters now" directly under the identity, so the condition never
+    /// falls below the fold on a busy car (DD-001, Dashboard). It's the Steward's next step —
+    /// an existing, tested judgment — not a new claim.
+    @ViewBuilder
+    private var conditionLine: some View {
+        if let step = Steward.nextStep(vehicle) {
+            HStack(alignment: .firstTextBaseline, spacing: HUDTheme.space2) {
+                Text("NEXT").font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textTertiary).tracking(1.5)
+                Text(step.action).font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HUDTheme.space4) {
                 VehicleIdentitySurface(vehicle: vehicle)
+                conditionLine           // DD-001: what matters now, never below the fold
                 stewardPanel            // C — required attention (quieter, supporting)
                 buildAssessment         // synthesis
                 BuildPlanSection(vehicle: $vehicle, onEditPart: { editingPart = $0 })  // where it's headed

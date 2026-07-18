@@ -19,7 +19,7 @@ public extension Steward {
            let worst = withValue.max(by: { $0.1 < $1.1 }),
            best.0.id != worst.0.id {
             out.append(StewardObservation(
-                ruleID: "fleet.valueLeader", subjectID: nil,
+                ruleID: StewardRuleID.fleetValueLeader, subjectID: nil,
                 statement: "I observed \(best.0.displayName) returns the most power per dollar in the fleet.",
                 evidence: "~\(dollars(best.1))/whp on \(best.0.displayName) vs ~\(dollars(worst.1))/whp on \(worst.0.displayName). Approximate — wheel figures against factory crank ratings.",
                 confidence: .moderate, tone: .informational, provenance: .derived))
@@ -38,7 +38,7 @@ public extension Steward {
             let freshDays = context.days(from: freshest.1, to: context.now)
             if quietDays >= 90 && quietDays - freshDays >= 60 {
                 out.append(StewardObservation(
-                    ruleID: "fleet.neglect", subjectID: quietest.0.id,
+                    ruleID: StewardRuleID.fleetNeglect, subjectID: quietest.0.id,
                     statement: "Based on your history, \(quietest.0.displayName) has fallen behind the rest of the fleet.",
                     evidence: "\(quietest.0.displayName) last saw activity \(quietDays) days ago; \(freshest.0.displayName) was touched \(freshDays) days ago.",
                     confidence: .strong, tone: quietDays >= 240 ? .advisory : .caution, provenance: .derived))
@@ -60,7 +60,7 @@ public extension Steward {
             }
             if affected.count >= 2 {
                 out.append(StewardObservation(
-                    ruleID: "fleet.sharedGap.\(category.rawValue)", subjectID: nil,
+                    ruleID: StewardRuleID.fleetSharedGap(category), subjectID: nil,
                     statement: "The data suggests \(label) is a confirmed gap across multiple cars.",
                     evidence: "\(affected.map(\.displayName).joined(separator: " and ")) each have the factory \(label) confirmed while running more load.",
                     confidence: .strong, tone: .caution, provenance: .recorded))

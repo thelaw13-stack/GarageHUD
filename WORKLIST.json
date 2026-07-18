@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 402,
+    "test_count_at_last_update": 405,
     "last_updated": "2026-07-18"
   },
   "items": [
@@ -772,6 +772,54 @@
         ],
         "date": "2026-07-18",
         "notes": "Text document first (same SharableTextFile route as the build sheet). A polished PDF rendition via the FleetSheet ImageRenderer pattern is a natural follow-up once Tim confirms the content reads right — logged as the next candidate, not silently started."
+      }
+    },
+    {
+      "id": "W-032",
+      "title": "Typed rule ids — emitters and parsers share StewardRuleID",
+      "why": "Rule ids are load-bearing strings: StewardResolution routes 'Mark serviced' / 'Confirm stock' buttons by parsing them, and NextStep branches on them. Emitters minted ids with inline literals while parsers re-derived the format with prefix surgery — a format change on either side broke the other silently.",
+      "depends_on": [],
+      "completion_criteria": [
+        "StewardRuleID defines every fixed id and parameterized builder/parser pair (gap, maintenance, fleetSharedGap, pullFlagged) in one place",
+        "Steward, StewardFleet, StewardResolution, StewardNextStep all read from it; no inline rule-id literals remain at emit/parse sites",
+        "data.odometerRegression gains a resolution ('Review the timeline') so the W-025 observation is actionable"
+      ],
+      "testing_criteria": [
+        "StewardRuleIDTests: gap round-trip for every category, maintenance round-trip, emitted-observation-to-resolution end-to-end",
+        "full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "402 -> 405, +3",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": null
+      }
+    },
+    {
+      "id": "W-033",
+      "title": "Dashboard condition line — what matters now, never below the fold",
+      "why": "DD-001's remaining Dashboard finding: on a busy car 'the condition' can fall below the fold. One calm NEXT line directly under the identity, fed by Steward.nextStep (an existing, tested judgment — no new claims).",
+      "depends_on": [
+        "W-015"
+      ],
+      "completion_criteria": [
+        "A single 'NEXT — <action>' line under VehicleIdentitySurface, shown only when the Steward has a next step"
+      ],
+      "testing_criteria": [
+        "nextStep already covered by StewardNextStepTests; visual gravity check is Tim's on device",
+        "full suite green; iOS simulator build green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "405 green (no new logic — presentation of an existing judgment)",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "DD-001 second-reviewer eye-gravity check on device is Tim's: the NEXT line should support, not compete with, the identity surface."
       }
     }
   ]

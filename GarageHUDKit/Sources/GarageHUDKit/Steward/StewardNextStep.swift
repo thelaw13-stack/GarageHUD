@@ -52,7 +52,7 @@ public extension Steward {
         }
 
         // 4. A tune that no longer matches the hardware.
-        if let stale = observations.first(where: { $0.ruleID == "tune.stale" }) {
+        if let stale = observations.first(where: { $0.ruleID == StewardRuleID.tuneStale }) {
             return NextStep(action: "Re-dyno the current setup",
                             rationale: stale.evidence, confidence: stale.confidence)
         }
@@ -74,21 +74,23 @@ public extension Steward {
     }
 
     private static func advisoryAction(_ o: StewardObservation) -> String {
-        if o.ruleID.hasPrefix("maintenance.") {
+        if StewardRuleID.isMaintenance(o.ruleID) {
             return "Take care of the overdue \(o.statement.replacingOccurrences(of: " is overdue.", with: "").lowercased())"
         }
         switch o.ruleID {
-        case "build.quiet": return "Log some activity — a note, a drive, or a fresh pull"
-        case "live.coolantCritical": return "Back off — coolant is at its limit"
+        case StewardRuleID.buildQuiet: return "Log some activity — a note, a drive, or a fresh pull"
+        case StewardRuleID.liveCoolantCritical: return "Back off — coolant is at its limit"
         default: return "Look into \(o.statement.lowercased())"
         }
     }
 
     private static func cautionAction(_ o: StewardObservation) -> String {
-        if o.ruleID.hasPrefix("gap.") { return "Document or upgrade the \(o.ruleID.dropFirst(4).lowercased())" }
+        if let cat = StewardRuleID.gapCategory(from: o.ruleID) {
+            return "Document or upgrade the \(cat.rawValue.lowercased())"
+        }
         switch o.ruleID {
-        case "dyno.plateau": return "Investigate the dyno plateau"
-        case "sequence.fiAheadOfFueling": return "Confirm the fueling is caught up to the boost"
+        case StewardRuleID.dynoPlateau: return "Investigate the dyno plateau"
+        case StewardRuleID.sequenceFIAheadOfFueling: return "Confirm the fueling is caught up to the boost"
         default: return "Address: \(o.statement.lowercased())"
         }
     }
