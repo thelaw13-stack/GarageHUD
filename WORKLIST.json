@@ -866,7 +866,7 @@
       "result": {
         "tests": "408 green (presentation only)",
         "commits": [
-          "pending"
+          "f654a32"
         ],
         "date": "2026-07-18",
         "notes": "Specs keeps its in-context share buttons too — reachable both where you're looking at the numbers and from anywhere on the car."
