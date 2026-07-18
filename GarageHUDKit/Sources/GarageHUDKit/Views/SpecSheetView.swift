@@ -53,6 +53,14 @@ struct SpecSheetView: View {
                 .buttonStyle(.secondaryAction)
                 .padding(.top, HUDTheme.space2)
 
+                // The whole story — full timeline, service record with costs, performance history,
+                // and the provenance appendix. The document for a sale, a claim, or a legacy.
+                ShareLink(item: BiographyExporter.file(for: vehicle),
+                          preview: SharePreview("\(vehicle.displayName) biography")) {
+                    Label("Share vehicle biography", systemImage: "book").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.secondaryAction)
+
                 Button(role: .destructive) {
                     confirmingDelete = true
                 } label: {

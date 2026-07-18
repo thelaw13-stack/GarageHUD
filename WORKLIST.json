@@ -26,8 +26,8 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 399,
-    "last_updated": "2026-07-17"
+    "test_count_at_last_update": 402,
+    "last_updated": "2026-07-18"
   },
   "items": [
     {
@@ -746,6 +746,32 @@
         ],
         "date": "2026-07-17",
         "notes": "Also updated DESIGN_DEBT.md DD-001: F2/F3/F4 recorded as landed (W-018..W-020) with Tim's on-device power-label confirmation; Dashboard condition-summary idea stays open. Popover visual (info glyph placement, card width) deserves Tim's eye on device."
+      }
+    },
+    {
+      "id": "W-031",
+      "title": "Vehicle Biography export — the whole story, exportable",
+      "why": "'The story is the product' (Constitution); FUTURE.md's Vehicle Biography Export. The build sheet is the spec-card; the biography is the life: full timeline, every service with its cost, performance history graded by evidence, the three ownership money facts kept separate, and a provenance appendix (W-030) explaining where each headline figure comes from. The document for a sale, an insurance claim, a valuation, or a legacy.",
+      "depends_on": [
+        "W-030"
+      ],
+      "completion_criteria": [
+        "BiographyExporter.text/file: identity, power + full performance record, build by category with dated costs, planned section (framed as planned), full service record with costs + total, complete timeline with odometer stamps, ownership (purchase / build investment / maintenance spend, never conflated), provenance appendix",
+        "Shared from Specs ('Share vehicle biography', book glyph) alongside the build sheet",
+        "Biography text is an HonestySweepTests surface"
+      ],
+      "testing_criteria": [
+        "BiographyExporterTests: whole-story content, un-dynoed car never reads measured, file naming",
+        "full suite green; iOS simulator build green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "399 -> 402, +3",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Text document first (same SharableTextFile route as the build sheet). A polished PDF rendition via the FleetSheet ImageRenderer pattern is a natural follow-up once Tim confirms the content reads right — logged as the next candidate, not silently started."
       }
     }
   ]
