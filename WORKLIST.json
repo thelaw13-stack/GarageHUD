@@ -1042,7 +1042,7 @@
       "result": {
         "tests": "411 -> 412, +1 (sweep)",
         "commits": [
-          "pending"
+          "d94518b"
         ],
         "date": "2026-07-18",
         "notes": "Review-method lesson recorded: string-truth sweeps catch lies; this catches unanswerable asks. Future surfaces that emit instructions must register in one sweep or the other. No deploy needed (test-only)."
