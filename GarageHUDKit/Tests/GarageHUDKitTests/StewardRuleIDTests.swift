@@ -44,6 +44,39 @@ final class StewardRuleIDTests: XCTestCase {
         XCTAssertTrue(StewardResolution.isActionable(gapStep!.source!, in: s2k))
     }
 
+    /// "Address clutch/drivetrain" must carry its door even though observe() emits no gap rule
+    /// for drivetrain — the step synthesizes one, so the verbs (confirm stock / add the part)
+    /// can be offered in place. An instruction without a door was Tim's Fozzy report.
+    func testAssessmentStepForNonGapCategoryStillCarriesItsVerbs() {
+        var fozzy = Vehicle(make: "Subaru", model: "Forester XT", year: 2008, garageSlot: 1,
+                            factoryHorsepower: 224)
+        fozzy.drivetrain = .awd
+        fozzy.parts = [Part(name: "Big turbo", category: .forcedInduction, status: .installed),
+                       Part(name: "Injectors", category: .fueling, status: .installed),
+                       Part(name: "FMIC", category: .cooling, status: .installed),
+                       Part(name: "Forged pistons", category: .engine, status: .installed)]
+        fozzy.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 320)]
+
+        let step = Steward.nextStep(fozzy)
+        XCTAssertNotNil(step, "an undocumented clutch/drivetrain at this power is a step")
+        XCTAssertTrue(step!.action.localizedCaseInsensitiveContains("clutch"), step!.action)
+        XCTAssertNotNil(step!.source, "the step must carry a synthesized gap observation")
+        let actions = StewardResolution.options(for: step!.source!, in: fozzy).map(\.action)
+        XCTAssertTrue(actions.contains(.confirmStock(.drivetrain)), "confirm-stock verb present")
+        XCTAssertTrue(actions.contains(.addPart(.drivetrain)), "add-part verb present")
+    }
+
+    /// The teardown step must NOT carry a source: its only in-place resolution would be "mark
+    /// back in service" — the opposite of "finish the teardown" (the W-039 trap). Its surface
+    /// is the rebuild checklist.
+    func testTeardownStepOffersNoContradictingVerbs() {
+        var s2k = Vehicle(make: "Honda", model: "S2000", year: 2004, garageSlot: 1)
+        s2k.serviceStatus = ServiceStatus(isInService: true, reason: "Engine teardown")
+        let step = Steward.nextStep(s2k)
+        XCTAssertNotNil(step)
+        XCTAssertNil(step!.source, "no verbs that contradict the step's own words")
+    }
+
     /// End-to-end: an emitted observation must reach its intended resolution options.
     func testEmittedObservationsRouteToTheirResolutions() {
         // A mileage-overdue item → Mark serviced targeting exactly that item.

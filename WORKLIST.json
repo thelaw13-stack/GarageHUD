@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 409,
+    "test_count_at_last_update": 411,
     "last_updated": "2026-07-18"
   },
   "items": [
@@ -994,6 +994,33 @@
         ],
         "date": "2026-07-18",
         "notes": "Lesson attached to DD-004's ledger: before adding a surface, check whether the information already has a home — the dashboard NEXT line duplicated the hero rail from birth."
+      }
+    },
+    {
+      "id": "W-041",
+      "title": "NEXT STEP carries its door — visible labeled verbs in the identity block",
+      "why": "Tim, on the Fozzy: 'Address clutch/drivetrain is the open item… what do you want the user to do right here?' The honest answer was: nothing — the app gave no path from the instruction to any of its three intended responses (log the part / confirm stock / plan it), and for drivetrain there wasn't even a Steward row (gap rules only cover fueling/cooling/brakes). An instruction without a door. Tim approved the visible-buttons proposal.",
+      "depends_on": [
+        "W-040"
+      ],
+      "completion_criteria": [
+        "The pre-existing NEXT STEP block (VehicleIdentitySurface) shows its verbs as visible, labeled buttons — no hidden gesture, each button present exactly when its action exists (DD-004)",
+        "Assessment steps for categories without emitted gap rules (drivetrain, engine internals) synthesize an equivalent gap observation so the verbs exist for them too",
+        "Buttons route through the dashboard's existing perform(_:) — same machinery as the Steward rows (confirm-stock mutates in place; add-part goes to Parts; mark-serviced logs it)",
+        "The teardown step carries no verbs: its only in-place resolution would contradict its own words (W-039); its surface is the rebuild checklist"
+      ],
+      "testing_criteria": [
+        "StewardRuleIDTests: drivetrain step carries confirmStock/addPart verbs; teardown step carries none",
+        "full suite green; deployed to Tim's device"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "409 -> 411, +2",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Supersedes the W-038 note about the in-service step carrying its observation — reverted per W-039's lesson. Button styling (hairline capsules under the rationale) awaits Tim's eye."
       }
     }
   ]

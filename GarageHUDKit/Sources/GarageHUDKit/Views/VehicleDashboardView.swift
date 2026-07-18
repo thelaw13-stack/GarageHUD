@@ -26,7 +26,7 @@ struct VehicleDashboardView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HUDTheme.space4) {
-                VehicleIdentitySurface(vehicle: vehicle)
+                VehicleIdentitySurface(vehicle: vehicle, onResolve: perform)
                 stewardPanel            // C — required attention (quieter, supporting)
                 buildAssessment         // synthesis
                 BuildPlanSection(vehicle: $vehicle, onEditPart: { editingPart = $0 })  // where it's headed

@@ -4,6 +4,11 @@ import SwiftUI
 /// one place so the dashboard opens with the car's current condition instead of a stack of peers.
 struct VehicleIdentitySurface: View {
     var vehicle: Vehicle
+    /// Performs a next-step verb (log the part, confirm stock, mark serviced…). When provided,
+    /// the NEXT STEP block shows its actions as visible, labeled buttons — DD-004: no hidden
+    /// gestures, nothing to learn, each button present exactly when its action exists and
+    /// saying exactly what it does. Nil (e.g. previews) renders the block as information only.
+    var onResolve: ((ResolutionAction) -> Void)? = nil
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var image: PlatformImage?
     @State private var loadedFilename: String?
@@ -21,7 +26,7 @@ struct VehicleIdentitySurface: View {
         .frame(maxWidth: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius))
         .overlay(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).strokeBorder(HUDTheme.hairline, lineWidth: 1))
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilitySummary)
         .task(id: vehicle.heroPhoto?.filename) { await loadHeroImage() }
     }
@@ -142,6 +147,27 @@ struct VehicleIdentitySurface: View {
                         .font(HUDTheme.label())
                         .foregroundStyle(HUDTheme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    // The step's verbs, in plain sight — an instruction must carry its door.
+                    if let onResolve, let source = nextStep.source {
+                        let options = StewardResolution.options(for: source, in: vehicle)
+                        if !options.isEmpty {
+                            HStack(spacing: HUDTheme.space2) {
+                                ForEach(options) { option in
+                                    Button(option.title) { onResolve(option.action) }
+                                        .font(HUDTheme.label(.semibold))
+                                        .foregroundStyle(HUDTheme.textPrimary)
+                                        .buttonStyle(.plain)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .strokeBorder(HUDTheme.hairline, lineWidth: 1)
+                                        )
+                                }
+                            }
+                            .padding(.top, HUDTheme.space1)
+                        }
+                    }
                 }
             }
             .padding(.top, HUDTheme.space2)

@@ -27,22 +27,22 @@ public extension Steward {
     static func nextStep(_ vehicle: Vehicle, context: StewardContext = .live) -> NextStep? {
         let observations = observe(vehicle, context: context)
 
-        // 1. A car that's apart: the immediate priority is getting it back together. The
-        //    in-service observation rides along so the step resolves the same way as every
-        //    other step — one gesture, one response, everywhere.
+        // 1. A car that's apart: the immediate priority is getting it back together. NO source
+        //    on purpose: the only in-place resolution for the in-service observation is "mark
+        //    back in service" — the OPPOSITE of "finish the teardown" — and offering an action
+        //    that contradicts the step's own words is the W-039 trap. This step's surface is
+        //    the rebuild checklist itself.
         if vehicle.serviceStatus.isInService {
-            let inService = observations.first { $0.ruleID == StewardRuleID.serviceInService }
             let flagged = vehicle.partsFlaggedForRebuild.count
             let flaggedNote = flagged > 0 ? " · \(flagged) part\(flagged == 1 ? "" : "s") to inspect/replace" : ""
             if let progress = vehicle.serviceStatus.progressText,
                vehicle.serviceStatus.completedCount < vehicle.serviceStatus.checklist.count {
                 return NextStep(action: "Finish the \(reasonPhrase(vehicle.serviceStatus.reason))",
-                                rationale: "\(progress)\(flaggedNote).", confidence: .confirmed,
-                                source: inService)
+                                rationale: "\(progress)\(flaggedNote).", confidence: .confirmed)
             }
             return NextStep(action: "Add rebuild tasks, or mark it back in service",
                             rationale: "It's out of service with nothing left to track\(flaggedNote).",
-                            confidence: .strong, source: inService)
+                            confidence: .strong)
         }
 
         // 2. A safety- or time-sensitive advisory outranks build coherence.
@@ -54,12 +54,20 @@ public extension Steward {
 
         // 3. The build's own open item — shore up support for the power it makes. If a part is
         //    already planned for it, the step is to install it, not to go find one. The matching
-        //    gap observation (when the Steward emitted one) rides along so the step resolves in
-        //    place (confirm stock / add the part).
+        //    gap observation rides along so the step's verbs (confirm stock / add the part) can
+        //    be offered in place. observe() only emits gap.* for fueling/cooling/brakes, but the
+        //    assessment covers more systems (drivetrain, engine internals) — for those, the
+        //    step synthesizes an equivalent gap observation so "Address clutch/drivetrain" is
+        //    never an instruction without a door (Tim's Fozzy report).
         if let a = assess(vehicle),
            let open = a.subsystems.first(where: { $0.status != .supported }) {
             let gapObservation = PartCategory(rawValue: open.id).flatMap { category in
                 observations.first { $0.ruleID == StewardRuleID.gap(category) }
+                    ?? StewardObservation(
+                        ruleID: StewardRuleID.gap(category), subjectID: vehicle.id,
+                        statement: "\(open.label) support isn't documented at this power level.",
+                        evidence: "\(a.powerSummary); nothing is logged for \(open.label.lowercased()).",
+                        confidence: a.confidence, tone: .caution, provenance: .derived)
             }
             if open.planned {
                 return NextStep(action: "Install the planned \(open.label.lowercased()) upgrade",
