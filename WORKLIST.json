@@ -1017,7 +1017,7 @@
       "result": {
         "tests": "409 -> 411, +2",
         "commits": [
-          "pending"
+          "de91035"
         ],
         "date": "2026-07-18",
         "notes": "Supersedes the W-038 note about the in-service step carrying its observation — reverted per W-039's lesson. Button styling (hairline capsules under the rationale) awaits Tim's eye."
