@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 377,
+    "test_count_at_last_update": 390,
     "last_updated": "2026-07-17"
   },
   "items": [
@@ -590,7 +590,7 @@
       "result": {
         "tests": "377 -> 378, +1",
         "commits": [
-          "pending"
+          "76d71c0"
         ],
         "date": "2026-07-17",
         "notes": "View-layer visual checks (spotlight rail, identity surface, comparison grid) still deserve Tim's on-device eyeball — copy lengths changed slightly ('240 HP' where 'XXX WHP' used to render)."
@@ -614,7 +614,7 @@
       "result": {
         "tests": "378 -> 386, +8",
         "commits": [
-          "pending"
+          "3318734"
         ],
         "date": "2026-07-17",
         "notes": "MaintenanceEditorView's baseline field intentionally not gated — it sets a schedule baseline, not a biography reading. The caution never blocks: a genuine correction (replaced cluster, fixing an old typo) must always be loggable."
@@ -639,7 +639,7 @@
       "result": {
         "tests": "386 -> 390, +4",
         "commits": [
-          "pending"
+          "df5f2de"
         ],
         "date": "2026-07-17",
         "notes": "Restore is user-confirmed in UI and always undoable at the store level. Recovery row placement (garage overview, under data-safety notices) deserves Tim's eye for DD-001 gravity; it only appears when preserved files exist."
