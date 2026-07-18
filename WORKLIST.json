@@ -619,6 +619,31 @@
         "date": "2026-07-17",
         "notes": "MaintenanceEditorView's baseline field intentionally not gated — it sets a schedule baseline, not a biography reading. The caution never blocks: a genuine correction (replaced cluster, fixing an old typo) must always be loggable."
       }
+    },
+    {
+      "id": "W-026",
+      "title": "Recovery — discover, export, restore preserved garage files",
+      "why": "GarageHUD's data-safety story wrote conflict snapshots and unreadable-file backups to disk, but nothing ever listed them — the notices only showed in the session that created them, so a preserved file was effectively lost the moment the app restarted. A safety file the owner can't find is not safety.",
+      "depends_on": [],
+      "completion_criteria": [
+        "GarageStore.recoverySnapshots lists conflict snapshots, pre-restore copies, and unreadable-file backups with dates and decoded vehicle counts",
+        "GarageStore.restore(from:) replaces the garage undoably — the current garage is preserved first as a pre-restore snapshot; an unreadable file is refused and left untouched",
+        "RecoveryView (sheet from a Garage-overview recovery row shown whenever preserved files exist): export, confirm-to-restore, swipe-to-delete",
+        "restore failure surfaces an alert, never silently no-ops"
+      ],
+      "testing_criteria": [
+        "RecoverySnapshotTests: listing with counts, restore + pre-restore round-trip (restore the restore), unreadable refused/untouched, delete",
+        "full suite green; iOS simulator app build green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "386 -> 390, +4",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-17",
+        "notes": "Restore is user-confirmed in UI and always undoable at the store level. Recovery row placement (garage overview, under data-safety notices) deserves Tim's eye for DD-001 gravity; it only appears when preserved files exist."
+      }
     }
   ]
 }

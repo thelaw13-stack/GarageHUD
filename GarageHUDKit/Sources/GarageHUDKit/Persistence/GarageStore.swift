@@ -284,6 +284,16 @@ public final class GarageStore: ObservableObject {
 
     @discardableResult
     private func writeConflictSnapshot(_ snapshot: [Vehicle], remoteUpdatedAt: Date) -> URL {
+        let remoteStamp = ISO8601DateFormatter()
+            .string(from: remoteUpdatedAt)
+            .replacingOccurrences(of: ":", with: "-")
+        return writeSnapshot(snapshot, label: "conflict-local", suffix: "-remote-\(remoteStamp)")
+    }
+
+    /// Preserve a vehicle graph as a dated JSON file in the snapshots directory. The shared
+    /// write path for conflict snapshots and the pre-restore safety copy.
+    @discardableResult
+    private func writeSnapshot(_ snapshot: [Vehicle], label: String, suffix: String = "") -> URL {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -291,16 +301,81 @@ public final class GarageStore: ObservableObject {
         let timestamp = ISO8601DateFormatter()
             .string(from: Date())
             .replacingOccurrences(of: ":", with: "-")
-        let remoteStamp = ISO8601DateFormatter()
-            .string(from: remoteUpdatedAt)
-            .replacingOccurrences(of: ":", with: "-")
         let url = conflictSnapshotsDirectory
-            .appendingPathComponent("garage-conflict-local-\(timestamp)-remote-\(remoteStamp).json")
+            .appendingPathComponent("garage-\(label)-\(timestamp)\(suffix).json")
 
         if let data = try? encoder.encode(snapshot) {
             try? data.write(to: url, options: .atomic)
         }
         return url
+    }
+
+    // MARK: - Recovery snapshots
+
+    /// A preserved garage file the owner can inspect, export, or restore: a sync-conflict
+    /// snapshot (the local state that lost a whole-document conflict), a pre-restore safety
+    /// copy, or an unreadable-file backup. Files written for safety are only actually safe if
+    /// the owner can *find* them — this is the discovery API behind the Recovery UI.
+    public struct RecoverySnapshot: Identifiable, Equatable, Sendable {
+        public enum Kind: Equatable, Sendable { case syncConflict, preRestore, unreadableFile }
+        public let url: URL
+        public let kind: Kind
+        public let savedAt: Date
+        /// How many vehicles the file decodes to — nil when the preserved bytes are unreadable
+        /// (an unreadable-file backup usually is; it's kept for manual salvage, not restore).
+        public let vehicleCount: Int?
+        public var id: URL { url }
+    }
+
+    /// Every preserved recovery file on disk, newest first.
+    public var recoverySnapshots: [RecoverySnapshot] {
+        let fm = FileManager.default
+        var urls = (try? fm.contentsOfDirectory(at: conflictSnapshotsDirectory,
+                                                includingPropertiesForKeys: [.contentModificationDateKey]))
+            ?? []
+        let parent = fileURL.deletingLastPathComponent()
+        urls += ((try? fm.contentsOfDirectory(at: parent, includingPropertiesForKeys: [.contentModificationDateKey])) ?? [])
+            .filter { $0.lastPathComponent.hasPrefix("garage-unreadable-") }
+
+        return urls
+            .filter { $0.pathExtension == "json" }
+            .map { url in
+                let name = url.lastPathComponent
+                let kind: RecoverySnapshot.Kind = name.hasPrefix("garage-unreadable-") ? .unreadableFile
+                    : name.contains("pre-restore") ? .preRestore : .syncConflict
+                let savedAt = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
+                    .contentModificationDate ?? .distantPast
+                let count: Int? = (try? Data(contentsOf: url)).flatMap { data in
+                    switch GaragePersistence.decode(data) {
+                    case .ok(let v), .migratedLegacy(let v): return v.count
+                    case .empty, .unreadable: return nil
+                    }
+                }
+                return RecoverySnapshot(url: url, kind: kind, savedAt: savedAt, vehicleCount: count)
+            }
+            .sorted { $0.savedAt > $1.savedAt }
+    }
+
+    /// Replace the current garage with a preserved snapshot's contents. The current garage is
+    /// itself preserved first (as a pre-restore snapshot), so a restore is always undoable.
+    /// Returns false when the snapshot doesn't decode — nothing is touched in that case.
+    @discardableResult
+    public func restore(from snapshot: RecoverySnapshot) -> Bool {
+        guard let data = try? Data(contentsOf: snapshot.url) else { return false }
+        let restored: [Vehicle]
+        switch GaragePersistence.decode(data) {
+        case .ok(let v), .migratedLegacy(let v): restored = v
+        case .empty, .unreadable: return false
+        }
+        writeSnapshot(vehicles, label: "pre-restore")
+        vehicles = restored   // didSet persists and schedules a push
+        return true
+    }
+
+    /// Remove a preserved snapshot the owner no longer needs.
+    public func deleteRecoverySnapshot(_ snapshot: RecoverySnapshot) {
+        try? FileManager.default.removeItem(at: snapshot.url)
+        objectWillChange.send()
     }
 
     /// On a fresh install, prefer a bundled `garage_seed.json` (the real build data

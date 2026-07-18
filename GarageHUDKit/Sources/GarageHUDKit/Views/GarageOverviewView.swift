@@ -9,6 +9,7 @@ struct GarageOverviewView: View {
     var onUpgrade: () -> Void
     @State private var showingBriefing = false
     @State private var showingCompare = false
+    @State private var showingRecovery = false
     @State private var spotlightVehicleID: UUID?
 
     var body: some View {
@@ -29,6 +30,7 @@ struct GarageOverviewView: View {
         .sheet(isPresented: $showingCompare) {
             FleetComparisonView(vehicles: store.vehicles) { selectedVehicleID = $0 }
         }
+        .sheet(isPresented: $showingRecovery) { RecoveryView(store: store) }
     }
 
     // The front door: what changed since the app was last opened. The Steward greets you with the
@@ -157,6 +159,21 @@ struct GarageOverviewView: View {
                 title: "SYNC CONFLICT PRESERVED",
                 message: "A newer iCloud garage was applied. Your attempted local edit was saved separately for review.",
                 url: snapshotURL)
+        }
+        // Preserved files are only safety if they're findable — surface the recovery door
+        // whenever any exist, not just in the session that created them.
+        if !store.recoverySnapshots.isEmpty {
+            Button { showingRecovery = true } label: {
+                HStack(spacing: HUDTheme.space2) {
+                    Image(systemName: "clock.arrow.circlepath").foregroundStyle(HUDTheme.textSecondary)
+                    Text("RECOVERY — \(store.recoverySnapshots.count) preserved garage file\(store.recoverySnapshots.count == 1 ? "" : "s")")
+                        .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textSecondary).tracking(1)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").font(.caption2).foregroundStyle(HUDTheme.textTertiary)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open recovery — preserved garage files")
         }
     }
 
