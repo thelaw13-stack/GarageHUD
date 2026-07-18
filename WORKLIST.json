@@ -971,6 +971,30 @@
         "date": "2026-07-18",
         "notes": "Standing offer to Tim remains: if the line doesn't earn its place as pure information, removal is one commit. Lesson recorded under DD-004: a summary label must never be a door to an action that contradicts it, especially not one that clears user data two taps away."
       }
+    },
+    {
+      "id": "W-040",
+      "title": "NEXT line removed; Recovery explains itself",
+      "why": "Tim's third strike on the NEXT line settled it: it duplicated the garage hero's existing NEXT ACTION rail fact in a different style one screen away (the color inconsistency he reported), and as pure information it named work while leaving him to scroll and hunt for the controls. DD-004 verdict: removal — next action has one home (the hero rail), acting has one home (the Steward rows). Separately, 'RECOVERY — 2 preserved garage files' with no explanation read as a warning; he had to ask what it meant.",
+      "depends_on": [
+        "W-039"
+      ],
+      "completion_criteria": [
+        "Dashboard conditionLine deleted; a comment marks the grave and the rule so it doesn't come back",
+        "Garage recovery row says what the files are in the same breath: 'automatic safety copies… Nothing is wrong — if your garage looks right, you can delete them'; RecoveryView header says the same before the list"
+      ],
+      "testing_criteria": [
+        "full suite green; single deploy to Tim's device"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "409 green",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Lesson attached to DD-004's ledger: before adding a surface, check whether the information already has a home — the dashboard NEXT line duplicated the hero rail from birth."
+      }
     }
   ]
 }

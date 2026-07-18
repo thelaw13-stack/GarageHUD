@@ -17,29 +17,16 @@ struct VehicleDashboardView: View {
     @State private var serviceCostText = ""
     @State private var resolving: StewardObservation?
 
-    /// One calm line of "what matters now" directly under the identity (DD-001, Dashboard).
-    /// NEXT is information, not a control (DD-004, settled by Tim after the tappable versions):
-    /// making it tappable wired "Finish the teardown" to a dialog whose only action was the
-    /// opposite — mark back in service and clear the checklist. The label and the action can't
-    /// be guaranteed coherent across every step source, so it doesn't act at all. Acting lives
-    /// on the Steward rows below, where each row's text matches its own resolutions.
-    @ViewBuilder
-    private var conditionLine: some View {
-        if let step = Steward.nextStep(vehicle) {
-            HStack(alignment: .firstTextBaseline, spacing: HUDTheme.space2) {
-                Text("NEXT").font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textTertiary).tracking(1.5)
-                Text(step.action).font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-            }
-        }
-    }
+    // NEXT lived here briefly (W-033..W-039) and is deliberately GONE (DD-004, Tim's call).
+    // It duplicated the garage hero's existing NEXT ACTION rail fact in a different style one
+    // screen away, and none of its three tappable/plain shapes were coherent. The next action
+    // has exactly one home: the spotlight hero rail. Acting has exactly one home: the Steward
+    // rows below, where each row's text matches its own resolutions.
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HUDTheme.space4) {
                 VehicleIdentitySurface(vehicle: vehicle)
-                conditionLine           // DD-001: what matters now, never below the fold
                 stewardPanel            // C — required attention (quieter, supporting)
                 buildAssessment         // synthesis
                 BuildPlanSection(vehicle: $vehicle, onEditPart: { editingPart = $0 })  // where it's headed

@@ -161,19 +161,25 @@ struct GarageOverviewView: View {
                 url: snapshotURL)
         }
         // Preserved files are only safety if they're findable — surface the recovery door
-        // whenever any exist, not just in the session that created them.
+        // whenever any exist, not just in the session that created them. Say what they ARE in
+        // the same breath: a count with no explanation reads as a warning (Tim's report).
         if !store.recoverySnapshots.isEmpty {
             Button { showingRecovery = true } label: {
-                HStack(spacing: HUDTheme.space2) {
+                HStack(alignment: .top, spacing: HUDTheme.space2) {
                     Image(systemName: "clock.arrow.circlepath").foregroundStyle(HUDTheme.textSecondary)
-                    Text("RECOVERY — \(store.recoverySnapshots.count) preserved garage file\(store.recoverySnapshots.count == 1 ? "" : "s")")
-                        .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textSecondary).tracking(1)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("RECOVERY — \(store.recoverySnapshots.count) automatic safety cop\(store.recoverySnapshots.count == 1 ? "y" : "ies")")
+                            .font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textSecondary).tracking(1)
+                        Text("Saved before sync replaced the garage. Nothing is wrong — if your garage looks right, you can delete them.")
+                            .font(HUDTheme.label()).foregroundStyle(HUDTheme.textTertiary)
+                    }
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right").font(.caption2).foregroundStyle(HUDTheme.textTertiary)
                 }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Open recovery — preserved garage files")
+            .accessibilityLabel("Open recovery — automatic safety copies of your garage")
         }
     }
 

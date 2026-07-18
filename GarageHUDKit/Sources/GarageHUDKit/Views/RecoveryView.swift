@@ -23,6 +23,9 @@ struct RecoveryView: View {
                         ForEach(store.recoverySnapshots) { snapshot in
                             row(snapshot)
                         }
+                    } header: {
+                        Text("These are automatic safety copies GarageHUD saved before sync (or a restore) replaced your garage — so nothing is ever lost silently. Nothing is wrong. If your garage looks right, you can delete them.")
+                            .textCase(nil)
                     } footer: {
                         Text("Restoring replaces the current garage with a snapshot's contents. The current garage is preserved first, so a restore can itself be restored from.")
                     }
