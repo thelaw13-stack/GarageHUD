@@ -55,6 +55,13 @@ final class ActionabilitySweepTests: XCTestCase {
         torn.serviceStatus = ServiceStatus(isInService: true, reason: "Engine teardown")
         out.append(("teardown", torn))
 
+        // Tim's second Fozzy report: drivetrain already confirmed stock, yet the surface kept
+        // offering "confirm it's stock" — a circular verb whose tap is a no-op.
+        var stockConfirmed = fozzy
+        stockConfirmed.garageSlot = 6
+        stockConfirmed.confirmedStockSystems = [.drivetrain, .brakes]
+        out.append(("confirmedStockUnderLoad", stockConfirmed))
+
         return out
     }
 
@@ -62,19 +69,25 @@ final class ActionabilitySweepTests: XCTestCase {
         var violations: [String] = []
 
         for (name, vehicle) in matrix() {
-            // 1. Non-informational observations must be actionable.
+            // 1. Non-informational observations must be actionable — and no verb may be
+            //    circular (asking the user to set a state that's already set: a no-op tap
+            //    that never resolves).
             for obs in Steward.observe(vehicle) where obs.tone != .informational {
-                if !StewardResolution.isActionable(obs, in: vehicle) {
+                let options = StewardResolution.options(for: obs, in: vehicle)
+                if options.isEmpty {
                     violations.append("[\(name)] \(obs.ruleID) asks (\"\(obs.statement)\") but offers no action")
                 }
+                violations += circularVerbViolations(options, in: vehicle, context: "[\(name)] \(obs.ruleID)")
             }
 
             // 2. Next steps carry resolvable verbs, or are the documented teardown exemption.
             if let step = Steward.nextStep(vehicle) {
                 if let source = step.source {
-                    if StewardResolution.options(for: source, in: vehicle).isEmpty {
+                    let options = StewardResolution.options(for: source, in: vehicle)
+                    if options.isEmpty {
                         violations.append("[\(name)] next step \"\(step.action)\" carries a source with no verbs")
                     }
+                    violations += circularVerbViolations(options, in: vehicle, context: "[\(name)] next step")
                 } else if !vehicle.serviceStatus.isInService {
                     violations.append("[\(name)] next step \"\(step.action)\" is an instruction without a door")
                 }
@@ -82,5 +95,17 @@ final class ActionabilitySweepTests: XCTestCase {
         }
 
         XCTAssertTrue(violations.isEmpty, "Actionability violations:\n" + violations.joined(separator: "\n"))
+    }
+
+    /// A verb is circular when its effect is already true — tapping it changes nothing.
+    private func circularVerbViolations(_ options: [ResolutionOption], in vehicle: Vehicle,
+                                        context: String) -> [String] {
+        options.compactMap { option in
+            if case .confirmStock(let cat) = option.action,
+               vehicle.knowledge(of: cat) == .confirmedAbsent {
+                return "\(context) offers circular verb \"\(option.title)\" — \(cat.rawValue) is already confirmed stock"
+            }
+            return nil
+        }
     }
 }

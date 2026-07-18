@@ -1047,6 +1047,31 @@
         "date": "2026-07-18",
         "notes": "Review-method lesson recorded: string-truth sweeps catch lies; this catches unanswerable asks. Future surfaces that emit instructions must register in one sweep or the other. No deploy needed (test-only)."
       }
+    },
+    {
+      "id": "W-043",
+      "title": "No circular verbs — resolution options reflect the knowledge state",
+      "why": "Tim: 'confirm drivetrain is factory-stock from fozzy page not resolving… additionally, the fozzy's drivetrain was marked as stock.' Exactly: the drivetrain was ALREADY confirmed stock, and the surface offered 'confirm it's stock' anyway — a circular verb whose tap is a no-op insert, so the surface never resolves. The verbs were blind to what the record already knew.",
+      "depends_on": [
+        "W-042"
+      ],
+      "completion_criteria": [
+        "StewardResolution gap options are knowledge-aware: a confirmedAbsent (stock-confirmed) system under load offers only 'Add the <system> upgrade' — never 'confirm stock' again (applies to Steward rows and the NEXT STEP block alike)",
+        "The synthesized gap observation states the truth for its state: confirmed-stock reads 'the factory <system> is confirmed in place… carrying the added load — worth weighing', not 'isn't documented'",
+        "ActionabilitySweep gains the general rule: no offered verb may set a state that is already set (circular-verb check), with a confirmed-stock-under-load car in the matrix"
+      ],
+      "testing_criteria": [
+        "full suite green; deployed to Tim's device"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "412 green (sweep extended in place)",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Third law joins the sweeps: never say the unearned (honesty), never ask the unanswerable (actionability), never offer the already-done (circularity)."
+      }
     }
   ]
 }

@@ -36,6 +36,13 @@ public enum StewardResolution {
             return [.init("Mark back in service", .markBackInService)]
         }
         if let cat = StewardRuleID.gapCategory(from: id) {
+            // The verbs must reflect what's already known. Once the owner has confirmed the
+            // system factory-stock, offering "confirm it's stock" again is a circular ask —
+            // tapping it is a no-op and the surface never resolves (Tim's Fozzy report). The
+            // remaining honest door for a confirmed-stock system under load is the upgrade.
+            if vehicle.knowledge(of: cat) == .confirmedAbsent {
+                return [.init("Add the \(cat.rawValue.lowercased()) upgrade", .addPart(cat))]
+            }
             return [.init("Confirm \(cat.rawValue.lowercased()) is factory-stock", .confirmStock(cat)),
                     .init("Add the \(cat.rawValue.lowercased()) part", .addPart(cat))]
         }

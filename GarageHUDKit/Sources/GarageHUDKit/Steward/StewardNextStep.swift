@@ -61,13 +61,23 @@ public extension Steward {
         //    never an instruction without a door (Tim's Fozzy report).
         if let a = assess(vehicle),
            let open = a.subsystems.first(where: { $0.status != .supported }) {
-            let gapObservation = PartCategory(rawValue: open.id).flatMap { category in
-                observations.first { $0.ruleID == StewardRuleID.gap(category) }
-                    ?? StewardObservation(
-                        ruleID: StewardRuleID.gap(category), subjectID: vehicle.id,
-                        statement: "\(open.label) support isn't documented at this power level.",
-                        evidence: "\(a.powerSummary); nothing is logged for \(open.label.lowercased()).",
-                        confidence: a.confidence, tone: .caution, provenance: .derived)
+            let gapObservation = PartCategory(rawValue: open.id).flatMap { category -> StewardObservation? in
+                if let emitted = observations.first(where: { $0.ruleID == StewardRuleID.gap(category) }) {
+                    return emitted
+                }
+                // Synthesized stand-in must state the truth for its knowledge state: a
+                // confirmed-stock system is documented — the open item is the load on it,
+                // not a gap in the record.
+                let confirmedStock = vehicle.knowledge(of: category) == .confirmedAbsent
+                return StewardObservation(
+                    ruleID: StewardRuleID.gap(category), subjectID: vehicle.id,
+                    statement: confirmedStock
+                        ? "The factory \(open.label.lowercased()) is confirmed in place at this power level."
+                        : "\(open.label) support isn't documented at this power level.",
+                    evidence: confirmedStock
+                        ? "\(a.powerSummary); the stock \(open.label.lowercased()) is carrying the added load — worth weighing."
+                        : "\(a.powerSummary); nothing is logged for \(open.label.lowercased()).",
+                    confidence: a.confidence, tone: .caution, provenance: .derived)
             }
             if open.planned {
                 return NextStep(action: "Install the planned \(open.label.lowercased()) upgrade",
