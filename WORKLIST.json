@@ -891,7 +891,7 @@
       "result": {
         "tests": "408 -> 409, +1",
         "commits": [
-          "pending"
+          "978c6c5"
         ],
         "date": "2026-07-18",
         "notes": "Deployed to the iPhone (Release) immediately — this one came straight from Tim's thumb."
