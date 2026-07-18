@@ -125,6 +125,27 @@ struct VehicleDetailView: View {
             }
             .layoutPriority(1)
             Spacer()
+
+            // The car's shareable documents, reachable from every tab — not buried at the bottom
+            // of Specs. Share arrow = human-readable sheet (the W-006 icon vocabulary).
+            Menu {
+                ShareLink(item: SharableBiographySheet(vehicle: vehicle),
+                          preview: SharePreview("\(vehicle.displayName) biography")) {
+                    Label("Vehicle biography (PDF)", systemImage: "book")
+                }
+                ShareLink(item: BuildSheetExporter.file(for: vehicle),
+                          preview: SharePreview("\(vehicle.displayName) build sheet")) {
+                    Label("Build sheet (text)", systemImage: "doc.plaintext")
+                }
+            } label: {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 13))
+                    .foregroundStyle(HUDTheme.textSecondary)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .accessibilityLabel("Share this car's documents")
+
             if vehicle.serviceStatus.isInService {
                 Image(systemName: "wrench.and.screwdriver.fill")
                     .font(.system(size: 12))

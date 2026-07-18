@@ -847,6 +847,30 @@
         "date": "2026-07-18",
         "notes": "Visual polish of the rendered page (panel spacing, header scale) deserves Tim's eyeball on a real export, same as W-009 did for the fleet sheet."
       }
+    },
+    {
+      "id": "W-035",
+      "title": "Per-car share menu in the detail banner — documents reachable from every tab",
+      "why": "Tim couldn't find the biography: both of a car's shareable documents lived at the very bottom of the scrolling Specs tab — the exact 'buried affordance' discoverability pattern the review flagged. A car-level export belongs at the car level.",
+      "depends_on": [
+        "W-034"
+      ],
+      "completion_criteria": [
+        "Share-arrow menu in the vehicle banner (visible on every tab): Vehicle biography (PDF) and Build sheet (text)",
+        "W-006 icon vocabulary preserved: share arrow = human-readable sheet"
+      ],
+      "testing_criteria": [
+        "full suite green; iOS simulator build green; placement is Tim's eye-gravity call on device"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "408 green (presentation only)",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Specs keeps its in-context share buttons too — reachable both where you're looking at the numbers and from anywhere on the car."
+      }
     }
   ]
 }
