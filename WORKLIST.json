@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 411,
+    "test_count_at_last_update": 412,
     "last_updated": "2026-07-18"
   },
   "items": [
@@ -1021,6 +1021,31 @@
         ],
         "date": "2026-07-18",
         "notes": "Supersedes the W-038 note about the in-service step carrying its observation — reverted per W-039's lesson. Button styling (hairline capsules under the rationale) awaits Tim's eye."
+      }
+    },
+    {
+      "id": "W-042",
+      "title": "Actionability sweep — 'an instruction must carry a door', mechanized",
+      "why": "Tim asked why the initial review missed the Fozzy dead-end. Honest answer: the review audited claims, not experiences — it verified every string and walked zero flows, and attention followed the harness (string-truth was testable, flow-completeness wasn't). Same cure as the honesty class: make the invariant enforced instead of remembered.",
+      "depends_on": [
+        "W-041"
+      ],
+      "completion_criteria": [
+        "ActionabilitySweepTests: every non-informational observation resolves to at least one concrete action; every next step carries resolvable verbs or is the documented teardown exemption",
+        "Matrix triggers every observation family and next-step branch (incl. the W-041 non-gap-rule category case)",
+        "Mutation-verified: removing the synthesized gap observation fails the sweep with 'instruction without a door' messages"
+      ],
+      "testing_criteria": [
+        "full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "411 -> 412, +1 (sweep)",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Review-method lesson recorded: string-truth sweeps catch lies; this catches unanswerable asks. Future surfaces that emit instructions must register in one sweep or the other. No deploy needed (test-only)."
       }
     }
   ]
