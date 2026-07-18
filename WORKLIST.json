@@ -896,6 +896,31 @@
         "date": "2026-07-18",
         "notes": "Deployed to the iPhone (Release) immediately — this one came straight from Tim's thumb."
       }
+    },
+    {
+      "id": "W-037",
+      "title": "Every NEXT line acts on tap — full-row hit target, rebuild step scrolls to its checklist",
+      "why": "Tim reported the NEXT line dead. Two real defects: (1) the W-036 carve-out left the out-of-service rebuild step as a plain line on the theory the checklist was 'right below' — it's four panels down, and an affordance tappable on one car but dead on another reads as broken; (2) the tappable rows had no contentShape, so only the text glyphs themselves were hit-testable — a thumb in the row's empty space did nothing even on an actionable car.",
+      "depends_on": [
+        "W-036"
+      ],
+      "completion_criteria": [
+        "contentShape(Rectangle()) — the whole row is the tap target",
+        "Resolvable steps open their resolution dialog (chevron.right); the rebuild step scrolls to the rebuild checklist via ScrollViewReader (chevron.down) — no NEXT line is ever inert",
+        "Accessibility hints name each behavior"
+      ],
+      "testing_criteria": [
+        "full suite green; deployed to Tim's device for his confirmation"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "409 green (presentation wiring)",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Awaiting Tim's on-device confirmation that the tap now lands on both the S2K (scroll) and an actionable car (dialog)."
+      }
     }
   ]
 }
