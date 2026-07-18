@@ -1067,7 +1067,7 @@
       "result": {
         "tests": "412 green (sweep extended in place)",
         "commits": [
-          "pending"
+          "5cdc1fe"
         ],
         "date": "2026-07-18",
         "notes": "Third law joins the sweeps: never say the unearned (honesty), never ask the unanswerable (actionability), never offer the already-done (circularity)."
