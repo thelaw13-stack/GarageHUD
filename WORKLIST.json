@@ -792,7 +792,7 @@
       "result": {
         "tests": "402 -> 405, +3",
         "commits": [
-          "pending"
+          "0b09b14"
         ],
         "date": "2026-07-18",
         "notes": null
@@ -816,7 +816,7 @@
       "result": {
         "tests": "405 green (no new logic — presentation of an existing judgment)",
         "commits": [
-          "pending"
+          "0b09b14"
         ],
         "date": "2026-07-18",
         "notes": "DD-001 second-reviewer eye-gravity check on device is Tim's: the NEXT line should support, not compete with, the identity surface."
