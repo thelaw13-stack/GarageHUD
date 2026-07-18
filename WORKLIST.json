@@ -742,7 +742,7 @@
       "result": {
         "tests": "393 -> 399, +6",
         "commits": [
-          "pending"
+          "8351e34"
         ],
         "date": "2026-07-17",
         "notes": "Also updated DESIGN_DEBT.md DD-001: F2/F3/F4 recorded as landed (W-018..W-020) with Tim's on-device power-label confirmation; Dashboard condition-summary idea stays open. Popover visual (info glyph placement, card width) deserves Tim's eye on device."
