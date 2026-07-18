@@ -25,21 +25,25 @@ public struct NextStep: Equatable, Sendable {
 public extension Steward {
 
     static func nextStep(_ vehicle: Vehicle, context: StewardContext = .live) -> NextStep? {
-        // 1. A car that's apart: the immediate priority is getting it back together.
+        let observations = observe(vehicle, context: context)
+
+        // 1. A car that's apart: the immediate priority is getting it back together. The
+        //    in-service observation rides along so the step resolves the same way as every
+        //    other step — one gesture, one response, everywhere.
         if vehicle.serviceStatus.isInService {
+            let inService = observations.first { $0.ruleID == StewardRuleID.serviceInService }
             let flagged = vehicle.partsFlaggedForRebuild.count
             let flaggedNote = flagged > 0 ? " · \(flagged) part\(flagged == 1 ? "" : "s") to inspect/replace" : ""
             if let progress = vehicle.serviceStatus.progressText,
                vehicle.serviceStatus.completedCount < vehicle.serviceStatus.checklist.count {
                 return NextStep(action: "Finish the \(reasonPhrase(vehicle.serviceStatus.reason))",
-                                rationale: "\(progress)\(flaggedNote).", confidence: .confirmed)
+                                rationale: "\(progress)\(flaggedNote).", confidence: .confirmed,
+                                source: inService)
             }
             return NextStep(action: "Add rebuild tasks, or mark it back in service",
                             rationale: "It's out of service with nothing left to track\(flaggedNote).",
-                            confidence: .strong)
+                            confidence: .strong, source: inService)
         }
-
-        let observations = observe(vehicle, context: context)
 
         // 2. A safety- or time-sensitive advisory outranks build coherence.
         if let advisory = observations.first(where: { $0.tone == .advisory }) {

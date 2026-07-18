@@ -921,6 +921,31 @@
         "date": "2026-07-18",
         "notes": "Awaiting Tim's on-device confirmation that the tap now lands on both the S2K (scroll) and an actionable car (dialog)."
       }
+    },
+    {
+      "id": "W-038",
+      "title": "One gesture, one response — the NEXT line unified under Tim's standing rule (DD-004)",
+      "why": "Tim, watching himself fight the NEXT line's affordance vocabulary (chevron-right dialog vs chevron-down scroll-jump, conditional tappability, three patch-deploy rounds): 'fundamental principle — excess motion, user confused, not intuitive… you would have seen me say fuck this app.' The scroll-jump and the two-behavior vocabulary were the violation, not the tap target.",
+      "depends_on": [
+        "W-037"
+      ],
+      "completion_criteria": [
+        "DD-004 recorded in DESIGN_DEBT.md as a standing rule: one gesture one response; never auto-scroll on tap; no conditional affordances; boring beats clever; batch UI deploys",
+        "NEXT line has exactly one behavior everywhere: tap opens the standard resolution dialog (the Steward-row pattern Tim already knows); the in-service step carries its observation so the out-of-service car resolves the same way ('Mark back in service')",
+        "Scroll-jump, ScrollViewReader wiring, and the chevron-down vocabulary removed; when a step has no resolvable source the line is not shown at all — never a dead control"
+      ],
+      "testing_criteria": [
+        "full suite green; single deploy to Tim's device for his read"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "409 green",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "The principle is also saved to agent memory so future sessions inherit it. If the line still doesn't earn its place, the next move per DD-004 is removal, not another variant."
+      }
     }
   ]
 }

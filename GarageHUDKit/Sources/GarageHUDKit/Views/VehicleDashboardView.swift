@@ -17,60 +17,43 @@ struct VehicleDashboardView: View {
     @State private var serviceCostText = ""
     @State private var resolving: StewardObservation?
 
-    /// Scroll anchor for the rebuild checklist, so the NEXT line can take you to it.
-    private static let rebuildAnchor = "rebuildChecklist"
-
-    /// One calm line of "what matters now" directly under the identity, so the condition never
-    /// falls below the fold on a busy car (DD-001, Dashboard). It's the Steward's next step —
-    /// an existing, tested judgment — not a new claim. Every NEXT line acts on tap — an
-    /// affordance that works on one car and is dead on another reads as broken (Tim's report):
-    /// a step with a resolvable source opens its resolution options; the rebuild step (which
-    /// has no observation to resolve) scrolls to the rebuild checklist it's talking about.
+    /// One calm line of "what matters now" directly under the identity (DD-001, Dashboard).
+    /// One gesture, one response (Tim's fundamental rule): tapping it opens the standard
+    /// resolution dialog — the exact interaction the Steward rows already use — every time, on
+    /// every car. Never a scroll-jump, never a different behavior per state, nothing to learn.
     @ViewBuilder
-    private func conditionLine(_ proxy: ScrollViewProxy) -> some View {
-        if let step = Steward.nextStep(vehicle) {
-            let resolvable = step.source.map { StewardResolution.isActionable($0, in: vehicle) } ?? false
-            Button {
-                if resolvable, let source = step.source {
-                    resolving = source
-                } else {
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        proxy.scrollTo(Self.rebuildAnchor, anchor: .top)
-                    }
-                }
-            } label: {
+    private var conditionLine: some View {
+        if let step = Steward.nextStep(vehicle), let source = step.source,
+           StewardResolution.isActionable(source, in: vehicle) {
+            Button { resolving = source } label: {
                 HStack(alignment: .firstTextBaseline, spacing: HUDTheme.space2) {
                     Text("NEXT").font(HUDTheme.label(.semibold)).foregroundStyle(HUDTheme.textTertiary).tracking(1.5)
                     Text(step.action).font(HUDTheme.body(.medium)).foregroundStyle(HUDTheme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
-                    Image(systemName: resolvable ? "chevron.right" : "chevron.down")
-                        .font(.caption2).foregroundStyle(HUDTheme.textTertiary)
+                    Image(systemName: "chevron.right").font(.caption2).foregroundStyle(HUDTheme.textTertiary)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityHint(resolvable ? "Shows ways to resolve this" : "Jumps to the rebuild checklist")
+            .accessibilityHint("Shows ways to resolve this")
         }
     }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: HUDTheme.space4) {
-                    VehicleIdentitySurface(vehicle: vehicle)
-                    conditionLine(proxy)    // DD-001: what matters now, never below the fold
-                    stewardPanel            // C — required attention (quieter, supporting)
-                    buildAssessment         // synthesis
-                    BuildPlanSection(vehicle: $vehicle, onEditPart: { editingPart = $0 })  // where it's headed
-                    rebuildChecklist        // D — contextual workflow
-                        .id(Self.rebuildAnchor)
-                    maintenancePanel
-                    detailsPanel            // E — secondary specs / build detail
-                    recentActivity          // F — memory
-                }
-                .padding(HUDTheme.space4)
+        ScrollView {
+            VStack(alignment: .leading, spacing: HUDTheme.space4) {
+                VehicleIdentitySurface(vehicle: vehicle)
+                conditionLine           // DD-001: what matters now, never below the fold
+                stewardPanel            // C — required attention (quieter, supporting)
+                buildAssessment         // synthesis
+                BuildPlanSection(vehicle: $vehicle, onEditPart: { editingPart = $0 })  // where it's headed
+                rebuildChecklist        // D — contextual workflow
+                maintenancePanel
+                detailsPanel            // E — secondary specs / build detail
+                recentActivity          // F — memory
             }
+            .padding(HUDTheme.space4)
         }
         .background(HUDTheme.background)
         .sheet(isPresented: $showingAsk) { AskStewardView(vehicle: vehicle) }

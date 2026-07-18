@@ -48,6 +48,25 @@ Live telemetry cannot rely on typing or dense touch targets during active use.
 
 Future review should define the minimum safe in-motion interface and voice command set.
 
+## DD-004 — One gesture, one response (standing rule)
+
+From Tim, 2026-07-18, after watching himself fight the NEXT line: "as a fundamental principle —
+excess motion, user confused, not intuitive. If you were at Microsoft observing the user, you
+would have seen me say fuck this app."
+
+The rules, binding on every future control:
+
+- **One gesture → one response shape, everywhere.** A tappable row does the same kind of thing
+  wherever it appears. In GarageHUD that thing is the standard resolution dialog.
+- **Never auto-scroll or jump the view as a tap response.** Motion only when the user explicitly
+  asked to go somewhere. Motion explains; it never decorates.
+- **No conditional affordances.** A control that acts on one car and is dead on another reads as
+  broken. Either it always acts, or it is not styled (or shown) as a control at all.
+- **Boring beats clever.** Prefer removing an element over teaching the user a new affordance.
+  When in doubt, ship the boring version and ask Tim before the clever one.
+- **Batch UI changes into one deploy.** Repeated patch-deploy rounds on one control are
+  themselves excess motion.
+
 ## DD-003 — Steward tone
 
 Steward should be calm, humble, evidence-based, and concise. It should never manufacture urgency or pretend certainty.
