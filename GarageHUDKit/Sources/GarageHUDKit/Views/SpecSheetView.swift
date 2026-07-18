@@ -80,9 +80,11 @@ struct SpecSheetView: View {
                 numbersSubhead("POWER")
                 LazyVGrid(columns: cols, spacing: 16) {
                     if let figure = vehicle.currentPowerFigure {
-                        StatReadout(label: figure.isMeasured ? "Current (measured)" : "Current (factory)",
-                                    value: "\(Int(figure.value))", unit: figure.unit.uppercased(),
-                                    color: HUDTheme.textPrimary)
+                        ProvenanceTappable(provenance: ProvenanceBuilder.power(for: vehicle)) {
+                            StatReadout(label: figure.isMeasured ? "Current (measured)" : "Current (factory)",
+                                        value: "\(Int(figure.value))", unit: figure.unit.uppercased(),
+                                        color: HUDTheme.textPrimary)
+                        }
                     }
                     if let ratio = vehicle.powerToWeight {
                         StatReadout(label: "Power / Weight", value: String(format: "%.2f", ratio), unit: "lb/hp", color: HUDTheme.textPrimary)
@@ -94,7 +96,9 @@ struct SpecSheetView: View {
 
                 numbersDivider
                 numbersSubhead("INVESTMENT")
-                StatReadout(label: "Total Invested", value: vehicle.totalInvested.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary)
+                ProvenanceTappable(provenance: ProvenanceBuilder.investment(for: vehicle)) {
+                    StatReadout(label: "Total Invested", value: vehicle.totalInvested.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary)
+                }
                 if let investment = vehicle.investmentFigure {
                     Text(investment.explanation)
                         .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
@@ -126,6 +130,13 @@ struct SpecSheetView: View {
 
                 numbersDivider
                 numbersSubhead("OWNERSHIP")
+                if let miles = vehicle.currentMileage {
+                    ProvenanceTappable(provenance: ProvenanceBuilder.odometer(for: vehicle)) {
+                        StatReadout(label: "Odometer", value: miles.formatted(.number.grouping(.automatic)), unit: "MI", color: HUDTheme.textPrimary)
+                    }
+                    Text("Derived from your most recent dated event — log mileage on events to keep it current.")
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                }
                 editableStat(label: "Purchase Price", value: $vehicle.purchasePrice, unit: "USD", color: HUDTheme.textPrimary)
                 Text("What you paid for the vehicle — kept separate from build spend.")
                     .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)

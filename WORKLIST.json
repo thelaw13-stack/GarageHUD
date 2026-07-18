@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 393,
+    "test_count_at_last_update": 399,
     "last_updated": "2026-07-17"
   },
   "items": [
@@ -719,6 +719,33 @@
         ],
         "date": "2026-07-17",
         "notes": null
+      }
+    },
+    {
+      "id": "W-030",
+      "title": "Evidence tap-through — every headline figure answers 'why should I trust this?'",
+      "why": "The Constitution demands 'never pretend certainty, always explain' and the model has carried provenance all along, but no surface let the owner inspect it — trust-by-assertion instead of trust-by-evidence. Also the discoverability principle: evidence inspectable in place, not buried.",
+      "depends_on": [
+        "W-024",
+        "W-027"
+      ],
+      "completion_criteria": [
+        "ProvenanceBuilder (pure) explains power (dyno + date + location, stale-hardware disclosure, factory rating, stock-wheel baseline with assumed-loss disclosure), investment (both max() inputs, which leads and why, planned money disclosed as excluded), and odometer (source event, learned rate, self-disagreement disclosure)",
+        "ProvenanceTappable popover on Specs: Current power, Total Invested, and a new Odometer stat under OWNERSHIP (Specs previously had no odometer line)",
+        "All three provenance texts are HonestySweepTests surfaces"
+      ],
+      "testing_criteria": [
+        "FigureProvenanceTests: measured/unmeasured power incl. staleness + assumption disclosure, investment max-rule, odometer source/rate/self-disagreement, nil-when-no-figure",
+        "full suite green; iOS simulator build green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "393 -> 399, +6",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-17",
+        "notes": "Also updated DESIGN_DEBT.md DD-001: F2/F3/F4 recorded as landed (W-018..W-020) with Tim's on-device power-label confirmation; Dashboard condition-summary idea stays open. Popover visual (info glyph placement, card width) deserves Tim's eye on device."
       }
     }
   ]

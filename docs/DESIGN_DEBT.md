@@ -36,7 +36,11 @@ on the section it's scrolled to; hierarchy reads clean. No finding.
 **Ask Steward.** Eye lands on the reply panel, then the mic. Reasonable; the voice nudge sits quietly
 under the header when applicable. No finding.
 
-Open for Tim: F2, F3, F4 (and the Dashboard condition-summary idea). F1 is done.
+Status update (2026-07-17): F2 (dim POWER while out of service), F3 (spotlighted car omitted from
+the grid), and F4 (BAY label moved clear of the open-arrow) all landed — W-018/W-019/W-020,
+verified in the simulator. Tim's second-reviewer read confirmed the related power-labeling work on
+device ("i dont have an un recorded power level"). Still open: the Dashboard condition-summary
+idea (softer), and DD-001 remains a standing rule for every new screen.
 
 ## DD-002 — Driving Mode interaction model
 

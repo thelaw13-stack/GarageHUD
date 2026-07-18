@@ -48,6 +48,10 @@ final class HonestySweepTests: XCTestCase {
         }),
         // The buyer-facing PDF's words — the card renders exclusively from this model.
         ("fleetSheetCard", { FleetSheetCardModel.make(for: $0).sweepText }),
+        // The "why should I trust this number" tap-throughs.
+        ("provenance.power", { ProvenanceBuilder.power(for: $0)?.sweepText ?? "" }),
+        ("provenance.investment", { ProvenanceBuilder.investment(for: $0)?.sweepText ?? "" }),
+        ("provenance.odometer", { ProvenanceBuilder.odometer(for: $0)?.sweepText ?? "" }),
     ]
 
     // MARK: - The adversarial matrix
