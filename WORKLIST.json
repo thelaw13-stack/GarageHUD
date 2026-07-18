@@ -270,7 +270,7 @@
       "status": "complete",
       "result": {
         "tests": "349 green (+5)",
-        "commit": "pending",
+        "commit": "e72a4b0",
         "date": "2026-07-16",
         "notes": "VoiceNudge (pure, tested) gates the nudge: shows only when the device has just the robotic default voice, cloud voice is off, and it hasn't been dismissed; dismissal persists in UserDefaults so it never nags. Surfaced as a calm, dismissible banner in Ask Steward (where the voice is first heard) with a 'Voice settings' button and the iOS enhanced-voice download path. Gating unit-tested; the banner only appears on a device in the robotic-only state, which can't be forced on Tim's phone (his has enhanced voices), so visual appearance is condition-gated by the tested rule rather than eyeballed."
       }
@@ -292,7 +292,7 @@
       "status": "complete",
       "result": {
         "tests": "362 green (+6)",
-        "commit": "pending",
+        "commit": "e72a4b0",
         "date": "2026-07-16",
         "notes": "Reconciled with the other dev's Jul-13 prior art (a6f65ae scan-first picker) instead of my from-scratch abstraction (dropped OBDPairing/MockOBDPairingService). Their architecture — scan-first hooks on OBDLiveDataSource reusing its proven bring-up — is better and I adopted it. Added on main's evolved base: catalog-awareness (OBDAdapterCandidate.isReachableOverBLE/unreachableReason so an MFi MX+ is a shown dead-end, not an inviting tap) and a persistence fix (record impliedSelection on pick so the saved profile is accepted next launch via acceptsSavedProfile). Picker rendered and visually verified. On-device BLE scan/validate is exercised in W-014 (blocked on hardware)."
       }
@@ -313,7 +313,7 @@
       "status": "complete",
       "result": {
         "tests": "352 green (+3)",
-        "commit": "pending",
+        "commit": "e72a4b0",
         "date": "2026-07-16",
         "notes": "CloudKit payload now uses the same versioned Document {schemaVersion, vehicles} envelope as the local file (CloudSyncManager.encodePayload/decodePayload reuse GaragePersistence). Pull tolerates both the versioned form and a legacy bare array, so older cloud records are never dropped. CloudPayloadTests covers round-trip, legacy tolerance, unreadable->nil. Real CloudKit round-trip cannot be unit-tested; the payload envelope is. One-time transition caveat documented in PERSISTENCE.md; TD-005 remaining now resolved."
       }
@@ -369,7 +369,7 @@
       "status": "complete",
       "result": {
         "tests": "352 green",
-        "commit": "pending",
+        "commit": "e72a4b0",
         "date": "2026-07-16",
         "notes": "First-reviewer eye-gravity pass: Garage reviewed from a live Simulator screenshot, other screens from code. Findings recorded in docs/DESIGN_DEBT.md (DD-001). Landed F1 (clear fix): the fleet-health strip clipped SERVICE DUE behind a non-obvious horizontal scroll; now wraps to two rows via ViewThatFits, verified on device before/after. F2 (power competes with state on an out-of-service car), F3 (active car shown twice), F4 (top-right bay-tab/arrow crowding), and a Dashboard condition-summary idea are logged for Tim as second reviewer (DD-001 rule: if two reviewers disagree, hierarchy is not finished)."
       }
@@ -392,7 +392,7 @@
       "status": "complete",
       "result": {
         "tests": "344 green (+5, shared with W-017)",
-        "commit": "pending",
+        "commit": "e72a4b0",
         "date": "2026-07-16",
         "notes": "Vehicle.purchasePrice added (tolerant decode, older files -> nil). Shown as its own 'Purchase Price' line under a new OWNERSHIP section on Specs, editable, kept out of totalInvested. Separate lines, no all-in. Fleet-sheet inclusion deferred."
       },
@@ -416,7 +416,7 @@
       "status": "complete",
       "result": {
         "tests": "344 green (+5, shared with W-016)",
-        "commit": "pending",
+        "commit": "e72a4b0",
         "date": "2026-07-16",
         "notes": "BuildEvent.cost added; markMaintenanceDone takes an optional cost; setBuildEventCost prices/clears a record after the fact. Editable per record in Service History (tap 'Add cost'), with a running TOTAL SERVICE SPEND header. Vehicle.serviceSpend shown as its own line on Specs, separate from Total Invested and Purchase price. Follow-up (Tim): 'Mark done' now prompts for the cost via an optional alert field — Log works with it blank, so the prompt never restricts the record."
       }
@@ -439,7 +439,7 @@
       "status": "complete",
       "result": {
         "tests": "362 green",
-        "commit": "pending",
+        "commit": "e72a4b0",
         "date": "2026-07-16",
         "notes": "POWER cell in the hero instrument rail now renders textPrimary (plain white) while serviceStatus.isInService, cyan otherwise. Verified in the simulator: on the out-of-service S2K the eye now lands on OUT OF SERVICE / TUNE STATE HOLD / NEXT ACTION rather than the dyno number. F3 (active car shown twice) and F4 (bay-tab/arrow crowding) remain logged in DESIGN_DEBT.md for Tim."
       }
@@ -461,7 +461,7 @@
       "status": "complete",
       "result": {
         "tests": "362 green",
-        "commit": "pending",
+        "commit": "e72a4b0",
         "date": "2026-07-16",
         "notes": "Verified: with S2K spotlighted, the grid now leads with FOZZY, not a second S2K card."
       }
@@ -483,7 +483,7 @@
       "status": "complete",
       "result": {
         "tests": "362 green",
-        "commit": "pending",
+        "commit": "e72a4b0",
         "date": "2026-07-16",
         "notes": "Verified: BAY 1 now sits top-left, arrow alone top-right, no overlap."
       }
@@ -507,7 +507,7 @@
       "status": "complete",
       "result": {
         "tests": "366 green (+4)",
-        "commit": "pending",
+        "commit": "e72a4b0",
         "date": "2026-07-16",
         "notes": "Empirically confirmed the lie ('155 whp measured'), fixed, and locked with regression tests. Audit also cleared attacks 2 (installed part overrides stale stock claim) and 3 (planned part reads 'undocumented, planned', not 'covered') as honest. Attack 4 (absurd user-entered dyno reported raw) is garbage-in, not an engine lie — possible future sanity-flag, not tracked. UPDATE 2026-07-17: attack 4 was overruled by the Fable review (W-022) — a non-positive dyno figure no longer counts as a measurement."
       }
@@ -664,7 +664,7 @@
       "result": {
         "tests": "390 -> 391, +1",
         "commits": [
-          "pending"
+          "e72a4b0"
         ],
         "date": "2026-07-17",
         "notes": null
@@ -690,7 +690,7 @@
       "result": {
         "tests": "391 -> 392, +1",
         "commits": [
-          "pending"
+          "e72a4b0"
         ],
         "date": "2026-07-17",
         "notes": "Rendered output unchanged by construction (strings extracted verbatim); PDF render test still green. Worth one visual diff of the exported sheet on device."
@@ -715,7 +715,7 @@
       "result": {
         "tests": "392 -> 393, +1",
         "commits": [
-          "pending"
+          "e72a4b0"
         ],
         "date": "2026-07-17",
         "notes": null
