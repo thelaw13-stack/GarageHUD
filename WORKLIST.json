@@ -842,7 +842,7 @@
       "result": {
         "tests": "405 -> 408, +3",
         "commits": [
-          "pending"
+          "ae16215"
         ],
         "date": "2026-07-18",
         "notes": "Visual polish of the rendered page (panel spacing, header scale) deserves Tim's eyeball on a real export, same as W-009 did for the fleet sheet."
