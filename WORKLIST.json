@@ -1152,6 +1152,31 @@
         "date": "2026-07-18",
         "notes": "fleet.valueLeader is the same class at fleet level (informational stat, unresolvable) — it's rarer (needs 2+ dynoed cars) and un-actionable already, so left in place but WATCHED: if Tim reports it as noise, retire it the same way."
       }
+    },
+    {
+      "id": "W-047",
+      "title": "Biography goes paper-first — white ground, ink text, restrained accent",
+      "why": "Tim: 'as nice as the biography is, don't you think Black is a touch background to print into?' Right: the document's natural habitat is print (buyer, insurance, service folder), and a cockpit-dark page is a full-bleed toner bath. The cockpit dark is the app's identity ON SCREEN; paper conventions win on paper.",
+      "depends_on": [
+        "W-034"
+      ],
+      "completion_criteria": [
+        "BiographySheetDocument renders on a PrintTheme: white paper, ink-dark text, HUD cyan darkened to a print-legible accent, light panels with hairline strokes",
+        "Fleet sheet deliberately left dark (Tim approved its screen look, W-009); lightening it is one commit away if asked",
+        "Content untouched — same BiographyModel words, honesty sweeps unaffected"
+      ],
+      "testing_criteria": [
+        "full suite green (PDF render tests pass); visual print check is Tim's on a real export"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "418 green",
+        "commits": [
+          "20c854f"
+        ],
+        "date": "2026-07-18",
+        "notes": null
+      }
     }
   ]
 }
