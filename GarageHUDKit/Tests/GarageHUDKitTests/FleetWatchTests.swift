@@ -11,7 +11,8 @@ final class FleetWatchTests: XCTestCase {
         v.maintenance = items
         if review {   // a confirmed-stock gap on a boosted car → a non-informational observation
             v.factoryHorsepower = 200
-            v.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 400)]
+            // Past the owner's 450-whp driveline-attention line (W-044), so brakes are in scope.
+            v.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 480)]
             v.confirmedStockSystems = [.brakes]
             v.parts = [Part(name: "Turbo", category: .forcedInduction, status: .installed)]
         }

@@ -55,7 +55,8 @@ final class StewardRuleIDTests: XCTestCase {
                        Part(name: "Injectors", category: .fueling, status: .installed),
                        Part(name: "FMIC", category: .cooling, status: .installed),
                        Part(name: "Forged pistons", category: .engine, status: .installed)]
-        fozzy.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 320)]
+        // Past the owner's 450-whp driveline-attention line (W-044) — clutch is in scope.
+        fozzy.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 480)]
 
         let step = Steward.nextStep(fozzy)
         XCTAssertNotNil(step, "an undocumented clutch/drivetrain at this power is a step")

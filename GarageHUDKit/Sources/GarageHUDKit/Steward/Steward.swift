@@ -25,11 +25,12 @@ public enum Steward {
                                   trigger: "Forced induction is installed.") { out.append(o) }
         }
 
-        // 3. Braking should keep pace with power and grip.
-        let powerUp = (vehicle.horsepowerGainedOverStock ?? 0) >= 40
+        // 3. Braking should keep pace with power and grip. The power leg keys on the owner's
+        //    driveline-attention level (W-044), not a flat gain — stage-1 bumps stay quiet.
+        let powerUp = vehicle.powerDemandsDrivelineAttention
         if vehicle.knowledge(of: .suspension) == .confirmedPresent || powerUp {
             let trigger = vehicle.knowledge(of: .suspension) == .confirmedPresent
-                ? "Suspension is upgraded." : "Power is up meaningfully over stock."
+                ? "Suspension is upgraded." : "Power is past \(Int(Vehicle.drivelineAttentionWheelHP)) whp."
             if let o = supportGap(vehicle, support: .brakes, subsystem: "brakes", trigger: trigger) { out.append(o) }
         }
 

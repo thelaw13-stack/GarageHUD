@@ -41,7 +41,9 @@ public extension Steward {
     static func assess(_ vehicle: Vehicle) -> BuildAssessment? {
         let forcedInduction = vehicle.knowledge(of: .forcedInduction) == .confirmedPresent
         let gain = vehicle.horsepowerGainedOverStock ?? 0
-        let powerUp = gain >= 40
+        // Owner-calibrated (W-044): driveline/brake scrutiny keys on crossing an absolute
+        // wheel-power level, not a flat gain — see Vehicle.drivelineAttentionWheelHP.
+        let powerUp = vehicle.powerDemandsDrivelineAttention
         guard forcedInduction || powerUp else { return nil }
 
         let suspensionUp = vehicle.knowledge(of: .suspension) == .confirmedPresent

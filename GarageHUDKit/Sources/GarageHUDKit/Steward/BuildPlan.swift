@@ -70,8 +70,9 @@ public enum BuildPlanner {
     public static func plan(for vehicle: Vehicle, context: StewardContext = .live) -> BuildPlan {
         let planned = vehicle.plannedParts
         let boosted = vehicle.knowledge(of: .forcedInduction) == .confirmedPresent
-        // Support categories that matter more once the car makes real power over stock.
-        let powerUp = (vehicle.horsepowerGainedOverStock ?? 0) >= 40
+        // Support categories that matter more once the car is past the owner's
+        // driveline-attention level (W-044).
+        let powerUp = vehicle.powerDemandsDrivelineAttention
         let plansForcedInduction = planned.contains { $0.category == .forcedInduction }
 
         let steps = planned.map { part -> PlanStep in

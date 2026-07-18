@@ -52,7 +52,7 @@ public extension Steward {
                 guard v.knowledge(of: category) == .confirmedAbsent else { return false }
                 switch category {
                 case .brakes:
-                    return v.knowledge(of: .suspension) == .confirmedPresent || (v.horsepowerGainedOverStock ?? 0) >= 40
+                    return v.knowledge(of: .suspension) == .confirmedPresent || v.powerDemandsDrivelineAttention
                 case .fueling, .cooling:
                     return v.knowledge(of: .forcedInduction) == .confirmedPresent
                 default: return false

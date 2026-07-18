@@ -37,7 +37,8 @@ final class ActionabilitySweepTests: XCTestCase {
                        Part(name: "Injectors", category: .fueling, status: .installed),
                        Part(name: "FMIC", category: .cooling, status: .installed),
                        Part(name: "Forged pistons", category: .engine, status: .installed)]
-        fozzy.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 320)]
+        // Past the owner's 450-whp driveline-attention line (W-044) — clutch is in scope.
+        fozzy.performanceRecords = [PerformanceRecord(type: .dyno, wheelHorsepower: 480)]
         out.append(("fozzyDrivetrainOpen", fozzy))      // the W-041 case: non-gap-rule category
 
         var overdue = Vehicle(make: "Toyota", model: "Tundra", year: 2021, garageSlot: 3)

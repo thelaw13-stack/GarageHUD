@@ -123,6 +123,19 @@ public extension Vehicle {
     /// build with a missing category is more suspicious than a sparse imported record.
     var isWellDocumented: Bool { installedPartsCount >= 6 }
 
+    /// The owner's calibration (Tim, 2026-07-18, W-044): "I won't touch the transmission till
+    /// over 450 HP, wouldn't touch the clutch till then." Driveline and brake attention keys on
+    /// crossing this absolute wheel-power level — NOT on a flat gain-over-stock, which flagged
+    /// a stage-1 factory-turbo Subaru (a ~25% bump the factory driveline was engineered for)
+    /// the same as a built car making double stock.
+    static let drivelineAttentionWheelHP: Double = 450
+
+    /// True when the car's wheel-honest output exceeds the owner's driveline-attention level —
+    /// the gate for clutch/drivetrain and power-triggered brake scrutiny.
+    var powerDemandsDrivelineAttention: Bool {
+        (currentWheelHorsepowerEstimate ?? 0) > Self.drivelineAttentionWheelHP
+    }
+
     /// The live operating limits for this car — the owner's override, or a default derived
     /// from what we know about it.
     var operatingEnvelope: OperatingEnvelope { operatingEnvelopeOverride ?? .default(for: self) }

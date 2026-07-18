@@ -1072,6 +1072,32 @@
         "date": "2026-07-18",
         "notes": "Third law joins the sweeps: never say the unearned (honesty), never ask the unanswerable (actionability), never offer the already-done (circularity)."
       }
+    },
+    {
+      "id": "W-044",
+      "title": "Driveline attention is owner-calibrated: 450 whp, not +40-whp-gain",
+      "why": "Tim, on the Fozzy's clutch nag: 'you telling me a simple stage1 upgrade on a Subaru warrants a clutch and drivetrain, no way… I won't touch the transmission till over 450HP, wouldn't touch the clutch till then.' The trigger was an invented flat gain>=40whp — flagging a stage-1 factory-turbo car (~25% bump the factory driveline was engineered for) the same as a built car at double stock. A fourth blind-spot class: honest labels on domain-uncalibrated judgment rules. The review audited whether numbers were true, never whether the thresholds were.",
+      "depends_on": [
+        "W-043"
+      ],
+      "completion_criteria": [
+        "Vehicle.drivelineAttentionWheelHP = 450 (Tim's words quoted at the definition) with powerDemandsDrivelineAttention keyed on the wheel-honest current figure",
+        "Every powerUp gate reads it: BuildAssessment relevance (drivetrain, brakes), Steward brakes-gap rule (evidence now says 'Power is past 450 whp'), fleet shared-gap brakes, BuildPlanner brake priority",
+        "Suspension-upgrade brake trigger unchanged; engine-internals rule unchanged (FI + 80 whp gain)",
+        "Test fixtures updated to sit on the correct side of the line (480 whp where scrutiny is the point)"
+      ],
+      "testing_criteria": [
+        "full suite green; deployed to Tim's device"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "412 green",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Effect on the real fleet: the stage-1 Fozzy stops being told it needs a clutch; the 477-whp S2K remains correctly in scope. Open question deliberately NOT built without Tim: factory-forced-induction awareness (a factory-turbo car's fueling/cooling was engineered for boost — the FI-triggered support reasoning still assumes aftermarket boost). On the board when Tim wants it."
+      }
     }
   ]
 }
