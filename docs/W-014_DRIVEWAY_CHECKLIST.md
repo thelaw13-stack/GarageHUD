@@ -4,6 +4,11 @@ Turns the largest unproven mass of code (the Live/OBD stack) from faith into fin
 session. Adapter: **Veepeak OBDCheck BLE** (Bluetooth-LE, recognized by the app's catalog). Tim runs
 the physical steps; Vector diagnoses from the artifacts captured at the end.
 
+## Which cars (and which not)
+Candidates: **Fozzy** (boosted — exercises the baro-corrected boost path), **Tundra** (newest — most
+likely to answer multi-ECU/ISO-TP), **S2K**. **Not the Baja** — it's a pre-1996 air-cooled VW with no
+OBD-II port; the app now says so on its Live tab (there's nothing to plug into).
+
 ## Pre-flight (60 seconds)
 - Plug the Veepeak into the car's OBD-II port (under the dash, driver's side).
 - **Ignition to RUN, or engine running.** Live PIDs need the ECU awake. Engine running is best.

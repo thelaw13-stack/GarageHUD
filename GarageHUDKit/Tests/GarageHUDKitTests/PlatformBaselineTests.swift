@@ -58,6 +58,16 @@ final class PlatformBaselineTests: XCTestCase {
         XCTAssertEqual(v.defaultBoostCautionPsi, PlatformBaseline.genericBoostedCautionPsi)
     }
 
+    func testPreOBD2CarHasNoLiveTelemetry() {
+        // OBD-II mandated on US cars in 1996. The air-cooled '71 Baja has no port at all.
+        XCTAssertFalse(baja().supportsOBD2, "a 1971 air-cooled VW can't do live OBD telemetry")
+        XCTAssertTrue(s2k().supportsOBD2)     // 2006
+        XCTAssertTrue(fozzy().supportsOBD2)   // 2008
+        XCTAssertTrue(tundra().supportsOBD2)  // 2021
+        // A pre-1996 liquid-cooled car is also out.
+        XCTAssertFalse(Vehicle(make: "Honda", model: "Civic", year: 1991, garageSlot: 1).supportsOBD2)
+    }
+
     func testEveryCatalogEntryCitesASource() {
         for entry in PlatformBaseline.catalog {
             XCTAssertFalse(entry.source.trimmingCharacters(in: .whitespaces).isEmpty,

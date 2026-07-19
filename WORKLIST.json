@@ -1247,6 +1247,30 @@
         "date": "2026-07-18",
         "notes": "Tim calibrated: sequence-lag 30d, quiet 90d, flagged pull until-resolved. Started the StewardThresholds home Fable recommended. Noted caveats stand as follow-ups: sequence still keys on a date gap (a 'driven between' signal would be truer) and quiet is one number for a mixed fleet (could be per-car). Explicit pull-dismiss UI is the companion to until-resolved (auto-resolves on a clean pull today)."
       }
+    },
+    {
+      "id": "W-051",
+      "title": "Pre-OBD-II awareness — no live-telemetry affordance for the Baja",
+      "why": "Tim flagged that one car (the ~1971 air-cooled VW Baja) predates OBD-II. Offering a 'connect an OBD-II adapter' affordance on a car with no OBD port is false affordance — same class as a coolant limit on an air-cooled engine.",
+      "depends_on": [
+        "W-049"
+      ],
+      "completion_criteria": [
+        "Vehicle.supportsOBD2 (US: liquid-cooled AND year>=1996; air-cooled classics false)",
+        "Live tab shows an honest unavailable notice for a pre-OBD-II car and disables scan; Simulated still works",
+        "W-014 driveway checklist excludes the Baja"
+      ],
+      "testing_criteria": [
+        "PlatformBaselineTests: Baja & a 1991 Civic supportsOBD2 false; S2K/Fozzy/Tundra true",
+        "full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "428 green (+1)",
+        "commit": "pending",
+        "date": "2026-07-18",
+        "notes": "Same honesty thread as W-049 (air-cooled coolant): the app now knows the Baja has no OBD port and says so rather than offering a connection that can never complete. Heuristic is US-year + cooling; an explicit override can follow if a car ever needs correcting."
+      }
     }
   ]
 }

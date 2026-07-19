@@ -68,6 +68,13 @@ public extension Vehicle {
     /// platform is assumed liquid-cooled so a real coolant caution is never silently suppressed.
     var isAirCooled: Bool { platformBaseline?.airCooled ?? false }
 
+    /// Whether this car has an OBD-II port to connect a live adapter to. OBD-II was mandated on US
+    /// cars from 1996; an air-cooled classic never had one. A pre-OBD-II car can't do live telemetry,
+    /// so the app must not offer to connect an adapter to it — offering the option would be false
+    /// affordance, the same class as a coolant limit on an engine with no coolant. (US heuristic; an
+    /// explicit override can follow if a car ever needs correcting.)
+    var supportsOBD2: Bool { !isAirCooled && year >= 1996 }
+
     /// The live boost caution to apply: nil when boost isn't a meaningful signal (naturally
     /// aspirated), else the platform's sourced value, else a conservative generic. The owner's
     /// envelope override supersedes this entirely.

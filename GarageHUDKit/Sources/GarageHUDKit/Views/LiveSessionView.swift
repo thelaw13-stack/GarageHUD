@@ -47,7 +47,9 @@ struct LiveSessionView: View {
             .disabled(isRunning)
             .frame(maxWidth: 320)
 
-            if feed == .adapter {
+            if feed == .adapter && !vehicle.supportsOBD2 {
+                preOBD2Notice
+            } else if feed == .adapter {
                 adapterConnectionPanel
                 // Fresh pairing: surface discovered adapters to choose from. Hidden once a known
                 // adapter is saved (that path reconnects straight to the validated device).
@@ -89,7 +91,8 @@ struct LiveSessionView: View {
                     isRunning ? stop() : start()
                 }
                 .buttonStyle(ActionButton(isRunning ? .destructive : .primary))
-                .disabled(!isRunning && feed == .adapter && !adapterSelection.canConnectDirectly)
+                .disabled(!isRunning && feed == .adapter
+                          && (!adapterSelection.canConnectDirectly || !vehicle.supportsOBD2))
 
                 if !captured.isEmpty && !isRunning {
                     Button("Save as Performance Record") { saveRecord() }
@@ -150,6 +153,26 @@ struct LiveSessionView: View {
         case .polling: return HUDTheme.amber
         case .degraded, .reconnecting, .disconnected: return HUDTheme.danger
         default: return HUDTheme.textSecondary
+        }
+    }
+
+    private var preOBD2Notice: some View {
+        HUDPanel(title: "Live Telemetry", caption: "unavailable") {
+            HStack(alignment: .top, spacing: HUDTheme.space3) {
+                Image(systemName: "bolt.slash")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(HUDTheme.textSecondary)
+                    .frame(width: 40, height: 40)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(HUDTheme.hairline))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(vehicle.displayName) predates OBD-II")
+                        .font(HUDTheme.body(.bold)).foregroundStyle(HUDTheme.textPrimary)
+                    Text("OBD-II arrived on US cars in 1996, so there's no port to connect an adapter to. Live telemetry isn't available for this car — the Simulated feed still works.")
+                        .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
         }
     }
 
