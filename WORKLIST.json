@@ -1193,7 +1193,7 @@
       "status": "complete",
       "result": {
         "tests": "418 green (docs only)",
-        "commit": "pending",
+        "commit": "b74178c",
         "date": "2026-07-16",
         "notes": "docs/STEWARD_THRESHOLDS.md. Finding: exactly ONE threshold is owner-calibrated (drivelineAttentionWheelHP=450, W-044); the rest are shop convention (drivetrain losses, 30d/500mi windows, coolant 215/235) or — for eleven of them — ungrounded guesses. Top three to calibrate: per-car boost caution (currently a flat 18 psi for every boosted car, and it's a safety caution), the 14/180-day sequence/quiet windows, and the 80-whp engine-internals gate. Recommended structural follow-up: centralize into StewardThresholds with per-constant provenance so a guess can't be added without declaring itself."
       }
@@ -1217,7 +1217,7 @@
       "status": "complete",
       "result": {
         "tests": "423 green (+5)",
-        "commit": "pending",
+        "commit": "b74178c",
         "date": "2026-07-18",
         "notes": "Followed my rec (per-car boost caution) grounded in Tim's data (real tuner-site baselines). Sources: subaruforester.org/NASIOC (EJ255 TD04 stock ~12, safe ~16-18); S2KI/Kraftwerks (Rotrex SC ~8-12); 3UR-FE NA 381hp; VW Type-1 air-cooled. Catalog is extensible with a hard rule: a new platform must cite a source or it doesn't belong. Register updated; boost-caution guess retired."
       }
@@ -1243,7 +1243,7 @@
       "status": "complete",
       "result": {
         "tests": "427 green (+5, -1 old assertion rewritten)",
-        "commit": "pending",
+        "commit": "b74178c",
         "date": "2026-07-18",
         "notes": "Tim calibrated: sequence-lag 30d, quiet 90d, flagged pull until-resolved. Started the StewardThresholds home Fable recommended. Noted caveats stand as follow-ups: sequence still keys on a date gap (a 'driven between' signal would be truer) and quiet is one number for a mixed fleet (could be per-car). Explicit pull-dismiss UI is the companion to until-resolved (auto-resolves on a clean pull today)."
       }
@@ -1267,7 +1267,7 @@
       "status": "complete",
       "result": {
         "tests": "428 green (+1)",
-        "commit": "pending",
+        "commit": "b74178c",
         "date": "2026-07-18",
         "notes": "Same honesty thread as W-049 (air-cooled coolant): the app now knows the Baja has no OBD port and says so rather than offering a connection that can never complete. Heuristic is US-year + cooling; an explicit override can follow if a car ever needs correcting."
       }
@@ -1293,7 +1293,7 @@
       "result": {
         "tests": "428 -> 430, +2",
         "commits": [
-          "pending"
+          "b74178c"
         ],
         "date": "2026-07-18",
         "notes": "Diagnosed from the field journal + code, proven at the pure layer before touching the transport. NOT field-verified yet — W-014 stays in_progress until the Fozzy's gauges move."
