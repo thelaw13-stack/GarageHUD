@@ -350,8 +350,8 @@
       "testing_criteria": [
         "on-device/hardware validation; record findings here"
       ],
-      "status": "blocked",
-      "blocked_reason": "READY — Veepeak OBDCheck BLE (a supported BLE adapter) ordered, arriving in hours. Current main (with Dad C3 baro fix + the W-011 pairing picker) is installed on the device. Run docs/W-014_DRIVEWAY_CHECKLIST.md; capture the Connection Report + gauge screenshots. Flip to complete when the three criteria pass on the real car.",
+      "status": "in_progress",
+      "blocked_reason": null,
       "result": null
     },
     {
