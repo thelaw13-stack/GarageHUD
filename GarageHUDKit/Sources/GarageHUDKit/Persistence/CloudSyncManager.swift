@@ -64,7 +64,7 @@ public final class CloudSyncManager {
     nonisolated static func decodePayload(_ data: Data) -> [Vehicle]? {
         switch GaragePersistence.decode(data) {
         case .ok(let vehicles), .migratedLegacy(let vehicles): return vehicles
-        case .empty, .unreadable: return nil
+        case .empty, .unsupportedVersion, .unreadable: return nil
         }
     }
 
@@ -75,22 +75,35 @@ public final class CloudSyncManager {
         public let updatedAt: Date
     }
 
-    /// Fetches the cloud garage record if one exists. Returns nil when there's no cloud
-    /// record yet or the fetch fails; the caller compares `updatedAt` to decide whether
-    /// to apply it.
-    public func pull() async -> RemoteGarage? {
+    public enum PullResult {
+        case found(RemoteGarage)
+        case notFound
+        case unreadable
+        case failed
+
+        /// Only an explicit CloudKit `unknownItem` is authority to create the singleton record.
+        /// A transport or decode failure must never masquerade as an empty cloud garage.
+        var permitsInitialSeed: Bool {
+            if case .notFound = self { return true }
+            return false
+        }
+    }
+
+    /// Fetches the cloud garage without collapsing absence, unreadable data, and transport failure
+    /// into one value. Only `.notFound` permits the caller to seed a new singleton record.
+    public func pull() async -> PullResult {
         do {
             let record = try await db.record(for: garageRecordID)
             guard let updatedAt = record["updatedAt"] as? Date,
                   let asset = record["payload"] as? CKAsset,
                   let url = asset.fileURL,
                   let data = try? Data(contentsOf: url),
-                  let vehicles = Self.decodePayload(data) else { return nil }
-            return RemoteGarage(vehicles: vehicles, updatedAt: updatedAt)
+                  let vehicles = Self.decodePayload(data) else { return .unreadable }
+            return .found(RemoteGarage(vehicles: vehicles, updatedAt: updatedAt))
         } catch let error as CKError where error.code == .unknownItem {
-            return nil // no cloud record yet
+            return .notFound
         } catch {
-            return nil
+            return .failed
         }
     }
 
@@ -124,8 +137,12 @@ public final class CloudSyncManager {
             if let server = error.serverRecord {
                 server["payload"] = CKAsset(fileURL: tmp)
                 server["updatedAt"] = updatedAt as NSDate
-                _ = try? await db.save(server)
-                return true
+                do {
+                    _ = try await db.save(server)
+                    return true
+                } catch {
+                    return false
+                }
             }
             return false
         } catch {

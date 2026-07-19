@@ -20,8 +20,9 @@ import CoreBluetooth
 ///  • **Reusable lifecycle.** `stop()` halts transport and polling but leaves the stream open;
 ///    `deinit` finishes it. The same source can be started again.
 ///
-/// EXPERIMENTAL: the decoding math and handshake logic are unit-tested, but this BLE transport
-/// has not yet been exercised against physical hardware.
+/// HARDWARE STATUS: Veepeak driveway attempts have exercised discovery, FFF0/FFF1/FFF2 channel
+/// setup, notifications, ELM identity, and configuration. A supported vehicle bind and decoded
+/// live PIDs remain unverified; the journal preserves privacy-safe bind outcomes for the next run.
 /// Thread-confinement invariant: every method and all mutable state are confined to the main
 /// run loop. `start()`/`stop()` are called from the UI (main); the `CBCentralManager` is created
 /// with the main queue so all delegate callbacks arrive on main; the timeout/reconnect timers
@@ -270,9 +271,13 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
 
     private func handleCompletedReply(_ line: String) {
         guard inFlightCommand != nil else { return }
+        let wasBinding = handshake.isBinding
         invalidateTimeout()
         switch connectionState {
         case .resetting, .configuring:
+            if wasBinding {
+                OBDConnectionJournalStore.append(stage: "BIND-REPLY", message: Self.bindOutcome(for: line))
+            }
             apply(handshake.handle(.reply(line)))
         case .polling:
             if let reading = OBDPIDDecoder.decode(line) {
@@ -304,6 +309,9 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
         inFlightCommand = nil
         switch connectionState {
         case .resetting, .configuring:
+            if handshake.isBinding {
+                OBDConnectionJournalStore.append(stage: "BIND-REPLY", message: "Vehicle query timed out")
+            }
             apply(handshake.handle(.timeout))
         case .polling:
             consecutivePollTimeouts += 1
@@ -328,6 +336,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
                 // The protocol bind: the vehicle's first real answer. ATSP0's auto-search takes
                 // seconds on a CAN car, so this one command gets a long leash (W-052 — the first
                 // driveway session died to a 1s timeout racing a 3s protocol search).
+                OBDConnectionJournalStore.append(stage: "BINDING", message: "ELM configured; requesting supported vehicle PIDs")
                 transition(.configuring, "Asking the vehicle to answer — the first reply can take a few seconds…")
                 transmit(command, timeout: 10.0)
             } else {
@@ -341,13 +350,28 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
             startPolling()
         case .failed:
             if handshake.isBinding {
-                degrade("The adapter is fine, but the vehicle did not answer the protocol query.",
+                OBDConnectionJournalStore.append(stage: "BIND-FAILED", message: "No supported 41 00 vehicle response was confirmed")
+                degrade("The Bluetooth channel and ELM processor answered, but no supported vehicle response was confirmed.",
                         recovery: "Turn the ignition fully on (engine running is best), then retry. Some cars only answer with the engine started.")
             } else {
                 degrade("The device answered, but its OBD command processor could not be verified.",
                         recovery: "Power-cycle the adapter. GarageHUD supports ELM327, STN, and OBDLink CX command sets.")
             }
         }
+    }
+
+    /// A privacy-safe field diagnostic: preserve only broad ELM outcome categories, never the raw
+    /// bus response, VIN, ECU identifiers, telemetry, or Bluetooth peripheral identifier.
+    private static func bindOutcome(for reply: String) -> String {
+        let upper = reply.uppercased()
+        let compact = upper.replacingOccurrences(of: " ", with: "")
+        if compact.contains("4100") { return "Supported-PID response received" }
+        if upper.contains("UNABLE TO CONNECT") { return "ELM reported unable to connect to vehicle" }
+        if upper.contains("NO DATA") { return "ELM reported no vehicle data" }
+        if upper.contains("STOPPED") { return "ELM reported vehicle query stopped" }
+        if upper.contains("CAN ERROR") { return "ELM reported a CAN bus error" }
+        if upper.contains("BUS INIT") { return "Vehicle bus initialization did not yield a supported response" }
+        return "Prompt received without a supported 41 00 response"
     }
 
     /// Once bring-up succeeds, record exactly what we connected to so the app can persist it

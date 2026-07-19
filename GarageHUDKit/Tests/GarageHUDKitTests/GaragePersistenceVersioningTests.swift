@@ -44,15 +44,31 @@ final class GaragePersistenceVersioningTests: XCTestCase {
         XCTAssertEqual(GaragePersistence.decode(garbage), .unreadable)
     }
 
-    func testForwardCompatNewerSchemaStillDecodesVehicles() throws {
-        // A file written by a hypothetical newer version (higher schemaVersion) must still load
-        // its vehicles rather than being treated as corrupt.
+    func testFutureSchemaIsRefusedInsteadOfDecodedAndLaterDowngraded() throws {
+        // An older app cannot safely rewrite a future document: decoding known fields and then
+        // saving schema v1 would discard every field it does not understand.
         let v = s2k()
         let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
         let inner = try encoder.encode(v)
         let vehicleJSON = String(data: inner, encoding: .utf8)!
         let future = Data("{\"schemaVersion\":999,\"vehicles\":[\(vehicleJSON)]}".utf8)
-        guard case .ok(let loaded) = GaragePersistence.decode(future) else { return XCTFail("expected .ok") }
-        XCTAssertEqual(loaded.count, 1)
+        XCTAssertEqual(GaragePersistence.decode(future), .unsupportedVersion(999))
+    }
+
+    @MainActor
+    func testStoreLeavesFutureSchemaFileByteForByteUntouched() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("future-schema-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("garage.json")
+        let future = Data("{\"schemaVersion\":999,\"vehicles\":[],\"futureTruth\":\"keep me\"}".utf8)
+        try future.write(to: url)
+
+        let store = GarageStore(fileURL: url, syncEnabled: false)
+
+        XCTAssertEqual(store.unsupportedSchemaVersion, 999)
+        XCTAssertEqual(try Data(contentsOf: url), future)
+        XCTAssertTrue(store.vehicles.isEmpty)
     }
 }

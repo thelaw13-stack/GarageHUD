@@ -36,18 +36,21 @@ peripheral when `knownPeripheralID` is set, and assembles a persistable `OBDAdap
 (peripheral UUID, service/char UUIDs, write mode, name, last-connected) on successful bring-up.
 Identity verification and the profile model are unit-tested.
 
-Remaining: a **pairing UI** (present discovered candidates, let the owner pick, persist the
-returned profile, and load `knownPeripheralID` on next launch) — plumbing exists but is not yet
-surfaced. And the hardware-dependent tests: real-adapter integration, ISO-TP/multi-ECU headers,
-and live disconnect/reconnect against a device. See ADR-0004. Synthetic serial-transcript replay
-is done (`OBDTranscriptReplayTests`).
+Pairing UI, owner selection, profile persistence, and known-peripheral reconnect are implemented.
+Two Veepeak driveway attempts now prove real BLE advertisement discovery, the FFF0/FFF1/FFF2
+serial channel, notification subscription, ELM identity, and command configuration. The latest
+attempt reached the `0100` vehicle bind but did not confirm a `41 00` reply. Decoded live PIDs,
+ISO-TP/multi-ECU handling, and live disconnect/reconnect therefore remain unverified on hardware.
+Synthetic transcript replay is done (`OBDTranscriptReplayTests`), and the connection report now
+separates ELM/configuration success from a vehicle-bind failure with privacy-safe outcome categories.
 
 ## TD-005 — Schema versioning in persisted JSON — RESOLVED
 
 Priority: Medium — done
 
 Resolution: The local file is a versioned `GaragePersistence.Document { schemaVersion, vehicles }`
-with a typed load result (`.ok` / `.migratedLegacy` / `.unreadable` / `.empty`). Legacy bare
+with a typed load result (`.ok` / `.migratedLegacy` / `.unsupportedVersion` / `.unreadable` /
+`.empty`). Legacy bare
 arrays migrate in place; a corrupt file is backed up to `garage-unreadable-<ts>.json` and
 surfaced via `GarageStore.loadFailureBackupURL` instead of being silently discarded. Covered by
 `GaragePersistenceVersioningTests`. See [PERSISTENCE.md](PERSISTENCE.md).

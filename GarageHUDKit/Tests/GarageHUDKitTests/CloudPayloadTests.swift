@@ -40,4 +40,19 @@ final class CloudPayloadTests: XCTestCase {
         XCTAssertNil(CloudSyncManager.decodePayload(Data("not json".utf8)))
         XCTAssertNil(CloudSyncManager.decodePayload(Data()))
     }
+
+    func testFuturePayloadIsNotSilentlyDowngraded() throws {
+        let current = try CloudSyncManager.encodePayload(fleet())
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: current) as? [String: Any])
+        object["schemaVersion"] = 999
+        let future = try JSONSerialization.data(withJSONObject: object)
+        XCTAssertNil(CloudSyncManager.decodePayload(future))
+    }
+
+    func testOnlyExplicitNotFoundPermitsInitialCloudSeed() {
+        XCTAssertTrue(CloudSyncManager.PullResult.notFound.permitsInitialSeed)
+        XCTAssertFalse(CloudSyncManager.PullResult.failed.permitsInitialSeed)
+        XCTAssertFalse(CloudSyncManager.PullResult.unreadable.permitsInitialSeed)
+        XCTAssertFalse(CloudSyncManager.PullResult.found(.init(vehicles: [], updatedAt: .distantPast)).permitsInitialSeed)
+    }
 }

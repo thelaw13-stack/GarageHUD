@@ -52,12 +52,13 @@ public enum StewardConversation {
 
     // MARK: Reply
 
-    public static func reply(to utterance: String, vehicle: Vehicle, mode: DrivingMode = .parked) -> StewardReply {
-        let full = answer(topic(for: utterance), vehicle: vehicle)
+    public static func reply(to utterance: String, vehicle: Vehicle, mode: DrivingMode = .parked,
+                             context: StewardContext = .live) -> StewardReply {
+        let full = answer(topic(for: utterance), vehicle: vehicle, context: context)
         return StewardReply(text: shape(full.text, mode: mode), confidence: full.confidence)
     }
 
-    private static func answer(_ topic: StewardTopic, vehicle: Vehicle) -> StewardReply {
+    private static func answer(_ topic: StewardTopic, vehicle: Vehicle, context: StewardContext) -> StewardReply {
         switch topic {
         case .greeting:
             return StewardReply(text: "Go ahead.")
@@ -98,7 +99,7 @@ public enum StewardConversation {
             return StewardReply(text: "I need a factory baseline, a dyno pull, and a documented total before I can size that up.")
 
         case .observations:
-            let obs = Steward.observe(vehicle)
+            let obs = Steward.observe(vehicle, context: context)
             guard !obs.isEmpty else { return StewardReply(text: "Nothing stands out right now.") }
             let lead = obs.prefix(2).map { "\($0.statement) (\($0.confidence.spokenPhrase))" }.joined(separator: " ")
             let count = obs.count == 1 ? "One thing stands out." : "\(obs.count) things stand out."
@@ -106,7 +107,7 @@ public enum StewardConversation {
 
         case .activity:
             if let last = vehicle.lastActivityDate {
-                let days = Calendar.current.dateComponents([.day], from: last, to: .now).day ?? 0
+                let days = context.calendar.dateComponents([.day], from: last, to: context.now).day ?? 0
                 return StewardReply(text: "Last logged activity was \(short(last)) — \(days) days ago.")
             }
             return StewardReply(text: "No activity is logged yet.")

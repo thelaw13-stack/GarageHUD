@@ -89,6 +89,32 @@ final class OBDConnectionJournalTests: XCTestCase {
         XCTAssertEqual(vehicle.diagnosis.title, "Vehicle data did not answer")
     }
 
+    func testVeepeakFieldRegression_ELMAnsweredButVehicleBindFailed() {
+        let journal = OBDConnectionJournal(adapterSelection: .veepeakOBDCheckBLE, entries: [
+            .init(stage: "FOUND", message: "Saw VEEPEAK at signal -38 dBm"),
+            .init(stage: "SERVICES", message: "Adapter exposed 1 service: FFF0"),
+            .init(stage: "CHANNELS", message: "Using service FFF0, receive FFF1, write FFF2"),
+            .init(stage: "WAKE-UP", message: "Bluetooth paired. Waking the OBD command processor"),
+            .init(stage: "BINDING", message: "ELM configured; requesting supported vehicle PIDs"),
+            .init(stage: "BIND-REPLY", message: "ELM reported no vehicle data"),
+            .init(stage: "BIND-FAILED", message: "No supported 41 00 vehicle response was confirmed")
+        ])
+
+        XCTAssertEqual(journal.diagnosis.title, "Vehicle protocol was not confirmed")
+        XCTAssertTrue(journal.diagnosis.detail.contains("ELM command processor answered"))
+        XCTAssertFalse(journal.supportReport.contains("adapter is fine"))
+        XCTAssertFalse(journal.supportReport.contains("OBD processor did not answer"))
+    }
+
+    func testBoundedJournalKeepsFurthestMilestoneTruthWhenEarlyEntriesAreEvicted() {
+        let journal = OBDConnectionJournal(adapterSelection: .veepeakOBDCheckBLE, entries: [
+            .init(stage: "BINDING", message: "ELM configured"),
+            .init(stage: "BIND-FAILED", message: "No 41 00 response"),
+            .init(stage: "RETRYING", message: "Reconnect")
+        ])
+        XCTAssertEqual(journal.diagnosis.title, "Vehicle protocol was not confirmed")
+    }
+
     func testSupportReportIsShareableAndContainsNoPeripheralIdentifier() {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let journal = OBDConnectionJournal(startedAt: start, adapterSelection: .vgateICarProBLE, entries: [

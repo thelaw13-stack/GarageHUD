@@ -69,6 +69,6 @@ public enum StewardAssistant {
             }
         }
         #endif
-        return StewardConversation.reply(to: question, vehicle: vehicle, mode: mode)
+        return StewardConversation.reply(to: question, vehicle: vehicle, mode: mode, context: context)
     }
 }

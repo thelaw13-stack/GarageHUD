@@ -179,7 +179,7 @@
 		A0000000000000000000000B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconDev;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = GarageHUDApp/GarageHUD.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -187,6 +187,7 @@
 				DEVELOPMENT_TEAM = 2UPMH3JQDX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "GarageHUD DEV";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Add photos of your build to parts and timeline events.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Talk to Steward hands-free about your build.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Steward listens to your questions and answers out loud.";

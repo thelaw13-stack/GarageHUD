@@ -53,6 +53,23 @@ public struct OBDConnectionJournal: Codable, Equatable, Sendable {
                 nextAction: "This adapter is validated and ready for future sessions.",
                 isSuccessful: true)
         }
+        // Diagnose the furthest proven milestone first. The journal is intentionally bounded, so
+        // a long reconnect loop may evict early FOUND/SERVICES entries while retaining READY or a
+        // bind failure. Missing old entries must not erase later positive evidence.
+        if reached("READY") {
+            return Diagnosis(
+                title: "Vehicle data did not answer",
+                detail: "The adapter passed its handshake, but no supported live PID was decoded.",
+                nextAction: "Confirm the engine is running and share this report so the vehicle protocol can be checked.",
+                isSuccessful: false)
+        }
+        if reached("BINDING") || reached("BIND-FAILED") {
+            return Diagnosis(
+                title: "Vehicle protocol was not confirmed",
+                detail: "Bluetooth, the serial channel, and the ELM command processor answered, but GarageHUD did not confirm a supported vehicle response.",
+                nextAction: "Run the engine, close other OBD apps, power-cycle the adapter, and retry. Share this report if it repeats.",
+                isSuccessful: false)
+        }
         if !reached("FOUND") {
             return Diagnosis(
                 title: "Adapter was not discovered",
@@ -81,17 +98,10 @@ public struct OBDConnectionJournal: Codable, Equatable, Sendable {
                 nextAction: "Share this report so the adapter's service and characteristic layout can be added.",
                 isSuccessful: false)
         }
-        if !reached("READY") {
-            return Diagnosis(
-                title: "OBD processor did not answer",
-                detail: "Bluetooth and the serial channel worked, but the adapter did not complete the ELM327 command handshake.",
-                nextAction: "Start the engine, close other OBD apps, power-cycle the adapter, and retry.",
-                isSuccessful: false)
-        }
         return Diagnosis(
-            title: "Vehicle data did not answer",
-            detail: "The adapter passed its handshake, but no supported live PID was decoded.",
-            nextAction: "Confirm the engine is running and share this report so the vehicle protocol can be checked.",
+            title: "OBD processor did not answer",
+            detail: "Bluetooth and the serial channel worked, but the adapter did not complete the ELM327 command handshake.",
+            nextAction: "Start the engine, close other OBD apps, power-cycle the adapter, and retry.",
             isSuccessful: false)
     }
 

@@ -26,8 +26,8 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 443,
-    "last_updated": "2026-07-18"
+    "test_count_at_last_update": 464,
+    "last_updated": "2026-07-19"
   },
   "items": [
     {
@@ -1402,6 +1402,35 @@
         ],
         "date": "2026-07-19",
         "notes": "Phase 1 of TD-001: the deletion half. Scalar/parts/maintenance edit races remain LWW (documented) and need real per-record timestamps — the next TD-001 step. Not field-tested against two live devices yet; logic pinned by tests."
+      }
+    },
+    {
+      "id": "W-057",
+      "title": "Deep-review hardening — CloudKit truth, OBD diagnosis, deterministic fallback, schema and CI",
+      "why": "Codex's 2026-07-19 independent review found two whole-garage sync hazards (failed pull treated as not-found; failed conflict retry reported successful), a field report that falsely diagnosed an answering ELM processor as silent, future-schema downgrade exposure, a dropped StewardContext in the keyword fallback, and CI that did not enforce the documented release/zero-warning bar.",
+      "depends_on": [
+        "W-056"
+      ],
+      "completion_criteria": [
+        "Cloud pull distinguishes found, not-found, unreadable, and failed; only explicit not-found may seed cloud",
+        "Cloud conflict retry reports success only after a confirmed save",
+        "OBD journal distinguishes ELM/configuration success from vehicle-bind failure and records sanitized bind outcomes/protocol diagnostics without raw telemetry or identifiers",
+        "Future schema documents are preserved as unsupported rather than decoded and later downgraded",
+        "Steward keyword fallback uses the caller's injected StewardContext",
+        "CI enforces warnings and compiles the Release simulator configuration; TD-004 reflects real Veepeak evidence"
+      ],
+      "testing_criteria": [
+        "Regression tests cover typed cloud-pull decisions, failed conflict-save truth, the supplied Veepeak bind-failure diagnosis, future-schema refusal, and injected fallback time",
+        "full suite green, zero source warnings, Debug and Release iOS Simulator builds green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "458 -> 464, +6; warnings-as-errors; Debug + Release iOS Simulator builds green",
+        "commits": [
+          "7755de5"
+        ],
+        "date": "2026-07-19",
+        "notes": "The supplied Veepeak report is now pinned as a field regression: BLE/GATT/ELM configuration are proven, while a supported 41 00 vehicle response remains pending the next driveway run. CloudKit network and server behavior still require real-container integration validation; pure failure decisions and persistence boundaries are regression-tested."
       }
     }
   ]

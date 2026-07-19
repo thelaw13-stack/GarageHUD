@@ -72,10 +72,10 @@ struct VehicleIdentitySurface: View {
         }
         guard photo.filename != loadedFilename else { return }
         let filename = photo.filename
-        let decoded: PlatformImage? = await Task.detached(priority: .userInitiated) {
-            guard let data = ImageStore.load(filename: filename) else { return nil }
-            return PlatformImage(data: data)
+        let data = await Task.detached(priority: .userInitiated) {
+            ImageStore.load(filename: filename)
         }.value
+        let decoded = data.flatMap(PlatformImage.init(data:))
         image = decoded
         loadedFilename = filename
     }
