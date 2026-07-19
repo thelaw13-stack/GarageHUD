@@ -49,6 +49,12 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// of the car, never a modification — but its boost still matters to live limits, the tuner,
     /// and (once the tune is turned up) support-system reasoning.
     public var factoryForcedInductionOverride: Bool?
+    /// Whether this car has an OBD-II port, when the owner has said so explicitly. Nil = infer
+    /// (US mandate year, never on an air-cooled classic). The override exists because the
+    /// heuristic is a classifier, and classifiers don't get to overrule the owner: a '71 Baja
+    /// with an EJ swap and a modern ECU has a port the year rule denies; a gray-market import
+    /// may lack one the year rule promises (W-053).
+    public var obd2Override: Bool?
 
     public var parts: [Part] = []
     public var buildEvents: [BuildEvent] = []
@@ -122,6 +128,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         documentedTotalInvestment = try c.decodeIfPresent(Double.self, forKey: .documentedTotalInvestment)
         purchasePrice = try c.decodeIfPresent(Double.self, forKey: .purchasePrice)
         factoryForcedInductionOverride = try c.decodeIfPresent(Bool.self, forKey: .factoryForcedInductionOverride)
+        obd2Override = try c.decodeIfPresent(Bool.self, forKey: .obd2Override)
         confirmedStockSystems = try c.decodeIfPresent(Set<PartCategory>.self, forKey: .confirmedStockSystems) ?? []
         operatingEnvelopeOverride = try c.decodeIfPresent(OperatingEnvelope.self, forKey: .operatingEnvelopeOverride)
         serviceStatus = try c.decodeIfPresent(ServiceStatus.self, forKey: .serviceStatus) ?? .operational
@@ -187,6 +194,20 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     }
 
     public static let servicePrefix = "Serviced: "
+
+    /// Acknowledge a flagged pull as inspected/resolved: dates the report and logs a biography
+    /// event, so the resolution is itself a record — not a silent dismissal. The Steward's
+    /// flagged-pull observation clears on either a later clean pull OR this acknowledgment.
+    @discardableResult
+    public mutating func acknowledgePullReport(_ id: UUID, on date: Date = .now) -> Bool {
+        guard let i = pullReports.firstIndex(where: { $0.id == id }),
+              pullReports[i].acknowledgedAt == nil else { return false }
+        pullReports[i].acknowledgedAt = date
+        buildEvents.append(BuildEvent(date: date,
+                                      title: "Pull flag acknowledged: \(pullReports[i].headline)",
+                                      eventDescription: "Owner marked this flagged pull inspected/resolved."))
+        return true
+    }
 
     /// True when this item already has a service logged for the given day *at the current odometer*
     /// — so a repeat "mark done" would be an impossible duplicate (you can't service the same thing

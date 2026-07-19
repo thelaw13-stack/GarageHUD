@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 430,
+    "test_count_at_last_update": 438,
     "last_updated": "2026-07-18"
   },
   "items": [
@@ -1297,6 +1297,35 @@
         ],
         "date": "2026-07-18",
         "notes": "Diagnosed from the field journal + code, proven at the pure layer before touching the transport. NOT field-verified yet — W-014 stays in_progress until the Fozzy's gauges move."
+      }
+    },
+    {
+      "id": "W-053",
+      "title": "Classifiers anchored, registered, and overridable; the flagged-pull door opens (Fable fix #2)",
+      "why": "Fable's fourth sighting: 'calibrating values while guessing classifiers just relocates the guess.' Proven misroutes: a 2005 Subaru Baja Turbo and a 2019 water-cooled Beetle both classified as air-cooled VW Type 1s — coolant warnings silently suppressed and telemetry refused on liquid-cooled OBD-II cars. And the until-resolved pull flag's only offered door ('Adjust operating envelope') provably didn't clear it; the only real resolution was another WOT pull.",
+      "depends_on": [
+        "W-049",
+        "W-050"
+      ],
+      "completion_criteria": [
+        "PlatformBaseline matching is make-anchored with a year window (Type 1 capped at 2003); no entry can match across makes, so a source can never be cited for the wrong marque",
+        "isAirCooled: catalog OR the owner's own engine description; safe direction preserved (unknown = liquid-cooled)",
+        "supportsOBD2: owner override (Steward Inputs toggle) ?? heuristic — a swapped classic or gray import beats the year rule",
+        "Flagged pulls gain the mechanically honest door: 'Acknowledge — inspected & resolved' (first option), dated and logged to the biography; observation clears on acknowledgment OR a later clean pull",
+        "STEWARD_THRESHOLDS.md gains a Classifiers & heuristics register section — every routing rule now carries provenance like the values do"
+      ],
+      "testing_criteria": [
+        "ClassifierAnchorTests: both proven misroutes dead, Tim's Baja and Fozzy still match, air-cooled Porsche honored without VW attribution, override wins both ways, acknowledge is offered first and ACTUALLY clears (the effectiveness contract), clean-pull path intact",
+        "full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "430 -> 438, +8",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": null
       }
     }
   ]

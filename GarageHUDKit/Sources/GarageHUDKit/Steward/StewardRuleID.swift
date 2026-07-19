@@ -49,6 +49,11 @@ public enum StewardRuleID {
 
     public static func fleetSharedGap(_ category: PartCategory) -> String { "fleet.sharedGap.\(category.rawValue)" }
     public static func pullFlagged(_ pull: UUID) -> String { "live.pullFlagged.\(pull.uuidString)" }
+    public static func isPullFlagged(_ id: String) -> Bool { id.hasPrefix("live.pullFlagged.") }
+    public static func pullReportID(from id: String) -> UUID? {
+        guard isPullFlagged(id) else { return nil }
+        return id.split(separator: ".").last.flatMap { UUID(uuidString: String($0)) }
+    }
 
     public static func isLive(_ id: String) -> Bool { id.hasPrefix("live.") }
     public static func isGap(_ id: String) -> Bool { id.hasPrefix("gap.") }

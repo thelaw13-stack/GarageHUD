@@ -175,6 +175,7 @@ struct VehicleDashboardView: View {
         case .logPerformance:            onNavigate?(.performance)
         case .logActivity:               onNavigate?(.timeline)
         case .editEnvelope:              onNavigate?(.specs)
+        case .acknowledgePull(let id):   vehicle.acknowledgePullReport(id)
         }
     }
 

@@ -56,6 +56,23 @@ that's honest by construction, because the owner sets it.
 | Trend supermajority | **0.67** of pulls | `PullIntelligence.swift:196` | whether a drift trend is called consistent | `GUESS` |
 | Peak-drift floor | **±0.75 psi** | `PullIntelligence.swift:194-195` | which pulls count toward a boost-drift trend | `GUESS` |
 
+## Classifiers & heuristics (W-053)
+
+Fable's re-review finding: **calibrating values while guessing classifiers just relocates the
+guess.** The routes that decide *which* number applies to *which* car are judgment constants too,
+and they belong in this register with the same provenance discipline. Every classifier must have an
+owner override where the stakes justify one.
+
+| Classifier | Rule | Where | Provenance / guard |
+|---|---|---|---|
+| Platform baseline matcher | make-anchored + substring + year window | `PlatformBaseline.baseline(for:)` | `SOURCED` per entry; make anchor + `yearMax` added after the matcher misrouted a 2005 Subaru Baja Turbo and a 2019 water-cooled Beetle to the air-cooled Type 1 entry |
+| Air-cooled detection | catalog `airCooled`, OR the owner's own engine description says "air-cooled" | `Vehicle.isAirCooled` | safe direction: unknown ⇒ liquid-cooled (never silently suppress a coolant warning) |
+| OBD-II support | owner override ?? (`!isAirCooled && year >= 1996`) | `Vehicle.supportsOBD2` | `OWNER`-overridable; the year rule is a US-mandate `CONVENTION` that is wrong for swapped classics and gray-market imports |
+| Factory forced induction | owner override ?? engine text ("turbo"/"supercharg") + model markers (XT, WRX, STI, Evo, GTR, Mazdaspeed, Supra, SRT4) | `Vehicle.hasFactoryForcedInduction` | `OWNER`-overridable; marker list is a `GUESS` kept small on purpose |
+| Elevated-boost gate | aftermarket FI, or factory FI + (calibration on record ∨ gain ≥ 1.25× stock baseline) | `Vehicle.runsElevatedBoost` | the 1.25 factor is a `GUESS` |
+| Calibration-on-record | installed electronics part matching term list (tune, ecu, cobb, hondata, accessport…) | `Vehicle.calibrationTerms` | `GUESS` (term list); shared by tuner + boost gate so there's one definition |
+| Well-documented record | ≥ 6 installed parts | `Vehicle.isWellDocumented` | `GUESS` |
+
 ## Verdict
 
 One threshold (`450`) is owner-calibrated. A handful are defensible shop conventions. The **eleven

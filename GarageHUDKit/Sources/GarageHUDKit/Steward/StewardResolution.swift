@@ -13,6 +13,7 @@ public enum ResolutionAction: Equatable, Sendable {
     case logActivity                 // quiet build history → log recent work
     case reviewParts                 // undated/out-of-sequence parts → open the parts list
     case editEnvelope                // live-telemetry limit → tune the operating envelope
+    case acknowledgePull(UUID)       // flagged pull inspected/resolved → date it, log it, clear it
 }
 
 public struct ResolutionOption: Identifiable, Equatable, Sendable {
@@ -56,6 +57,12 @@ public enum StewardResolution {
         case StewardRuleID.dataOdometerRegression:
             return [.init("Review the timeline", .logActivity)]
         default:
+            // A flagged pull's first door must actually clear it (W-053): acknowledge is the
+            // mechanically honest resolution; adjusting the envelope tunes the future, not the flag.
+            if let pullID = StewardRuleID.pullReportID(from: id) {
+                return [.init("Acknowledge — inspected & resolved", .acknowledgePull(pullID)),
+                        .init("Adjust operating envelope", .editEnvelope)]
+            }
             if StewardRuleID.isLive(id) { return [.init("Adjust operating envelope", .editEnvelope)] }
             return []
         }

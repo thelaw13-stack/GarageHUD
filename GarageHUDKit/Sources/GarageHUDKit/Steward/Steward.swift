@@ -142,8 +142,12 @@ public enum Steward {
         //     carries forward, so a mostly-simulated capture never reads as more certain than it was.
         func isFlagged(_ p: PullReport) -> Bool { p.boostBreachedCeiling || (p.overTargetFraction ?? 0) >= 0.5 }
         if let flagged = vehicle.pullReports.filter(isFlagged).max(by: { $0.endedAt < $1.endedAt }) {
+            // Resolved = a later clean pull OR an owner acknowledgment (W-053). Before the
+            // acknowledgment path, the only way to clear an over-boost safety flag was to go do
+            // another full-throttle pull — a door that opened onto a wall for anyone whose
+            // honest resolution was "inspected it, fixed the tune."
             let cleanPullSince = vehicle.pullReports.contains { $0.endedAt > flagged.endedAt && !isFlagged($0) }
-            if !cleanPullSince {
+            if !cleanPullSince && flagged.acknowledgedAt == nil {
                 out.append(StewardObservation(
                     ruleID: StewardRuleID.pullFlagged(flagged.id), subjectID: vid,
                     statement: flagged.verdictStatement,

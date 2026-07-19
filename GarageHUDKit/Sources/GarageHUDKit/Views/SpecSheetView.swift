@@ -233,6 +233,16 @@ struct SpecSheetView: View {
                         .font(HUDTheme.label())
                 }
                 .hudCheckboxStyle()
+
+                Toggle(isOn: Binding(
+                    get: { vehicle.supportsOBD2 },
+                    set: { vehicle.obd2Override = $0 })) {
+                    Text("Has an OBD-II port (live telemetry)")
+                        .font(HUDTheme.label())
+                }
+                .hudCheckboxStyle()
+                Text("Your word beats the year rule — a swapped classic with a modern ECU can have a port the heuristic denies, and an import may lack one it promises.")
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 Text("Boosted from the showroom. Steward treats boost as a real live signal and a boost map as legitimate — without calling the stock charger a modification. Support scrutiny still waits until the tune is turned up (a calibration on record, or a big measured gain).")
                     .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
 

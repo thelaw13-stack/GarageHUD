@@ -78,6 +78,12 @@ public struct PullReport: Identifiable, Codable, Hashable, Sendable {
     public var confidence: ConfidenceBand
     /// RPM-resolved evidence from this pull. Older saved reports decode with an empty collection.
     public var bandResults: [PullBandResult]
+    /// When the owner acknowledged this flagged pull as inspected/resolved (W-053). A safety
+    /// flag stays actionable until resolved — and "resolved" must include the mechanically
+    /// honest path (inspected it, fixed the tune), not only "went and did another WOT pull",
+    /// which was the sole clearing mechanism before. The acknowledgment is dated and logged to
+    /// the biography, so it's a record, not a dismissal.
+    public var acknowledgedAt: Date?
 
     public var durationSeconds: Double { endedAt.timeIntervalSince(startedAt) }
 
@@ -132,6 +138,7 @@ public struct PullReport: Identifiable, Codable, Hashable, Sendable {
         measuredBoostFraction = try c.decodeIfPresent(Double.self, forKey: .measuredBoostFraction)
         confidence = try c.decodeIfPresent(ConfidenceBand.self, forKey: .confidence) ?? .insufficient
         bandResults = try c.decodeIfPresent([PullBandResult].self, forKey: .bandResults) ?? []
+        acknowledgedAt = try c.decodeIfPresent(Date.self, forKey: .acknowledgedAt)
     }
 
     /// A compact one-liner for the timeline/biography — the memory, not the analysis.
