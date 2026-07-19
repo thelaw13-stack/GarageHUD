@@ -42,7 +42,7 @@ sources directly and adds entitlements, Info.plist usage strings, and app icon.
 
 ```sh
 swift build       # compiles clean under -strict-concurrency=complete
-swift test        # 464 tests: reasoning rules, telemetry decoding, handshake + transcript replay,
+swift test        # 465 tests: reasoning rules, telemetry decoding, handshake + transcript replay,
                   # briefing, stream lifecycle, envelope/knowledge honesty, injected-clock determinism
 ```
 
@@ -99,11 +99,16 @@ briefing**, and the **live session**.
 
 ## Status & known gaps
 
-Actively developed. The reasoning, persistence, and telemetry *logic* are unit-tested; the
-paths that require real hardware are honestly not:
+Actively developed. The reasoning, persistence, and telemetry logic is unit-tested, and the
+Veepeak OBDCheck BLE path is now field-validated on Tim's iPhone and vehicle:
 
-- **Voice** (speech-in / TTS) and the **BLE ELM327 transport** compile and are wired correctly,
-  but have not been exercised against a real microphone / adapter. The pure logic they wrap
-  (conversation, PID decoding, handshake state machine, freshness) *is* tested.
-- **Adapter pairing** — validated adapter profile, user selection, and ELM327 identity
-  verification remain outstanding (see TECH_DEBT TD-004).
+- **OBD-II** — two independent sessions discovered the adapter, opened its FFF0/FFF1/FFF2 serial
+  channel, verified ELM, received a supported `41 00` vehicle response, and decoded measured data
+  in 2.4 and 2.7 seconds. A genuine mid-session disconnect/reconnect and multi-ECU/ISO-TP vehicle
+  remain unverified (TECH_DEBT TD-004).
+- **Voice / conversational Steward** — pure behavior is tested, but cloud voice with a real key,
+  speech-in against a real microphone, and the Apple-Intelligence LLM path still need on-device
+  validation (TECH_DEBT TD-007).
+- **Cloud sync** — conservative snapshots, append preservation, and deletion tombstones are
+  tested. Scalar, part, and maintenance edit races remain whole-document last-writer-wins pending
+  per-record history (TECH_DEBT TD-001).

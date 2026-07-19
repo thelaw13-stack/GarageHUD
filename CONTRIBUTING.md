@@ -58,14 +58,15 @@ say so in the commit body and the relevant `TD-xxx`.
 
 ## Branches, PRs, and reconciling parallel work
 
-The current cadence is **small, tested commits on `main`**, reconciled by **clean fast-forward or
-rebase** — no merge commits for routine work. Because multiple developers push in parallel:
+The current cadence is **small branches merged through tested pull requests** so the other
+developer can see, review, and safely build every change. Because multiple developers work in
+parallel:
 
 - **Before pushing**, `git fetch origin` and reconcile. If `main` advanced, **rebase** your local
   commits onto `origin/main` (our commits rarely touch the same files, so this is almost always
   clean). Re-run `swift build` + `swift test` after the rebase before pushing.
-- **Use a feature branch + PR** when a change is large, risky, spans many files, or benefits from
-  review. Branch names: `codex/<topic>` or `<topic>-<detail>`.
+- **Use a feature branch + PR** for product changes. Branch names: `codex/<topic>` or
+  `<topic>-<detail>`.
 - **Coordinate the wheel.** Only one developer should be actively editing a given area at a time —
   parallel edits to the same files are how work gets clobbered. Confirm who's driving before a big
   push.
@@ -74,8 +75,8 @@ rebase** — no merge commits for routine work. Because multiple developers push
 
 - **Title:** same imperative style as a commit subject; prefix `[WIP]` while in progress.
 - **Description:** what changed, why, the test delta, and how it was verified (build/test/on-device).
-- **Green before merge:** CI must pass. Prefer **rebase-and-merge** (or fast-forward) to keep
-  history linear; avoid merge commits for small changes.
+- **Green before merge:** package tests and both iOS simulator configurations must pass. A merge
+  commit is acceptable when it preserves a visible PR boundary and its validation record.
 - **Link the `TD-xxx`** or issue the PR addresses.
 
 ## Verifying a change
