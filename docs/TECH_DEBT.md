@@ -72,17 +72,24 @@ confinement invariant + explicit `.main` CB queue; `ImageStore.thumbCache` is
 Remaining: migrating to the Swift 6 language mode outright (vs. complete checking in 5.10) can
 follow once the app target also builds clean; not blocking.
 
-## TD-001 — Whole-document CloudKit sync
+## TD-001 — Whole-document CloudKit sync — PROMOTED (top of the board)
 
-Priority: High
+Priority: **Top** — promoted 2026-07-18 on Fable's re-review: live telemetry going real multiplied
+the concurrent-write exposure the same day it validated the adapter picker. The phone now writes
+pull reports *during* driveway sessions while the Mac holds spec edits — exactly the pattern
+last-writer-wins punishes.
 
-Current state: The entire garage graph is synced as one JSON blob.
+Current state: The entire garage graph is synced as one JSON blob. The conservative conflict guard
+(snapshots, never-applied-state protection, Recovery UI) prevents silent whole-document loss, and
+the **W-054 bridge** now preserves append-only records (pull reports, performance records, build
+events, notes, photos) across document adoption — a driveway pull survives a Mac push.
 
-Risk: Concurrent edits from multiple devices cannot be merged semantically. A conservative conflict guard now prevents silent overwrites, but true merging is deferred.
+Remaining risk: scalar/parts/maintenance edit races are still LWW; record-level deletion can be
+resurrected by the add-wins bridge (no tombstones). Both are honest, documented trade-offs of the
+bridge, not fixes.
 
-Near-term decision: Accept whole-document sync while preserving conflict snapshots.
-
-Long-term direction: Move toward event-based records or operation-based sync once vehicle history grows.
+Direction: event-based records or operation-based sync with tombstones. This is now the next major
+architectural item, not a someday.
 
 ## TD-002 — Test coverage expanding
 

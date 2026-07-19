@@ -232,8 +232,15 @@ public final class GarageStore: ObservableObject {
 
     private func applyRemote(_ remote: [Vehicle]) {
         isApplyingRemote = true
-        vehicles = remote
+        // Adopt the remote document, but carry over append-only records only this device holds
+        // (driveway pulls, dyno results, events, notes, photos) — the W-054 bridge. LWW remains
+        // for scalars/parts/maintenance and for the vehicle set itself.
+        let merged = GarageMerge.adopt(remote, preservingAppendsFrom: vehicles)
+        vehicles = merged
         isApplyingRemote = false
+        // If local appends survived the adoption, the merged doc is a superset of the cloud —
+        // send it up so both sides converge instead of the appends living on one device.
+        if merged != remote { schedulePush() }
     }
 
     private func schedulePush() {

@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 438,
+    "test_count_at_last_update": 443,
     "last_updated": "2026-07-18"
   },
   "items": [
@@ -1323,6 +1323,33 @@
         "tests": "430 -> 438, +8",
         "commits": [
           "31874a9"
+        ],
+        "date": "2026-07-18",
+        "notes": null
+      }
+    },
+    {
+      "id": "W-054",
+      "title": "Sync bridge — append-only records survive document adoption; TD-001 promoted (Fable fix #3)",
+      "why": "Fable's re-review: 'hardware going live multiplied the concurrent-write exposure the same day it validated the picker.' The phone now writes pull reports during driveway sessions while the Mac holds spec edits — the exact pattern whole-document LWW punishes, with the losing side's work in a snapshot the owner must notice.",
+      "depends_on": [
+        "W-026"
+      ],
+      "completion_criteria": [
+        "GarageMerge.adopt(remote:preservingAppendsFrom:): adopting a remote document carries over local-only pullReports, performanceRecords, buildEvents, notes, and photos (union by id, adopting side wins collisions)",
+        "Deliberate limits stated in code and tests: vehicle set stays adopt-side-wins (no whole-car resurrection); scalars/parts/maintenance stay LWW; same-id edit races stay LWW; add-wins can resurrect a remotely-deleted record (documented trade-off, pinned by test)",
+        "applyRemote merges and, when local appends survived, schedules a push so both sides converge",
+        "TD-001 PROMOTED to top of the board in TECH_DEBT.md — event sync with tombstones is the real fix; this is the bridge"
+      ],
+      "testing_criteria": [
+        "GarageMergeTests: driveway-pull-survives (the headline), notes union without dupes, same-id LWW, vehicle-set adopt-wins, resurrection trade-off pinned",
+        "full suite green; iOS build green; deployed"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "438 -> 443, +5",
+        "commits": [
+          "pending"
         ],
         "date": "2026-07-18",
         "notes": null
