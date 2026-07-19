@@ -19,8 +19,8 @@ final class RecoverySnapshotTests: XCTestCase {
         Vehicle(make: "Honda", model: name, year: 2004, garageSlot: slot)
     }
 
-    /// Write a snapshot the way GarageStore's conflict path does: a bare [Vehicle] array.
-    private func plantSnapshot(_ vehicles: [Vehicle], in dir: URL, name: String) throws {
+    /// Plant an older pre-versioning snapshot to prove recovery remains backward-compatible.
+    private func plantLegacySnapshot(_ vehicles: [Vehicle], in dir: URL, name: String) throws {
         let snapshots = dir.appendingPathComponent("Conflict Snapshots", isDirectory: true)
         try FileManager.default.createDirectory(at: snapshots, withIntermediateDirectories: true)
         let encoder = JSONEncoder()
@@ -30,8 +30,8 @@ final class RecoverySnapshotTests: XCTestCase {
 
     func testListsPlantedSnapshotsWithVehicleCounts() throws {
         let (store, dir) = freshStore()
-        try plantSnapshot([vehicle("S2000", slot: 1), vehicle("Civic", slot: 2)],
-                          in: dir, name: "garage-conflict-local-t1.json")
+        try plantLegacySnapshot([vehicle("S2000", slot: 1), vehicle("Civic", slot: 2)],
+                                in: dir, name: "garage-conflict-local-t1.json")
         let listed = store.recoverySnapshots
         XCTAssertEqual(listed.count, 1)
         XCTAssertEqual(listed.first?.kind, .syncConflict)
@@ -42,8 +42,8 @@ final class RecoverySnapshotTests: XCTestCase {
     func testRestoreReplacesGarageAndPreservesCurrentFirst() throws {
         let (store, dir) = freshStore()
         store.vehicles = [vehicle("Tundra", slot: 1)]
-        try plantSnapshot([vehicle("S2000", slot: 1), vehicle("Civic", slot: 2)],
-                          in: dir, name: "garage-conflict-local-t1.json")
+        try plantLegacySnapshot([vehicle("S2000", slot: 1), vehicle("Civic", slot: 2)],
+                                in: dir, name: "garage-conflict-local-t1.json")
 
         let snapshot = store.recoverySnapshots.first!
         XCTAssertTrue(store.restore(from: snapshot))
@@ -54,6 +54,11 @@ final class RecoverySnapshotTests: XCTestCase {
         let preRestore = store.recoverySnapshots.first { $0.kind == .preRestore }
         XCTAssertNotNil(preRestore)
         XCTAssertEqual(preRestore?.vehicleCount, 1)
+        let preservedData = try Data(contentsOf: preRestore!.url)
+        guard case .ok(let preserved) = GaragePersistence.decode(preservedData) else {
+            return XCTFail("new safety snapshots must use the current versioned document")
+        }
+        XCTAssertEqual(preserved.map(\.model), ["Tundra"])
         XCTAssertTrue(store.restore(from: preRestore!))
         XCTAssertEqual(store.vehicles.map(\.model), ["Tundra"], "restored the restore")
         try? FileManager.default.removeItem(at: dir)
@@ -77,7 +82,8 @@ final class RecoverySnapshotTests: XCTestCase {
 
     func testDeleteRemovesTheFile() throws {
         let (store, dir) = freshStore()
-        try plantSnapshot([vehicle("S2000", slot: 1)], in: dir, name: "garage-conflict-local-t1.json")
+        try plantLegacySnapshot([vehicle("S2000", slot: 1)], in: dir,
+                                name: "garage-conflict-local-t1.json")
         let snapshot = store.recoverySnapshots.first!
         store.deleteRecoverySnapshot(snapshot)
         XCTAssertTrue(store.recoverySnapshots.isEmpty)

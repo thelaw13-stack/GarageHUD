@@ -1430,7 +1430,32 @@
           "7755de5"
         ],
         "date": "2026-07-19",
-        "notes": "The supplied Veepeak report is now pinned as a field regression: BLE/GATT/ELM configuration are proven, while a supported 41 00 vehicle response remains pending the next driveway run. CloudKit network and server behavior still require real-container integration validation; pure failure decisions and persistence boundaries are regression-tested."
+        "notes": "The original Veepeak bind-failure report is pinned as a field regression. Two subsequent July 19 reports confirmed a supported 41 00 response, polling, and measured data in 2.4 and 2.7 seconds. CloudKit network and server behavior still require real-container integration validation; pure failure decisions and persistence boundaries are regression-tested."
+      }
+    },
+    {
+      "id": "W-058",
+      "title": "Version recovery snapshots with the portable garage schema",
+      "why": "Conflict and pre-restore safety copies still encoded the legacy bare vehicle array after the live garage and CloudKit payload moved to a versioned document. A recovery artifact should preserve the same explicit schema boundary as the truth it protects.",
+      "depends_on": [
+        "W-057"
+      ],
+      "completion_criteria": [
+        "New conflict and pre-restore snapshots encode through GaragePersistence",
+        "Recovery discovery and restore continue accepting legacy bare-array snapshots",
+        "A newly created pre-restore safety copy decodes as the current versioned document"
+      ],
+      "testing_criteria": [
+        "RecoverySnapshotTests prove legacy restore, versioned safety-copy encoding, discovery counts, unreadable refusal, undoable restore, and deletion; full suite green with warnings as errors"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "464 green; targeted RecoverySnapshotTests green; warnings-as-errors",
+        "commits": [
+          "9b29cd5"
+        ],
+        "date": "2026-07-19",
+        "notes": "This changes only recovery-file serialization. The primary garage format and backward-compatible decoder are unchanged. TD-004 was also corrected to record the two successful measured-data Veepeak sessions."
       }
     }
   ]

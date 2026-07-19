@@ -37,11 +37,12 @@ peripheral when `knownPeripheralID` is set, and assembles a persistable `OBDAdap
 Identity verification and the profile model are unit-tested.
 
 Pairing UI, owner selection, profile persistence, and known-peripheral reconnect are implemented.
-Two Veepeak driveway attempts now prove real BLE advertisement discovery, the FFF0/FFF1/FFF2
-serial channel, notification subscription, ELM identity, and command configuration. The latest
-attempt reached the `0100` vehicle bind but did not confirm a `41 00` reply. Decoded live PIDs,
-ISO-TP/multi-ECU handling, and live disconnect/reconnect therefore remain unverified on hardware.
-Synthetic transcript replay is done (`OBDTranscriptReplayTests`), and the connection report now
+The July 19 Veepeak field sequence now proves real BLE advertisement discovery, the FFF0/FFF1/FFF2
+serial channel, notification subscription, ELM identity, command configuration, a supported `41 00`
+vehicle response, polling, and decoded measured data. Two independent sessions reached measured data
+in 2.4 and 2.7 seconds, so the success is repeatable rather than a single lucky bind. A genuine
+mid-session disconnect/reconnect and a multi-ECU/ISO-TP vehicle remain unverified on hardware.
+Synthetic transcript replay is done (`OBDTranscriptReplayTests`), and the connection report cleanly
 separates ELM/configuration success from a vehicle-bind failure with privacy-safe outcome categories.
 
 ## TD-005 — Schema versioning in persisted JSON — RESOLVED
@@ -60,6 +61,10 @@ Resolved (2026-07-16): the CloudKit payload now uses the same versioned
 reusing `GaragePersistence`). The pull still accepts a legacy bare array so older records aren't
 dropped; `CloudPayloadTests` covers the round-trip, legacy tolerance, and unreadable→nil. See the
 one-time transition caveat in [PERSISTENCE.md](PERSISTENCE.md).
+
+Resolved (2026-07-19): newly written conflict and pre-restore recovery snapshots also use the same
+versioned document. Discovery and restore continue accepting legacy bare-array snapshots, while new
+safety copies preserve an explicit schema boundary. `RecoverySnapshotTests` pins both behaviors.
 
 ## TD-006 — CI / strict concurrency — RESOLVED
 
@@ -109,12 +114,13 @@ knowledge-state honesty (incl. incomplete-record false-positives), power basis, 
 envelopes, injected-clock determinism, OBD PID decoding, the ELM327 handshake state machine, and
 the reusable stream lifecycle.
 
-Risk: Everything requiring real hardware or the UI layer is uncovered — see TD-004 (real ELM327 /
-ISO-TP / reconnect / transcript replay) and TD-006 (CI). SwiftUI navigation, accessibility, and
-sync conflict-snapshot encoding also remain manual/on-device.
+Risk: Hardware coverage is still incomplete — see TD-004 (multi-ECU/ISO-TP and live reconnect).
+SwiftUI navigation and accessibility remain primarily manual/on-device. Recovery snapshot discovery,
+versioned encoding, backward-compatible restore, unreadable-file refusal, and undoable restore are
+covered by `RecoverySnapshotTests`.
 
-Next steps: Add the hardware-adjacent transport tests under TD-004 and the CI harness under TD-006;
-add conflict-snapshot encoding tests alongside TD-001 work.
+Next steps: Add the remaining hardware-adjacent validation under TD-004 and expand focused SwiftUI
+route/accessibility coverage where it can test behavior rather than implementation detail.
 
 ## TD-003 — Steward vocabulary exists conceptually, not in code
 
