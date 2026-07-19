@@ -1377,6 +1377,32 @@
         "date": "2026-07-19",
         "notes": "Found one function over from the odometer guard — the honesty discipline had been applied to odometer input but not dyno input. Fix keeps the owner's data (parity with OdometerSanity), warns at entry. Phase 1 of the 'both, in sequence' plan; TD-001 tombstones is phase 2."
       }
+    },
+    {
+      "id": "W-056",
+      "title": "TD-001 phase 1 — tombstones close the sync resurrection hole",
+      "why": "Phase 2 of the 'both, in sequence' plan. The W-054 bridge preserved append-only records across whole-document adoption but left add-wins resurrection as a documented trade-off: a record deleted on one device came back because the other still held it, and GarageMerge's union could not tell a deletion from an append. Live telemetry (phone writes pulls during a session while the Mac holds spec edits) made this the highest-loss hole on the board.",
+      "depends_on": [
+        "W-054"
+      ],
+      "completion_criteria": [
+        "Vehicle.deletedRecordIDs — a synced Set<UUID> of tombstones for the five append collections (pull reports, performance records, build events, notes, photos); Codable decodes a missing set to empty so old documents load",
+        "Deletion routes through mutating helpers that remove AND tombstone: deletePerformanceRecord, deleteNotes, deletePhoto, and removeServiceRecord; the three view delete sites call them",
+        "GarageMerge unions both sides tombstones and suppresses any id they name from either side — a deletion on either device propagates instead of being undone by the other held copy; delete-wins is deliberate (UUIDs unique per creation)",
+        "Residual limit stated in code and test: an absence WITHOUT a tombstone is still preserved as an append (a pre-tombstone client cannot have deletions honored) — only full event history closes that"
+      ],
+      "testing_criteria": [
+        "GarageMergeTests: rewrote the old resurrection trade-off test to assert delete-wins; added local-delete propagation, tombstone union, delete-wins-over-held-copy, untombstoned-absence limit, helper-records-tombstone, and Codable round-trip + legacy-default; full suite green, zero warnings, iOS app builds"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "452 -> 458, +6",
+        "commits": [
+          "4b3e50b"
+        ],
+        "date": "2026-07-19",
+        "notes": "Phase 1 of TD-001: the deletion half. Scalar/parts/maintenance edit races remain LWW (documented) and need real per-record timestamps — the next TD-001 step. Not field-tested against two live devices yet; logic pinned by tests."
+      }
     }
   ]
 }

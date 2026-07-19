@@ -80,16 +80,21 @@ pull reports *during* driveway sessions while the Mac holds spec edits — exact
 last-writer-wins punishes.
 
 Current state: The entire garage graph is synced as one JSON blob. The conservative conflict guard
-(snapshots, never-applied-state protection, Recovery UI) prevents silent whole-document loss, and
-the **W-054 bridge** now preserves append-only records (pull reports, performance records, build
-events, notes, photos) across document adoption — a driveway pull survives a Mac push.
+(snapshots, never-applied-state protection, Recovery UI) prevents silent whole-document loss; the
+**W-054 bridge** preserves append-only records (pull reports, performance records, build events,
+notes, photos) across document adoption — a driveway pull survives a Mac push; and **tombstones
+(W-056, phase 1)** now close the deletion half: `Vehicle.deletedRecordIDs` is a synced set every
+append-record deletion writes to, and `GarageMerge` unions both sides' tombstones and suppresses
+any id they name, so a delete on either device propagates instead of being resurrected by the
+other's held copy. Delete-wins is deliberate (UUIDs are unique per creation).
 
-Remaining risk: scalar/parts/maintenance edit races are still LWW; record-level deletion can be
-resurrected by the add-wins bridge (no tombstones). Both are honest, documented trade-offs of the
-bridge, not fixes.
+Remaining risk: scalar/parts/maintenance edit races are still LWW — an honest, documented trade-off
+of the whole-document bridge. Residual deletion limit: a deletion made by a client too old to write
+tombstones (or lost with the document it lived in) can't be honored; only real history closes that.
 
-Direction: event-based records or operation-based sync with tombstones. This is now the next major
-architectural item, not a someday.
+Direction: event-based or operation-based sync with full history. Tombstones are the bridge's last
+conservative step; per-field edit-race resolution needs real per-record timestamps/versioning. Still
+the next major architectural item, but the highest-loss hole (resurrected deletes) is now closed.
 
 ## TD-002 — Test coverage expanding
 
