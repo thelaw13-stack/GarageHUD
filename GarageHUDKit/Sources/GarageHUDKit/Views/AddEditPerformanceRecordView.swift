@@ -27,6 +27,14 @@ struct AddEditPerformanceRecordView: View {
                 switch type {
                 case .dyno:
                     numberField("Wheel HP", text: $whpText, unit: "whp")
+                    // Warn, never block: wheel horsepower is a reasoning spine (it decides
+                    // "measured", gain-over-stock, cost-per-hp, and the LLM grounding), so a
+                    // slipped digit deserves a nudge — but a genuine figure must always be saveable.
+                    if let anomaly = Vehicle.dynoAnomaly(proposingWheelHorsepower: Double(whpText)) {
+                        Text(anomaly.caution)
+                            .font(.footnote)
+                            .foregroundStyle(.orange)
+                    }
                     numberField("Wheel Torque", text: $wtqText, unit: "lb-ft")
                 case .quarterMile:
                     numberField("ET", text: $etText, unit: "sec")

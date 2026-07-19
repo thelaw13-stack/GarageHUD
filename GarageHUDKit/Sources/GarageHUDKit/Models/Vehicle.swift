@@ -473,10 +473,13 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         performanceRecords.sorted { $0.date > $1.date }.first
     }
 
-    /// Dyno records carrying a real, physically possible wheel figure (> 0), newest first — the
-    /// single source every "measured" claim must read from. A dyno session logged with no value
-    /// (or a nonsense non-positive one) is not a measurement. Centralized because three separate
-    /// call sites re-deriving this query is exactly how a crank figure got labeled "whp" twice.
+    /// Dyno records carrying a positive wheel figure (> 0), newest first — the single source every
+    /// "measured" claim must read from. A dyno session logged with no value (or a non-positive one)
+    /// is not a measurement. Centralized because three separate call sites re-deriving this query is
+    /// exactly how a crank figure got labeled "whp" twice. A physically *implausible* figure (a
+    /// slipped digit) is not screened here — that's caught non-blockingly at entry by
+    /// `dynoAnomaly(proposingWheelHorsepower:)`, mirroring the odometer; once the owner saves it, it
+    /// is their record and is shown as logged.
     public var measuredDynoRecords: [PerformanceRecord] {
         performanceRecords
             .filter { $0.type == .dyno && ($0.wheelHorsepower ?? 0) > 0 }
