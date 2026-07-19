@@ -26,7 +26,7 @@
     "device_deploy": "xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Release -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app>",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 418,
+    "test_count_at_last_update": 430,
     "last_updated": "2026-07-18"
   },
   "items": [
@@ -1270,6 +1270,33 @@
         "commit": "pending",
         "date": "2026-07-18",
         "notes": "Same honesty thread as W-049 (air-cooled coolant): the app now knows the Baja has no OBD port and says so rather than offering a connection that can never complete. Heuristic is US-year + cooling; an explicit override can follow if a car ever needs correcting."
+      }
+    },
+    {
+      "id": "W-052",
+      "title": "Driveway unblock — protocol bind, per-line decode, STOPPED retry (Fable fix #1)",
+      "why": "First real hardware session (Fozzy + Veepeak): handshake passed, ZERO PIDs decoded, degrade/reconnect loop. Two proven defects: (1) no 0100 protocol-bind step — polling began with a 1s timeout racing ATSP0's multi-second auto-search, late replies were discarded by the in-flight guard, and the next poll aborted the search with STOPPED, forever; (2) the decoder discarded any chunk containing SEARCHING/STOPPED even when valid data followed in the same chunk — decode('SEARCHING...\\r41 0C 1A F8') was nil.",
+      "depends_on": [
+        "W-014"
+      ],
+      "completion_criteria": [
+        "ELM327Handshake gains a bind step: 0100 after ATSP0; success only on a real '41 00' answer (even inside a SEARCHING chunk); UNABLE/NO DATA/timeout retries then fails AT THE BIND, so the UI says 'the vehicle did not answer (ignition on?)' instead of blaming the adapter",
+        "Transport gives the bind a 10s leash and a distinct journal message; READY now means adapter verified AND vehicle answering",
+        "OBDPIDDecoder decodes per-line: markers are skipped, never chunk-fatal",
+        "Polling: a STOPPED reply re-asks the SAME PID after 300ms (max 2) instead of marching on",
+        "Field regressions: the Fozzy journal replayed as fixtures (SEARCHING-chunk bind + polling decode; silent-vehicle fails as bind-context)"
+      ],
+      "testing_criteria": [
+        "OBDTranscriptReplayTests + ELM327HandshakeTests updated to the bind contract; full suite green; the real proof is the next driveway session"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "428 -> 430, +2",
+        "commits": [
+          "pending"
+        ],
+        "date": "2026-07-18",
+        "notes": "Diagnosed from the field journal + code, proven at the pure layer before touching the transport. NOT field-verified yet — W-014 stays in_progress until the Fozzy's gauges move."
       }
     }
   ]

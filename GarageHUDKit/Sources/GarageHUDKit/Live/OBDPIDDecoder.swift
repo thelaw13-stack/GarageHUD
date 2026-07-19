@@ -33,10 +33,22 @@ public struct OBDReading: Equatable, Sendable {
 /// Bluetooth transport merely feeds it lines.
 public enum OBDPIDDecoder {
 
-    /// Decode a single ELM327 response line (e.g. "41 0C 1A F8", or "410C1AF8", possibly
-    /// with a trailing ">" prompt). Returns nil for non-data replies ("NO DATA",
-    /// "SEARCHING...", errors) or a response that doesn't match a PID we read.
+    /// Decode an ELM327 response chunk. A chunk can carry several lines before the prompt —
+    /// on the very first queries the data arrives WITH a status marker in the same chunk
+    /// ("SEARCHING...\r41 0C 1A F8"). Decoding is per-line, so markers are skipped, never
+    /// fatal: the whole first driveway session (W-052) was lost to a decoder that discarded
+    /// any chunk containing "SEARCHING" — including the valid data right after it.
+    /// Returns nil only when NO line in the chunk decodes.
     public static func decode(_ raw: String) -> OBDReading? {
+        raw.split(whereSeparator: { $0 == "\r" || $0 == "\n" })
+            .lazy
+            .compactMap { decodeLine(String($0)) }
+            .first
+    }
+
+    /// Decode one response line ("41 0C 1A F8" / "410C1AF8", possibly with a trailing ">").
+    /// Nil for status/error lines ("NO DATA", "SEARCHING...") and unknown PIDs.
+    static func decodeLine(_ raw: String) -> OBDReading? {
         let bytes = hexBytes(raw)
         // A valid reply is: 0x41, <pid>, <data...>. Find the mode byte and read from there.
         guard let modeIndex = bytes.firstIndex(of: 0x41), bytes.count > modeIndex + 1 else { return nil }

@@ -93,6 +93,7 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private let pids = OBDPID.allCases
     private var pidCursor = 0
     private var consecutivePollTimeouts = 0
+    private var stopRetriesForCurrentPID = 0
     private let maxPollTimeouts = OBDPID.allCases.count + 2
     private var reconnectAttempts = 0
     private let maxReconnectAttempts = 5
@@ -277,8 +278,23 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
             if let reading = OBDPIDDecoder.decode(line) {
                 store(reading)
                 consecutivePollTimeouts = 0
+                stopRetriesForCurrentPID = 0
+                advancePoll()
+            } else if line.uppercased().contains("STOPPED"), stopRetriesForCurrentPID < 2 {
+                // The adapter aborted the request (our previous command interrupted a search, or
+                // the bus was busy). Re-ask the SAME PID after a beat instead of marching on —
+                // marching on is how a whole rotation of polls came back empty in the field.
+                stopRetriesForCurrentPID += 1
+                let token = timeoutToken
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                    guard let self, !self.stopped, token == self.timeoutToken,
+                          self.connectionState == .polling else { return }
+                    self.pollCurrent()
+                }
+            } else {
+                stopRetriesForCurrentPID = 0
+                advancePoll()
             }
-            advancePoll()
         default:
             break
         }
@@ -308,16 +324,29 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private func apply(_ action: ELM327Handshake.Action) {
         switch action {
         case .send(let command):
-            transition((handshake.step == .reset) ? .resetting : .configuring,
-                       handshake.step == .reset ? "Retrying adapter wake-up…" : "Negotiating the vehicle protocol…")
-            transmit(command, timeout: 1.5)
+            if handshake.isBinding {
+                // The protocol bind: the vehicle's first real answer. ATSP0's auto-search takes
+                // seconds on a CAN car, so this one command gets a long leash (W-052 — the first
+                // driveway session died to a 1s timeout racing a 3s protocol search).
+                transition(.configuring, "Asking the vehicle to answer — the first reply can take a few seconds…")
+                transmit(command, timeout: 10.0)
+            } else {
+                transition((handshake.step == .reset) ? .resetting : .configuring,
+                           handshake.step == .reset ? "Retrying adapter wake-up…" : "Negotiating the vehicle protocol…")
+                transmit(command, timeout: 1.5)
+            }
         case .ready:
-            captureProfile()      // bring-up (incl. ELM327 identity check) succeeded
-            transition(.ready, "Adapter verified. Starting measured PIDs…")
+            captureProfile()      // bring-up (incl. ELM327 identity + vehicle bind) succeeded
+            transition(.ready, "Adapter verified and the vehicle is answering. Starting measured PIDs…")
             startPolling()
         case .failed:
-            degrade("The device answered, but its OBD command processor could not be verified.",
-                    recovery: "Power-cycle the adapter. GarageHUD supports ELM327, STN, and OBDLink CX command sets.")
+            if handshake.isBinding {
+                degrade("The adapter is fine, but the vehicle did not answer the protocol query.",
+                        recovery: "Turn the ignition fully on (engine running is best), then retry. Some cars only answer with the engine started.")
+            } else {
+                degrade("The device answered, but its OBD command processor could not be verified.",
+                        recovery: "Power-cycle the adapter. GarageHUD supports ELM327, STN, and OBDLink CX command sets.")
+            }
         }
     }
 

@@ -131,7 +131,8 @@ final class ELM327HandshakeTests: XCTestCase {
         XCTAssertEqual(h.openingCommand, "ATZ")
         XCTAssertEqual(h.handle(.reply("ELM327 v1.5")), .send("ATE0"))
         XCTAssertEqual(h.handle(.reply("OK")), .send("ATSP0"))
-        XCTAssertEqual(h.handle(.reply("OK")), .ready)
+        XCTAssertEqual(h.handle(.reply("OK")), .send("0100"))   // the protocol bind (W-052)
+        XCTAssertEqual(h.handle(.reply("SEARCHING...\r41 00 BE 3E B8 11")), .ready)
     }
 
     func testErrorRepliesRetryThenFailAtCap() {
@@ -146,7 +147,8 @@ final class ELM327HandshakeTests: XCTestCase {
         var h = ELM327Handshake(configCommands: ["ATE0"])
         _ = h.handle(.reply("ELM327 v1.5"))
         XCTAssertEqual(h.handle(.timeout), .send("ATE0"))      // retry the same command
-        XCTAssertEqual(h.handle(.reply("OK")), .ready)         // then it answers
+        XCTAssertEqual(h.handle(.reply("OK")), .send("0100"))  // then it answers -> bind
+        XCTAssertEqual(h.handle(.reply("41 00 BE 3E B8 11")), .ready)
     }
 
     func testSuccessfulReplyResetsAttemptCounter() {
@@ -166,7 +168,8 @@ final class ELM327HandshakeTests: XCTestCase {
 
     func testIdentityCheckCanBeDisabled() {
         var h = ELM327Handshake(configCommands: [], verifyIdentity: false)
-        XCTAssertEqual(h.handle(.reply("WHATEVER")), .ready)
+        XCTAssertEqual(h.handle(.reply("WHATEVER")), .send("0100"))   // still binds the vehicle
+        XCTAssertEqual(h.handle(.reply("4100BE3EB811")), .ready)
     }
 }
 

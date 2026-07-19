@@ -31,17 +31,19 @@ final class OBDTranscriptReplayTests: XCTestCase {
             .reply("ATE0\rOK"),      // ATE0 — echo still present until echo-off applies
             .reply("OK"),            // ATL0
             .reply("OK"),            // ATH0
-            .reply("OK")             // ATSP0
+            .reply("OK"),            // ATSP0
+            .reply("SEARCHING...\r41 00 BE 3E B8 11")   // 0100 — the vehicle answers (W-052)
         ]
         let result = runHandshake(ELM327Handshake(), replies: transcript)
-        XCTAssertEqual(result.sent, ["ATZ", "ATE0", "ATL0", "ATH0", "ATSP0"])
+        XCTAssertEqual(result.sent, ["ATZ", "ATE0", "ATL0", "ATH0", "ATSP0", "0100"])
         XCTAssertEqual(result.outcome, .ready)
     }
 
     func testGenuineOBDLinkAndSTNBannersAreAccepted() {
         for banner in ["OBDLink CX v5.6.19", "STN2230 v5.6.19"] {
             let replies: [ELM327Handshake.Event] = [
-                .reply(banner), .reply("OK"), .reply("OK"), .reply("OK"), .reply("OK")
+                .reply(banner), .reply("OK"), .reply("OK"), .reply("OK"), .reply("OK"),
+                .reply("41 00 BE 3E B8 11")
             ]
             XCTAssertEqual(runHandshake(ELM327Handshake(), replies: replies).outcome, .ready)
         }
@@ -52,10 +54,11 @@ final class OBDTranscriptReplayTests: XCTestCase {
         let transcript: [ELM327Handshake.Event] = [
             .reply("?"),             // ATZ → error, retry ATZ
             .reply("ELM327 v2.1"),   // ATZ → banner, proceed
-            .reply("OK"), .reply("OK"), .reply("OK"), .reply("OK")
+            .reply("OK"), .reply("OK"), .reply("OK"), .reply("OK"),
+            .reply("4100BE3EB811")
         ]
         let result = runHandshake(ELM327Handshake(), replies: transcript)
-        XCTAssertEqual(result.sent, ["ATZ", "ATZ", "ATE0", "ATL0", "ATH0", "ATSP0"])
+        XCTAssertEqual(result.sent, ["ATZ", "ATZ", "ATE0", "ATL0", "ATH0", "ATSP0", "0100"])
         XCTAssertEqual(result.outcome, .ready)
     }
 
@@ -64,10 +67,11 @@ final class OBDTranscriptReplayTests: XCTestCase {
             .reply("ELM327 v1.5"),   // ATZ
             .timeout,                // ATE0 times out → retry ATE0
             .reply("OK"),            // ATE0 ok
-            .reply("OK"), .reply("OK"), .reply("OK")
+            .reply("OK"), .reply("OK"), .reply("OK"),
+            .reply("SEARCHING...\r41 00 98 18 80 10")
         ]
         let result = runHandshake(ELM327Handshake(), replies: transcript)
-        XCTAssertEqual(result.sent, ["ATZ", "ATE0", "ATE0", "ATL0", "ATH0", "ATSP0"])
+        XCTAssertEqual(result.sent, ["ATZ", "ATE0", "ATE0", "ATL0", "ATH0", "ATSP0", "0100"])
         XCTAssertEqual(result.outcome, .ready)
     }
 
@@ -91,5 +95,39 @@ final class OBDTranscriptReplayTests: XCTestCase {
         XCTAssertEqual(readings.count, 3)                 // SEARCHING and NO DATA dropped
         XCTAssertEqual(readings.map(\.pid), [.engineRPM, .coolantTemp, .vehicleSpeed])
         XCTAssertEqual(readings[0].value, 1726, accuracy: 0.5)
+    }
+
+    // MARK: - W-052: regressions from the first real driveway session (Fozzy + Veepeak).
+
+    /// The failure that stranded the field session, replayed: the vehicle's first answer arrives
+    /// WITH the SEARCHING marker in one prompt-chunk. The bind must succeed on it, and the
+    /// decoder must find data in marker-bearing chunks during polling.
+    func testFozzyJournalRegression_SearchingChunksCarryData() {
+        // Bind succeeds on the combined chunk.
+        var h = ELM327Handshake()
+        _ = h.handle(.reply("ELM327 v1.5"))
+        _ = h.handle(.reply("OK")); _ = h.handle(.reply("OK"))
+        _ = h.handle(.reply("OK")); _ = h.handle(.reply("OK"))          // configs done -> bind sent
+        XCTAssertEqual(h.handle(.reply("SEARCHING...\r41 00 BE 3E B8 11")), .ready)
+
+        // Polling decodes data even when a marker shares the chunk.
+        XCTAssertEqual(OBDPIDDecoder.decode("SEARCHING...\r41 0C 1A F8")?.value ?? 0, 1726, accuracy: 0.001)
+        XCTAssertEqual(OBDPIDDecoder.decode("STOPPED\r41 0D 64")?.pid, .vehicleSpeed)
+        XCTAssertNil(OBDPIDDecoder.decode("SEARCHING..."), "a bare marker is still not data")
+    }
+
+    /// A vehicle that never answers the bind (ignition off) fails at the BIND step — the
+    /// distinct state the transport turns into "the vehicle did not answer (ignition on?)"
+    /// instead of blaming the adapter.
+    func testVehicleSilentAtBindFailsAsBindNotAdapter() {
+        var h = ELM327Handshake(maxAttempts: 3)
+        _ = h.handle(.reply("ELM327 v1.5"))
+        _ = h.handle(.reply("OK")); _ = h.handle(.reply("OK"))
+        _ = h.handle(.reply("OK")); _ = h.handle(.reply("OK"))
+        XCTAssertTrue(h.isBinding)
+        XCTAssertEqual(h.handle(.reply("UNABLE TO CONNECT")), .send("0100"))
+        XCTAssertEqual(h.handle(.reply("NO DATA")), .send("0100"))
+        XCTAssertEqual(h.handle(.timeout), .failed)
+        XCTAssertTrue(h.isBinding, "failure context is the bind, so the UI says ignition, not adapter")
     }
 }
