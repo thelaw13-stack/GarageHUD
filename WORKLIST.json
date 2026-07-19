@@ -1177,6 +1177,26 @@
         "date": "2026-07-18",
         "notes": null
       }
+    },
+    {
+      "id": "W-048",
+      "title": "Steward threshold provenance audit (Fable concern #3)",
+      "why": "An app whose whole pitch is 'never state a guess as a fact' had a reasoning layer full of invented constants (coolant/boost limits, sequence/quiet windows, drivetrain losses, pull-fit gates) presented with the same authority as facts. Only discovery process for a wrong one was 'Tim trips over it.'",
+      "depends_on": [],
+      "completion_criteria": [
+        "Every judgment threshold in the reasoning layer enumerated with file:line, what it gates, and a provenance tag (OWNER / CONVENTION / GUESS)",
+        "A ranked calibrate-first list by consequence x arbitrariness"
+      ],
+      "testing_criteria": [
+        "register is accurate to the code (each entry verified against its file:line); no code change so full suite unaffected — 418 green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "418 green (docs only)",
+        "commit": "pending",
+        "date": "2026-07-16",
+        "notes": "docs/STEWARD_THRESHOLDS.md. Finding: exactly ONE threshold is owner-calibrated (drivelineAttentionWheelHP=450, W-044); the rest are shop convention (drivetrain losses, 30d/500mi windows, coolant 215/235) or — for eleven of them — ungrounded guesses. Top three to calibrate: per-car boost caution (currently a flat 18 psi for every boosted car, and it's a safety caution), the 14/180-day sequence/quiet windows, and the 80-whp engine-internals gate. Recommended structural follow-up: centralize into StewardThresholds with per-constant provenance so a guess can't be added without declaring itself."
+      }
     }
   ]
 }
