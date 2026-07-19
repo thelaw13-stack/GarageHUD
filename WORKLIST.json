@@ -1423,8 +1423,15 @@
         "Regression tests cover typed cloud-pull decisions, failed conflict-save truth, the supplied Veepeak bind-failure diagnosis, future-schema refusal, and injected fallback time",
         "full suite green, zero source warnings, Debug and Release iOS Simulator builds green"
       ],
-      "status": "in_progress",
-      "result": null
+      "status": "complete",
+      "result": {
+        "tests": "458 -> 464, +6; warnings-as-errors; Debug + Release iOS Simulator builds green",
+        "commits": [
+          "7755de5"
+        ],
+        "date": "2026-07-19",
+        "notes": "The supplied Veepeak report is now pinned as a field regression: BLE/GATT/ELM configuration are proven, while a supported 41 00 vehicle response remains pending the next driveway run. CloudKit network and server behavior still require real-container integration validation; pure failure decisions and persistence boundaries are regression-tested."
+      }
     }
   ]
 }
