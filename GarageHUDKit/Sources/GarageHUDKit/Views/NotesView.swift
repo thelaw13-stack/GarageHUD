@@ -56,8 +56,7 @@ struct NotesView: View {
                         .onTapGesture { editingNote = note }
                     }
                     .onDelete { indexSet in
-                        let idsToDelete = indexSet.map { notes[$0].id }
-                        vehicle.notes.removeAll { idsToDelete.contains($0.id) }
+                        vehicle.deleteNotes(Set(indexSet.map { notes[$0].id }))
                     }
                 }
                 .scrollContentBackground(.hidden)

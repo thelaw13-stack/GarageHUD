@@ -171,7 +171,7 @@ struct PerformanceView: View {
                     .contextMenu {
                         Button("Edit") { editingRecord = record }
                         Button("Delete", role: .destructive) {
-                            vehicle.performanceRecords.removeAll { $0.id == record.id }
+                            vehicle.deletePerformanceRecord(record.id)
                         }
                     }
             }

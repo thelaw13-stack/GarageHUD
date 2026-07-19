@@ -66,16 +66,91 @@ final class GarageMergeTests: XCTestCase {
                        "no whole-vehicle resurrection: the adopting document's car list stands")
     }
 
-    /// The documented trade-off, pinned so it's a decision and not a surprise: add-wins without
-    /// tombstones means a record deleted remotely but still held locally comes back. Visible
-    /// and re-deletable — unlike a silently lost pull. Event sync with tombstones (TD-001,
-    /// promoted) is the real fix.
-    func testDeletedRemoteRecordResurrects_KnownTradeoff() {
+    // MARK: - Tombstones (TD-001) — a deletion survives adoption instead of being resurrected
+
+    /// The reversal of the old documented trade-off: a record deleted on the Mac (with a tombstone)
+    /// stays deleted, even though the phone still holds it.
+    func testTombstonedRecordIsSuppressedNotResurrected() {
+        let id = UUID(); let noteID = UUID()
+        var local = car(id)
+        local.notes = [Note(id: noteID, title: "Deleted on the Mac, still on the phone", body: "")]
+        var remote = car(id)                       // Mac deleted the note...
+        remote.deletedRecordIDs = [noteID]         // ...and recorded the tombstone
+        let merged = GarageMerge.adopt([remote], preservingAppendsFrom: [local])
+        XCTAssertTrue(merged[0].notes.isEmpty, "delete-wins: the tombstoned note does not come back")
+        XCTAssertTrue(merged[0].deletedRecordIDs.contains(noteID), "the tombstone is carried forward")
+    }
+
+    /// The direction that matters for the driveway: a deletion made on the phone must suppress the
+    /// copy the incoming (adopting) document still carries.
+    func testLocalDeletionPropagatesToAdoptedCopy() {
+        let id = UUID(); let recID = UUID()
+        var local = car(id)
+        local.deletedRecordIDs = [recID]           // phone deleted a dyno record
+        var remote = car(id)
+        remote.performanceRecords = [PerformanceRecord(id: recID, type: .dyno, wheelHorsepower: 300)]
+        let merged = GarageMerge.adopt([remote], preservingAppendsFrom: [local])
+        XCTAssertTrue(merged[0].performanceRecords.isEmpty,
+                      "the phone's delete suppresses the record the adopted document still holds")
+    }
+
+    func testTombstonesUnionAcrossBothSides() {
+        let id = UUID(); let a = UUID(); let b = UUID()
+        var local = car(id);  local.deletedRecordIDs = [a]
+        var remote = car(id); remote.deletedRecordIDs = [b]
+        let merged = GarageMerge.adopt([remote], preservingAppendsFrom: [local])
+        XCTAssertEqual(merged[0].deletedRecordIDs, [a, b], "both devices' deletions are remembered")
+    }
+
+    /// Delete-wins is deliberate: a tombstone beats the other side's stale copy of the same id.
+    func testDeleteWinsOverAConcurrentHeldCopy() {
+        let id = UUID(); let pullID = UUID()
+        var local = car(id)
+        local.pullReports = [pull()]; local.pullReports[0].id = pullID
+        var remote = car(id)
+        remote.deletedRecordIDs = [pullID]
+        let merged = GarageMerge.adopt([remote], preservingAppendsFrom: [local])
+        XCTAssertTrue(merged[0].pullReports.isEmpty, "a tombstone beats a still-held copy")
+    }
+
+    /// The honest residual limit: an *absence* with no tombstone is not a deletion — it's exactly the
+    /// append-preservation case, so the record is kept. (A client too old to write tombstones can't
+    /// have its deletions honored; only full event history closes that — the TD-001 direction.)
+    func testUntombstonedAbsenceStillPreservesTheAppend() {
         let id = UUID()
         var local = car(id)
-        local.notes = [Note(title: "Deleted on the Mac, still on the phone", body: "")]
-        let remote = car(id)   // Mac deleted the note
+        local.notes = [Note(title: "Phone-only capture", body: "")]
+        let remote = car(id)                        // simply never had it — NOT a recorded delete
         let merged = GarageMerge.adopt([remote], preservingAppendsFrom: [local])
-        XCTAssertEqual(merged[0].notes.count, 1, "add-wins: the note returns (documented trade-off)")
+        XCTAssertEqual(merged[0].notes.count, 1, "no tombstone → treated as an append to preserve")
+    }
+
+    // MARK: - Deletion helpers record tombstones, and they survive Codable
+
+    func testDeleteHelpersRecordTombstones() {
+        var v = car(UUID())
+        let dyno = PerformanceRecord(type: .dyno, wheelHorsepower: 300)
+        let note = Note(title: "n", body: "")
+        let photo = Photo(filename: "p.jpg")
+        v.performanceRecords = [dyno]; v.notes = [note]; v.photos = [photo]
+
+        v.deletePerformanceRecord(dyno.id)
+        v.deleteNotes([note.id])
+        v.deletePhoto(photo.id)
+
+        XCTAssertTrue(v.performanceRecords.isEmpty && v.notes.isEmpty && v.photos.isEmpty)
+        XCTAssertEqual(v.deletedRecordIDs, [dyno.id, note.id, photo.id])
+    }
+
+    func testTombstonesRoundTripThroughCodableAndDefaultEmpty() throws {
+        var v = car(UUID()); v.deletedRecordIDs = [UUID(), UUID()]
+        let data = try JSONEncoder().encode(v)
+        let back = try JSONDecoder().decode(Vehicle.self, from: data)
+        XCTAssertEqual(back.deletedRecordIDs, v.deletedRecordIDs, "tombstones persist and sync")
+
+        // A document written before tombstones existed decodes to an empty set, not a failure.
+        let legacy = Data(#"{"id":"\#(UUID().uuidString)","make":"Subaru","model":"WRX","year":2015}"#.utf8)
+        let old = try JSONDecoder().decode(Vehicle.self, from: legacy)
+        XCTAssertTrue(old.deletedRecordIDs.isEmpty)
     }
 }

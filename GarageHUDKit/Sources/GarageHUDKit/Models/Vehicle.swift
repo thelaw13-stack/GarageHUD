@@ -65,6 +65,13 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// Wide-open-throttle pulls the Pull Guardian auto-captured from a live session — the run,
     /// graded by how much of its boost claims were actually measured.
     public var pullReports: [PullReport] = []
+    /// Tombstones — ids of append-only records (pull reports, performance records, build events,
+    /// notes, photos) the owner has deleted. Kept and synced so a deletion survives whole-document
+    /// sync: without them, `GarageMerge`'s union re-adds a record the other device still holds — the
+    /// add-wins resurrection TD-001 set out to close. Delete-wins for these capture-type records: a
+    /// tombstone on either side suppresses the record everywhere. Grows only on deletion (a handful
+    /// ever, for a personal garage), so no compaction is needed yet.
+    public var deletedRecordIDs: Set<UUID> = []
     /// Where this build is headed — the owner's stated goal, so the Steward can reason about the
     /// *path* (sequence, support, next purchase) and not just the present state. Nil = no plan set.
     public var buildGoal: BuildGoal?
@@ -141,6 +148,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         pullReports = try c.decodeIfPresent([PullReport].self, forKey: .pullReports) ?? []
         buildGoal = try c.decodeIfPresent(BuildGoal.self, forKey: .buildGoal)
         coverPhotoID = try c.decodeIfPresent(UUID.self, forKey: .coverPhotoID)
+        deletedRecordIDs = try c.decodeIfPresent(Set<UUID>.self, forKey: .deletedRecordIDs) ?? []
     }
 
     /// Reassign a fresh id to any record that duplicates an earlier one's id, within each collection
@@ -191,6 +199,31 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     public mutating func recordPullReport(_ report: PullReport) {
         pullReports.append(report)
         buildEvents.append(BuildEvent(date: report.endedAt, title: "Pull captured: \(report.headline)"))
+    }
+
+    // MARK: - Append-record deletion (tombstoned)
+
+    /// Delete an append-only record and remember the deletion, so whole-document sync cannot
+    /// resurrect it (TD-001). Each helper owns exactly the model array it names and the tombstone;
+    /// a record's other side effects (a photo's image file, a service event's maintenance-baseline
+    /// bridging) stay with their existing deletion paths. A tombstone from either device wins.
+    public mutating func deletePerformanceRecord(_ id: UUID) {
+        performanceRecords.removeAll { $0.id == id }
+        deletedRecordIDs.insert(id)
+    }
+
+    /// Delete notes by id (SwiftUI's `onDelete` hands over a set) and tombstone every one.
+    public mutating func deleteNotes(_ ids: Set<UUID>) {
+        guard !ids.isEmpty else { return }
+        notes.removeAll { ids.contains($0.id) }
+        deletedRecordIDs.formUnion(ids)
+    }
+
+    /// Delete a photo from the vehicle's own gallery and tombstone it. The caller still removes the
+    /// backing image file — this owns the model and the tombstone, matching the other helpers.
+    public mutating func deletePhoto(_ id: UUID) {
+        photos.removeAll { $0.id == id }
+        deletedRecordIDs.insert(id)
     }
 
     public static let servicePrefix = "Serviced: "
@@ -293,6 +326,7 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         }
 
         buildEvents.remove(at: eventIndex)
+        deletedRecordIDs.insert(eventID)   // tombstone so sync can't resurrect the deleted service (TD-001)
 
         guard let itemIndex else { return true }
         let eventWasCurrentBaseline =

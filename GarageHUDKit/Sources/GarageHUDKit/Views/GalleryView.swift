@@ -93,7 +93,7 @@ struct GalleryView: View {
     }
 
     private func removePhoto(_ photo: Photo) {
-        vehicle.photos.removeAll { $0.id == photo.id }
+        vehicle.deletePhoto(photo.id)          // removes + tombstones so sync can't resurrect it
         ImageStore.delete(filename: photo.filename)
     }
 
