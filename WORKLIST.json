@@ -1221,6 +1221,32 @@
         "date": "2026-07-18",
         "notes": "Followed my rec (per-car boost caution) grounded in Tim's data (real tuner-site baselines). Sources: subaruforester.org/NASIOC (EJ255 TD04 stock ~12, safe ~16-18); S2KI/Kraftwerks (Rotrex SC ~8-12); 3UR-FE NA 381hp; VW Type-1 air-cooled. Catalog is extensible with a hard rule: a new platform must cite a source or it doesn't belong. Register updated; boost-caution guess retired."
       }
+    },
+    {
+      "id": "W-050",
+      "title": "Owner-calibrate the sequence/quiet windows (Fable concern #3, #2 calibrate-first)",
+      "why": "Three GUESS-tagged reasoning windows from the W-048 audit — invented numbers wearing the authority of facts. Not researchable like the boost baselines; they are Tim usage calls, like the 450 driveline number.",
+      "depends_on": [
+        "W-048"
+      ],
+      "completion_criteria": [
+        "sequence-lag window owner-set (14 -> 30 days)",
+        "quiet-record window owner-set (180 -> 90 days)",
+        "flagged-pull timeout replaced with until-resolved (a later clean pull resolves it), no timer",
+        "values live in StewardThresholds with Tim/date/rationale provenance"
+      ],
+      "testing_criteria": [
+        "StewardWindowTests: 20d gap no flag / 40d flags; 80d quiet no / 100d yes; old breach stays, later clean pull resolves, later breach does not",
+        "existing PullReportStewardTests updated from the old-timeout assertion",
+        "full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "427 green (+5, -1 old assertion rewritten)",
+        "commit": "pending",
+        "date": "2026-07-18",
+        "notes": "Tim calibrated: sequence-lag 30d, quiet 90d, flagged pull until-resolved. Started the StewardThresholds home Fable recommended. Noted caveats stand as follow-ups: sequence still keys on a date gap (a 'driven between' signal would be truer) and quiet is one number for a mixed fleet (could be per-car). Explicit pull-dismiss UI is the companion to until-resolved (auto-resolves on a clean pull today)."
+      }
     }
   ]
 }

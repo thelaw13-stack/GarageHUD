@@ -43,7 +43,7 @@ public enum Steward {
            let fuelDate = vehicle.earliestInstall(in: .fueling),
            fiDate < fuelDate {
             let days = context.days(from: fiDate, to: fuelDate)
-            if days >= 14 {
+            if days >= StewardThresholds.sequenceLagFlagDays {
                 out.append(StewardObservation(
                     ruleID: StewardRuleID.sequenceFIAheadOfFueling, subjectID: vid,
                     statement: "Based on your history, forced induction ran ahead of the fueling for a stretch.",
@@ -135,18 +135,21 @@ public enum Steward {
             }
         }
 
-        // 3g. Pull Guardian — a recently captured pull went over the boost ceiling or ran heavily
-        //     over target. Only recent pulls stay actionable; the confidence carries forward from
-        //     the run itself, so a mostly-simulated capture never reads as more certain than it was.
-        if let flagged = vehicle.pullReports
-            .filter({ $0.boostBreachedCeiling || ($0.overTargetFraction ?? 0) >= 0.5 })
-            .max(by: { $0.endedAt < $1.endedAt }),
-           context.days(from: flagged.endedAt, to: context.now) <= 14 {
-            out.append(StewardObservation(
-                ruleID: StewardRuleID.pullFlagged(flagged.id), subjectID: vid,
-                statement: flagged.verdictStatement,
-                evidence: "\(flagged.verdictEvidence) Captured \(short(flagged.endedAt)) (\(flagged.feedLabel)).",
-                confidence: flagged.confidence, tone: .caution, provenance: .recorded))
+        // 3g. Pull Guardian — a pull that went over the boost ceiling or heavily over target.
+        //     Owner-calibrated (Tim, 2026-07-18): a breach stays actionable *until resolved*, not on
+        //     a 14-day timer — a safety flag shouldn't silently expire. "Resolved" = a later clean
+        //     pull, i.e. the owner demonstrated the car running right since. The run's own confidence
+        //     carries forward, so a mostly-simulated capture never reads as more certain than it was.
+        func isFlagged(_ p: PullReport) -> Bool { p.boostBreachedCeiling || (p.overTargetFraction ?? 0) >= 0.5 }
+        if let flagged = vehicle.pullReports.filter(isFlagged).max(by: { $0.endedAt < $1.endedAt }) {
+            let cleanPullSince = vehicle.pullReports.contains { $0.endedAt > flagged.endedAt && !isFlagged($0) }
+            if !cleanPullSince {
+                out.append(StewardObservation(
+                    ruleID: StewardRuleID.pullFlagged(flagged.id), subjectID: vid,
+                    statement: flagged.verdictStatement,
+                    evidence: "\(flagged.verdictEvidence) Captured \(short(flagged.endedAt)) (\(flagged.feedLabel)).",
+                    confidence: flagged.confidence, tone: .caution, provenance: .recorded))
+            }
         }
 
         // 4. Note when the record — not necessarily the car — has gone quiet. Never for a car that's
@@ -155,7 +158,7 @@ public enum Steward {
         //    neglect, so Steward observes it plainly rather than scolding.
         if !vehicle.serviceStatus.isInService, let last = vehicle.lastActivityDate {
             let days = context.days(from: last, to: context.now)
-            if days >= 180 {
+            if days >= StewardThresholds.quietRecordDays {
                 out.append(StewardObservation(
                     ruleID: StewardRuleID.buildQuiet, subjectID: vid,
                     statement: "The log for this car has been quiet for a while.",

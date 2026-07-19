@@ -46,9 +46,14 @@ final class PullReportStewardTests: XCTestCase {
         XCTAssertFalse(Steward.observe(v).contains { $0.ruleID.hasPrefix("live.pullFlagged") })
     }
 
-    func testOldFlaggedPullNoLongerSurfaces() {
+    func testOldFlaggedPullStaysUntilResolved() {
+        // Owner-calibrated (Tim, 2026-07-18): a breach doesn't expire on a timer — a safety flag
+        // stays until the car is shown running right. An old, unresolved breach still surfaces.
         var v = Vehicle(make: "Subaru", model: "Forester XT", year: 2008, garageSlot: 1)
-        v.recordPullReport(report(breach: true, daysAgo: 30))   // beyond the 14-day relevance window
+        v.recordPullReport(report(breach: true, daysAgo: 30))
+        XCTAssertTrue(Steward.observe(v).contains { $0.ruleID.hasPrefix("live.pullFlagged") })
+        // A later CLEAN pull resolves it.
+        v.recordPullReport(report(over: 0.1, daysAgo: 2))
         XCTAssertFalse(Steward.observe(v).contains { $0.ruleID.hasPrefix("live.pullFlagged") })
     }
 

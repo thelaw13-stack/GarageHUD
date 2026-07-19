@@ -42,9 +42,9 @@ that's honest by construction, because the owner sets it.
 
 | Threshold | Value | Where | Gates | Provenance |
 |---|---|---|---|---|
-| Sequence-hazard window | **14 days** | `Steward.swift:46` | whether two out-of-order installs count as a "fueling-after-boost" sequence flag | `GUESS` |
-| Recent-pull window | **≤ 14 days** | `Steward.swift:144` | whether a flagged pull is "recent" enough to surface | `GUESS` |
-| Quiet-car window | **≥ 180 days** | `Steward.swift:158` | "you haven't touched this in a while" | `GUESS` |
+| Sequence-hazard window | **30 days** | `StewardThresholds.swift` | whether boost-ahead-of-fueling counts as running under-fueled | `OWNER` (Tim, 2026-07-18; was a `GUESS` 14) |
+| Recent-pull window | **until resolved** | `Steward.swift` | how long a flagged pull stays actionable — now until a later clean pull resolves it, no timer | `OWNER` (Tim, 2026-07-18; retired the 14-day `GUESS` timeout) |
+| Quiet-car window | **90 days** | `StewardThresholds.swift` | "you haven't touched this in a while" (informational) | `OWNER` (Tim, 2026-07-18; was a `GUESS` 180) |
 | Mileage-change floor | **10 mi** | `FleetDigest.swift:60` | whether an odometer change is worth reporting since last visit | `GUESS` (harmless, but invented) |
 
 ## Pull intelligence (fleet-of-pulls trend)
@@ -67,8 +67,7 @@ app grades *its inputs* by evidence but not *its own reasoning constants*.
 1. ~~**Boost caution 18 psi**~~ — **DONE (W-049).** Replaced with sourced per-platform values
    (`PlatformBaseline`) and made physics-aware: NA cars get no boost caution, air-cooled cars get no
    coolant limit. The flat guess is gone.
-2. **Sequence/quiet windows 14 / 180 days** (`Steward.swift`) — these decide whether the Steward
-   speaks at all about sequence and dormancy; wrong values make it nag or go silent at the wrong time.
+2. ~~**Sequence/quiet windows 14 / 180 days**~~ — **DONE (W-050).** Owner-calibrated to 30 / 90 days, and the flagged-pull timeout replaced with "until resolved" (Tim, 2026-07-18). Now in `StewardThresholds`.
 3. **Engine-internals gain 80 whp** (`BuildAssessment.swift:58`) — decides whether the app tells you
    your bottom end is a gap. A real number here would be per-platform, not a flat 80.
 
