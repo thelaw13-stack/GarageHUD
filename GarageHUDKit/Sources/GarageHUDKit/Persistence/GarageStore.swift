@@ -324,20 +324,18 @@ public final class GarageStore: ObservableObject {
     }
 
     /// Preserve a vehicle graph as a dated JSON file in the snapshots directory. The shared
-    /// write path for conflict snapshots and the pre-restore safety copy.
+    /// write path for conflict snapshots and the pre-restore safety copy. Recovery files use the
+    /// same versioned portable document as the live garage, so schema boundaries stay explicit.
+    /// `GaragePersistence.decode` still accepts older bare-array snapshots during restore.
     @discardableResult
     private func writeSnapshot(_ snapshot: [Vehicle], label: String, suffix: String = "") -> URL {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-
         let timestamp = ISO8601DateFormatter()
             .string(from: Date())
             .replacingOccurrences(of: ":", with: "-")
         let url = conflictSnapshotsDirectory
             .appendingPathComponent("garage-\(label)-\(timestamp)\(suffix).json")
 
-        if let data = try? encoder.encode(snapshot) {
+        if let data = try? GaragePersistence.encode(snapshot) {
             try? data.write(to: url, options: .atomic)
         }
         return url
