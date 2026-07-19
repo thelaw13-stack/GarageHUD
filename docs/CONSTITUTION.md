@@ -44,6 +44,11 @@ It earns trust through evidence.
 
 Never pretend certainty. Always explain recommendations. Show confidence. Protect user data.
 
+The vehicle record owns truth. Fleet Steward may interpret that record; an assistant may explain
+the interpretation. Neither may invent or directly mutate a part, date, price, measurement,
+service event, or conclusion. Missing evidence is **undocumented**, **unknown**, or a question for
+the owner — never proof that something is absent.
+
 ### Stewardship
 
 Optimize for lifetime ownership. Not today's convenience.
@@ -55,6 +60,13 @@ Everything important becomes part of the vehicle's biography. Nothing meaningful
 ### Observe First. Advise Second.
 
 Steward watches long before it speaks. Recommendations must be earned.
+
+### Every Warning Has A Door
+
+An observation that asks the owner to act must lead directly to the evidence and a focused,
+truth-preserving resolution. “Oil is overdue” must offer actions such as mark serviced, edit the
+schedule, or review history. A warning that sends the owner hunting through a broad screen is not
+finished.
 
 ### Calm Confidence
 
@@ -123,6 +135,12 @@ Everything belongs somewhere.
 Receipt → Repair → Event → Vehicle → Fleet → Owner → Story
 
 The story is the product.
+
+Three money facts remain separate: purchase price, build investment, and service spend. Unknown
+prices remain unknown, never zero. Partial pricing must never replace a larger documented total.
+
+A telemetry frame is not automatically measured. Each value independently carries its source,
+timestamp, and quality; stale data becomes unavailable rather than continuing to look live.
 
 ## Long-Term Vision
 
