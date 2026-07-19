@@ -1354,6 +1354,29 @@
         "date": "2026-07-18",
         "notes": null
       }
+    },
+    {
+      "id": "W-055",
+      "title": "Dyno wheel-hp sanity guard — the other reasoning spine (Fable red-team fix)",
+      "why": "Adversarial honesty pass. OdometerSanity guards the odometer with a non-blocking entry-time caution because one fat-fingered reading poisons every mileage-based claim. Wheel horsepower is the OTHER reasoning spine — it decides hasMeasuredPower, the 'N whp measured' headline, gain-over-stock, cost-per-hp, and the LLM grounding line 'Measured N whp [Strong evidence]' — but had NO such guard; the only gate was > 0. Proven by construction: a 5,000 whp typo flows through as '5000 whp (measured)' and is handed to the LLM as strong-evidence fact. The measuredDynoRecords comment even claimed a 'physically possible' screen the code never enforced.",
+      "depends_on": [],
+      "completion_criteria": [
+        "DynoAnomaly + Vehicle.dynoAnomaly(proposingWheelHorsepower:) — pure, non-blocking, absolute plausibility ceiling (implausibleWheelHorsepower = 2000), mirroring OdometerAnomaly/implausibleMilesPerDay",
+        "A calm caution wired into the dyno wheel-hp entry field (warn, never block — the record is the owner's)",
+        "The overreaching measuredDynoRecords comment corrected to say where the screen actually happens (at entry), not to claim a bound the display gate does not enforce"
+      ],
+      "testing_criteria": [
+        "DynoSanityTests: realistic passes quietly, nil is not an anomaly, boundary (2000 ok / 2001 flags), non-positive, slipped-digit (4770), and a construction test pinning the exact absurd-stated-as-measured-fact leak; full suite green, zero warnings"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "443 -> 452, +9",
+        "commits": [
+          "93768cf"
+        ],
+        "date": "2026-07-19",
+        "notes": "Found one function over from the odometer guard — the honesty discipline had been applied to odometer input but not dyno input. Fix keeps the owner's data (parity with OdometerSanity), warns at entry. Phase 1 of the 'both, in sequence' plan; TD-001 tombstones is phase 2."
+      }
     }
   ]
 }
