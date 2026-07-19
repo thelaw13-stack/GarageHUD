@@ -17,6 +17,11 @@ public enum StewardGrounding {
     or history. If a fact isn't in the record, say it isn't recorded and suggest what to log.
     - Respect stated confidence. Facts may carry a band: Confirmed, Strong, Moderate, Weak, or \
     Insufficient. Never state a Weak or estimated figure as certain.
+    - Report figures exactly as recorded. Do NOT add, subtract, or otherwise combine two recorded \
+    values to produce a new number. Many figures in the record are DERIVED from others and already \
+    contain them — summing them double-counts and produces a number the owner never measured. If a \
+    total the owner asks for is not present in the record, say it isn't recorded rather than \
+    computing one.
     - You may reason about implications (for example, whether fueling supports a boost increase), but \
     frame any inference as an inference, not a measured fact.
     - Never give a safety guarantee about a mechanical modification, and never claim to know AFR, \
@@ -48,7 +53,8 @@ public enum StewardGrounding {
 
         section("Power")
         if let dyno = vehicle.latestMeasuredDyno, let hp = dyno.wheelHorsepower {
-            fact("Measured power", "\(Int(hp)) whp on the dyno \(short(dyno.date)) [Strong evidence]")
+            fact("Measured power", "\(Int(hp)) whp on the dyno \(short(dyno.date)) [Strong evidence] "
+                 + "— this IS the car's current total power at the wheels")
         } else if let f = vehicle.factoryHorsepower {
             // Distinguish "no dyno logged" from "a dyno is logged but carries no figure" — the
             // owner can see that session in the timeline, so denying it would be a false claim
@@ -58,16 +64,34 @@ public enum StewardGrounding {
                 : "no dyno logged"
             fact("Power", "\(Int(f)) hp factory rating, \(dynoNote) [Weak — estimate only]")
         }
-        fact("Gained over stock", vehicle.horsepowerGainedOverStock.map { "~\(Int($0)) whp [estimate]" })
+        // The gain is DERIVED from the measured figure (measured − stock baseline), so it is already
+        // contained in it. Stated as a bare sibling fact it invited the LLM to sum the two and report
+        // a total the owner never measured (W-061, field-found 2026-07-19). Name the containment.
+        if let gained = vehicle.horsepowerGainedOverStock {
+            if let measured = vehicle.measuredWheelHorsepower {
+                fact("Gained over stock", "~\(Int(gained)) whp of that \(Int(measured)) whp is gain over "
+                     + "the stock baseline — already included in the \(Int(measured)), NOT additional to "
+                     + "it. Do not add these together. [estimate]")
+            } else {
+                fact("Gained over stock", "~\(Int(gained)) whp [estimate]")
+            }
+        }
         fact("Power-to-weight", vehicle.powerToWeight.map {
             String(format: "%.1f lb/hp", $0) + (vehicle.hasMeasuredPower ? "" : " [from factory rating]")
         })
 
         section("Investment")
         if let investment = vehicle.investmentFigure {
-            fact("Total invested", "\(dollars(investment.total)) [\(investment.sourceLong)]")
-            fact("Build-sheet total (lower than logged parts)", investment.documentedReconcile.map(dollars))
-            fact("Priced in parts so far", investment.pricedSoFar.map(dollars))
+            fact("Total invested", "\(dollars(investment.total)) [\(investment.sourceLong)] "
+                 + "— this IS the whole build investment figure")
+            // Both of the following are other VIEWS of the same money, never extra money on top of
+            // the total. Same additive trap as power (W-061).
+            fact("Build-sheet total (lower than logged parts)", investment.documentedReconcile.map {
+                "\(dollars($0)) — a different accounting of the same spend, NOT additional to the total"
+            })
+            fact("Priced in parts so far", investment.pricedSoFar.map {
+                "\(dollars($0)) — the portion of the total already priced out in parts, NOT additional to it"
+            })
             fact("Cost per wheel-hp gained", vehicle.costPerHpGroundingText)
         }
         fact("Installed parts", vehicle.installedPartsCount > 0 ? "\(vehicle.installedPartsCount)" : nil)

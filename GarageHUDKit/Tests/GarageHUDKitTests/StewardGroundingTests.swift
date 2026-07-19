@@ -80,4 +80,58 @@ final class StewardGroundingTests: XCTestCase {
         let reply = await StewardAssistant.answer(question: "how much power?", vehicle: boostedCar())
         XCTAssertFalse(reply.text.isEmpty)
     }
+
+    // MARK: W-061 — derived figures must never read as additive
+    //
+    // Field-found 2026-07-19 on Tim's phone: asked how much power the car makes, the on-device LLM
+    // took the 381 whp measured figure, added the ~201 whp "gained over stock" estimate, and
+    // reported the sum as fact. The gain is DERIVED from the measurement (measured − stock
+    // baseline), so it was already inside the 381. These pin the record's wording so the two can
+    // never again be presented as independent addable quantities.
+
+    func testGainOverStockIsMarkedAsContainedInTheMeasuredFigure() {
+        let car = boostedCar()
+        let r = StewardGrounding.record(for: car)
+        guard let gained = car.horsepowerGainedOverStock else {
+            return XCTFail("fixture must produce a gain figure for this regression to mean anything")
+        }
+        XCTAssertTrue(r.contains("\(Int(gained)) whp of that 381 whp"), r)
+        XCTAssertTrue(r.localizedCaseInsensitiveContains("already included"), r)
+        XCTAssertTrue(r.localizedCaseInsensitiveContains("not additional"), r)
+        XCTAssertTrue(r.localizedCaseInsensitiveContains("do not add these together"), r)
+    }
+
+    func testMeasuredPowerIsLabelledAsTheTotalNotAComponent() {
+        let r = StewardGrounding.record(for: boostedCar())
+        XCTAssertTrue(r.contains("381 whp"), r)
+        XCTAssertTrue(r.localizedCaseInsensitiveContains("current total power at the wheels"), r)
+    }
+
+    func testGainFactNeverStandsAloneAsABareNumber() {
+        // The exact shape that caused the bug: "Gained over stock: ~201 whp [estimate]" with no
+        // stated relationship to the measurement it came from.
+        let car = boostedCar()
+        let r = StewardGrounding.record(for: car)
+        guard let gained = car.horsepowerGainedOverStock else { return XCTFail("no gain in fixture") }
+        XCTAssertFalse(r.contains("Gained over stock: ~\(Int(gained)) whp [estimate]"), r)
+    }
+
+    func testInstructionsForbidCombiningRecordedValues() {
+        let i = StewardGrounding.instructions
+        XCTAssertTrue(i.localizedCaseInsensitiveContains("do not add"), i)
+        XCTAssertTrue(i.localizedCaseInsensitiveContains("derived"), i)
+        XCTAssertTrue(i.localizedCaseInsensitiveContains("double-count"), i)
+    }
+
+    func testMoneyViewsAreMarkedNonAdditiveToo() {
+        // Same structural trap as power: documentedReconcile and pricedSoFar are other views of the
+        // same spend, not extra money on top of the total. This one is about Tim's actual dollars.
+        var v = boostedCar()
+        v.documentedTotalInvestment = 20_000       // documented total leads the priced parts sum
+        let r = StewardGrounding.record(for: v)
+        XCTAssertTrue(r.localizedCaseInsensitiveContains("whole build investment figure"), r)
+        if let fig = v.investmentFigure, fig.pricedSoFar != nil || fig.documentedReconcile != nil {
+            XCTAssertTrue(r.localizedCaseInsensitiveContains("not additional to"), r)
+        }
+    }
 }
