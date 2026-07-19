@@ -1197,6 +1197,30 @@
         "date": "2026-07-16",
         "notes": "docs/STEWARD_THRESHOLDS.md. Finding: exactly ONE threshold is owner-calibrated (drivelineAttentionWheelHP=450, W-044); the rest are shop convention (drivetrain losses, 30d/500mi windows, coolant 215/235) or — for eleven of them — ungrounded guesses. Top three to calibrate: per-car boost caution (currently a flat 18 psi for every boosted car, and it's a safety caution), the 14/180-day sequence/quiet windows, and the 80-whp engine-internals gate. Recommended structural follow-up: centralize into StewardThresholds with per-constant provenance so a guess can't be added without declaring itself."
       }
+    },
+    {
+      "id": "W-049",
+      "title": "Sourced per-platform live limits — boost caution + air-cooled coolant",
+      "why": "Top calibrate-first item from the W-048 threshold audit. A flat 18 psi boost caution was applied to every boosted car regardless of setup (too high for a supercharged S2000, meaningless for the NA Tundra), and a 215/235F coolant limit was asserted on the air-cooled Baja that has no coolant at all — false authority, exactly what the app forbids.",
+      "depends_on": [
+        "W-048"
+      ],
+      "completion_criteria": [
+        "PlatformBaseline catalog: per-platform boost caution + air-cooled flag, each entry citing a source (researched from Subaru/Honda/Toyota/VW tuner communities)",
+        "OperatingEnvelope.default derives boost caution per-platform (nil if NA) and suppresses coolant limits on air-cooled engines",
+        "coolant limits made optional; live rule and Specs editor handle nil"
+      ],
+      "testing_criteria": [
+        "PlatformBaselineTests: S2000=13, EJ turbo=17, Tundra/Baja boost nil, air-cooled Baja has no coolant limit and emits no coolant observation even at 260F, unknown boosted -> generic 16, every catalog entry cites a source",
+        "full suite green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "423 green (+5)",
+        "commit": "pending",
+        "date": "2026-07-18",
+        "notes": "Followed my rec (per-car boost caution) grounded in Tim's data (real tuner-site baselines). Sources: subaruforester.org/NASIOC (EJ255 TD04 stock ~12, safe ~16-18); S2KI/Kraftwerks (Rotrex SC ~8-12); 3UR-FE NA 381hp; VW Type-1 air-cooled. Catalog is extensible with a hard rule: a new platform must cite a source or it doesn't belong. Register updated; boost-caution guess retired."
+      }
     }
   ]
 }

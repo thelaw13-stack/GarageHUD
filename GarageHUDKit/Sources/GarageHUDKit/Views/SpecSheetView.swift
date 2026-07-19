@@ -259,8 +259,8 @@ struct SpecSheetView: View {
                 Text("Per-vehicle live limits. Boost rules only apply where boost means something.")
                     .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 16)], spacing: 12) {
-                    envField("Coolant caution °F", get: { $0.coolantCautionF }, set: { $0.coolantCautionF = $1 }, color: HUDTheme.amber)
-                    envField("Coolant critical °F", get: { $0.coolantCriticalF }, set: { $0.coolantCriticalF = $1 }, color: HUDTheme.danger)
+                    envOptField("Coolant caution °F", get: { $0.coolantCautionF }, set: { $0.coolantCautionF = $1 }, color: HUDTheme.amber)
+                    envOptField("Coolant critical °F", get: { $0.coolantCriticalF }, set: { $0.coolantCriticalF = $1 }, color: HUDTheme.danger)
                     envOptField("Boost caution psi", get: { $0.boostCautionPsi }, set: { $0.boostCautionPsi = $1 }, color: HUDTheme.amber)
                     envOptField("Boost ceiling psi", get: { $0.maxSustainedBoostPsi }, set: { $0.maxSustainedBoostPsi = $1 }, color: HUDTheme.danger)
                 }

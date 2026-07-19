@@ -264,17 +264,18 @@ public enum Steward {
             let measured = coolant.source == .obdAdapter
             let word = measured ? "Measured" : "Estimated"
             let prov: StewardObservation.Provenance = measured ? .measuredLive : .estimatedLive
-            if coolant.value >= env.coolantCriticalF {
+            // Air-cooled cars have no coolant limit (nil) — the rule simply doesn't fire.
+            if let critical = env.coolantCriticalF, coolant.value >= critical {
                 out.append(StewardObservation(
                     ruleID: StewardRuleID.liveCoolantCritical, subjectID: vid,
                     statement: "The data suggests coolant is running hot.",
-                    evidence: "\(word) coolant \(Int(coolant.value))°F, at/above this car's \(Int(env.coolantCriticalF))°F limit.",
+                    evidence: "\(word) coolant \(Int(coolant.value))°F, at/above this car's \(Int(critical))°F limit.",
                     confidence: measured ? .strong : .weak, tone: .advisory, provenance: prov))
-            } else if coolant.value >= env.coolantCautionF {
+            } else if let caution = env.coolantCautionF, coolant.value >= caution {
                 out.append(StewardObservation(
                     ruleID: StewardRuleID.liveCoolantCaution, subjectID: vid,
                     statement: "I observed coolant climbing toward the upper range.",
-                    evidence: "\(word) coolant \(Int(coolant.value))°F (caution from \(Int(env.coolantCautionF))°F).",
+                    evidence: "\(word) coolant \(Int(coolant.value))°F (caution from \(Int(caution))°F).",
                     confidence: measured ? .moderate : .weak, tone: .caution, provenance: prov))
             }
         }

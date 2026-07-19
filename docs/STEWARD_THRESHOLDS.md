@@ -24,9 +24,8 @@ Last swept: 2026-07-16 (W-048), against the reasoning layer at this commit.
 
 | Threshold | Value | Where | Gates | Provenance |
 |---|---|---|---|---|
-| Coolant caution | **215°F** | `StewardContext.swift:63,87` | live "coolant getting warm" caution | `CONVENTION` (leans conservative) |
-| Coolant critical | **235°F** | `StewardContext.swift:63,87` | live "coolant is hot" advisory | `CONVENTION` |
-| Boost caution (boosted cars) | **18 psi** | `StewardContext.swift:88` | live "boost is high" caution when no owner ceiling is set | `GUESS` — a single number applied to every boosted car regardless of setup |
+| Coolant caution / critical | **215 / 235°F**, or **nil (air-cooled)** | `StewardContext.swift`, `PlatformBaseline` | live coolant caution/advisory; suppressed entirely on air-cooled engines | `CONVENTION` — and now **physics-aware** (W-049): no coolant limit on a car with no coolant |
+| Boost caution (boosted cars) | **per-platform, sourced** (S2000 13 · EJ turbo 17 · generic 16) | `PlatformBaseline.swift` | live "boost is high" caution when no owner ceiling is set | `SOURCED` (W-049) — was a flat-18 `GUESS`; now grounded in each platform's real tuning behavior with citations |
 | Pull coolant-rise flag | **≥ 15°F** delta | `PullIntelligence.swift:74` | "the car heat-soaked during that pull" | `GUESS` |
 
 Note: `maxSustainedBoostPsi` (the hard over-boost ceiling) is `OWNER`, opt-in — the one live limit
@@ -65,10 +64,9 @@ the UI as the facts the app is so careful about elsewhere. That's the honesty ga
 app grades *its inputs* by evidence but not *its own reasoning constants*.
 
 ### Calibrate first (consequence × arbitrariness)
-1. **Boost caution 18 psi** (`StewardContext.swift:88`) — one number for every boosted car is wrong
-   for most of them. A stock-turbo Fozzy and a built S2K don't share a caution point. Highest
-   consequence (it's a *safety* caution) and highest arbitrariness. Should be per-car, like the
-   ceiling already is.
+1. ~~**Boost caution 18 psi**~~ — **DONE (W-049).** Replaced with sourced per-platform values
+   (`PlatformBaseline`) and made physics-aware: NA cars get no boost caution, air-cooled cars get no
+   coolant limit. The flat guess is gone.
 2. **Sequence/quiet windows 14 / 180 days** (`Steward.swift`) — these decide whether the Steward
    speaks at all about sequence and dormancy; wrong values make it nag or go silent at the wrong time.
 3. **Engine-internals gain 80 whp** (`BuildAssessment.swift:58`) — decides whether the app tells you

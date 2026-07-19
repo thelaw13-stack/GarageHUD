@@ -50,8 +50,10 @@ public struct BoostBand: Sendable, Equatable, Hashable, Codable {
 /// car whose tune hasn't been characterized. Sustained-vs-instantaneous duration and load
 /// remain future work; the rules gate boost on throttle to avoid off-throttle false alarms.
 public struct OperatingEnvelope: Sendable, Equatable, Hashable, Codable {
-    public var coolantCautionF: Double
-    public var coolantCriticalF: Double
+    /// nil means "coolant temperature is not a meaningful signal for this car" (e.g. air-cooled —
+    /// no coolant to measure). A limit on an air-cooled engine is false authority.
+    public var coolantCautionF: Double?
+    public var coolantCriticalF: Double?
     /// nil means "boost is not a meaningful signal for this car" (e.g. naturally aspirated).
     public var boostCautionPsi: Double?
     /// A hard ceiling the owner never wants exceeded (over-boost alarm). Opt-in.
@@ -60,7 +62,7 @@ public struct OperatingEnvelope: Sendable, Equatable, Hashable, Codable {
     /// generic boost caution.
     public var expectedBoostByRPM: [BoostBand]
 
-    public init(coolantCautionF: Double = 215, coolantCriticalF: Double = 235,
+    public init(coolantCautionF: Double? = 215, coolantCriticalF: Double? = 235,
                 boostCautionPsi: Double? = nil, maxSustainedBoostPsi: Double? = nil,
                 expectedBoostByRPM: [BoostBand] = []) {
         self.coolantCautionF = coolantCautionF
@@ -72,19 +74,22 @@ public struct OperatingEnvelope: Sendable, Equatable, Hashable, Codable {
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        coolantCautionF = try c.decodeIfPresent(Double.self, forKey: .coolantCautionF) ?? 215
-        coolantCriticalF = try c.decodeIfPresent(Double.self, forKey: .coolantCriticalF) ?? 235
+        coolantCautionF = try c.decodeIfPresent(Double.self, forKey: .coolantCautionF)
+        coolantCriticalF = try c.decodeIfPresent(Double.self, forKey: .coolantCriticalF)
         boostCautionPsi = try c.decodeIfPresent(Double.self, forKey: .boostCautionPsi)
         maxSustainedBoostPsi = try c.decodeIfPresent(Double.self, forKey: .maxSustainedBoostPsi)
         expectedBoostByRPM = try c.decodeIfPresent([BoostBand].self, forKey: .expectedBoostByRPM) ?? []
     }
 
-    /// A sane default derived from the record: boost matters on any car that makes it —
-    /// aftermarket forced induction OR a factory-boosted platform (W-045; a stock FXT's boost
-    /// gauge is as real as a big-turbo build's). Coolant limits are conservative street values;
-    /// no tune profile is assumed (that must be entered by the owner).
+    /// A default derived from what we actually know about the car (W-049):
+    /// - boost caution is the platform's sourced value when the car makes boost, else nil — no more
+    ///   flat 18 psi applied to a supercharged S2000 and a turbo Subaru alike (see `PlatformBaseline`);
+    /// - coolant limits are conservative street values, but **nil for an air-cooled engine** that has
+    ///   no coolant to measure. No tune profile is assumed (that's the owner's to enter).
     public static func `default`(for vehicle: Vehicle) -> OperatingEnvelope {
-        OperatingEnvelope(coolantCautionF: 215, coolantCriticalF: 235,
-                          boostCautionPsi: vehicle.runsBoost ? 18 : nil)
+        let liquidCooled = !vehicle.isAirCooled
+        return OperatingEnvelope(coolantCautionF: liquidCooled ? 215 : nil,
+                                 coolantCriticalF: liquidCooled ? 235 : nil,
+                                 boostCautionPsi: vehicle.defaultBoostCautionPsi)
     }
 }
