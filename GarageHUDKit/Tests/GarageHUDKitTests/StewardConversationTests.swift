@@ -54,4 +54,19 @@ final class StewardConversationTests: XCTestCase {
         let text = await responder.respond(to: StewardIntent(raw: "cost per hp"))
         XCTAssertEqual(text, StewardConversation.reply(to: "cost per hp", vehicle: v).text)
     }
+
+    func testActivityUsesInjectedClock() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        var v = builtVehicle()
+        v.performanceRecords = [PerformanceRecord(date: calendar.date(byAdding: .day, value: -12, to: now)!, type: .dyno)]
+
+        let reply = StewardConversation.reply(
+            to: "when did I last touch it",
+            vehicle: v,
+            context: StewardContext(now: now, calendar: calendar))
+
+        XCTAssertTrue(reply.text.contains("12 days ago"))
+    }
 }

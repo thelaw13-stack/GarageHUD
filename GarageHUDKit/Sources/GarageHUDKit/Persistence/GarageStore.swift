@@ -66,6 +66,14 @@ public final class GarageStore: ObservableObject {
         isLoading = true
         load()
         isLoading = false
+        // An older app must never replace a future-schema document with its seed or sync that
+        // downgrade to CloudKit. Preserve the bytes and remain read-only until an app that knows
+        // the schema opens them.
+        if unsupportedSchemaVersion != nil {
+            initialSyncPending = false
+            syncStatus = .offline
+            return
+        }
         // Apply the bundled seed exactly once per install: fill a bare matching vehicle in
         // place, and add any seed vehicle that isn't present into a free bay. Gated by a flag so
         // an intentionally-emptied garage isn't re-seeded later.
@@ -80,7 +88,9 @@ public final class GarageStore: ObservableObject {
         // Heal any duplicate record ids from past imports/merges — a duplicate id can hard-crash a
         // ForEach and confuse sheet(item:)/sync.
         for i in vehicles.indices where vehicles[i].dedupeRecordIDs() { changed = true }
-        seededThisLaunch = changed
+        // Seed recovery after a corrupt local file is provisional: if a real cloud garage exists,
+        // it must win. Treating this seed as authoritative would overwrite the recovery source.
+        seededThisLaunch = changed && loadFailureBackupURL == nil
         if changed { save() }   // persist the seeded/normalized/healed garage
         rollFleetDigest()       // "since you were last here": diff prior snapshot, then re-baseline
         if cloud != nil {
@@ -178,7 +188,8 @@ public final class GarageStore: ObservableObject {
             return
         }
         syncStatus = .syncing
-        if let remote = await cloud.pull() {
+        switch await cloud.pull() {
+        case .found(let remote):
             if seededThisLaunch || shouldPreferLocal(over: remote.vehicles) {
                 // We just added seed data (a superset), or local holds a real build the cloud
                 // lacks — make local authoritative rather than let the cloud overwrite it.
@@ -187,6 +198,9 @@ public final class GarageStore: ObservableObject {
                 if await cloud.push(vehicles: vehicles, updatedAt: stamp) {
                     appliedCloudUpdatedAt = stamp
                     await cloud.uploadPhotos(filenames: allPhotoFilenames(vehicles))
+                } else {
+                    syncStatus = .offline
+                    return
                 }
             } else {
                 if appliedCloudUpdatedAt == nil || remote.updatedAt > appliedCloudUpdatedAt! {
@@ -197,10 +211,16 @@ public final class GarageStore: ObservableObject {
                 }
                 initialSyncPending = false
             }
-        } else {
+        case .notFound:
             // No cloud record yet — this device seeds the cloud.
             initialSyncPending = false
             await pushNow(vehicles)
+        case .unreadable, .failed:
+            // A fetch or payload failure is not evidence that the cloud is empty. Stay local and
+            // retry later; never seed/overwrite a garage this device could not successfully read.
+            initialSyncPending = false
+            syncStatus = .offline
+            return
         }
         syncStatus = .synced
     }
@@ -218,7 +238,10 @@ public final class GarageStore: ObservableObject {
         Task {
             guard await cloud.accountAvailable() else { syncStatus = .offline; return }
             syncStatus = .syncing
-            if let remote = await cloud.pull(),
+            let result = await cloud.pull()
+            if case .failed = result { syncStatus = .offline; return }
+            if case .unreadable = result { syncStatus = .offline; return }
+            if case .found(let remote) = result,
                !shouldPreferLocal(over: remote.vehicles),
                appliedCloudUpdatedAt == nil || remote.updatedAt > appliedCloudUpdatedAt! {
                 applyRemote(remote.vehicles)
@@ -268,7 +291,10 @@ public final class GarageStore: ObservableObject {
         // local state for manual recovery, then accept the cloud state. The one exception is a
         // stripped/empty remote against a real local build (`shouldPreferLocal`) — there, local
         // is authoritative, as everywhere else.
-        if let remote = await cloud.pull(),
+        let pullResult = await cloud.pull()
+        if case .failed = pullResult { syncStatus = .offline; return }
+        if case .unreadable = pullResult { syncStatus = .offline; return }
+        if case .found(let remote) = pullResult,
            !shouldPreferLocal(over: remote.vehicles),
            appliedCloudUpdatedAt.map({ remote.updatedAt > $0 }) ?? true {
             let snapshotURL = writeConflictSnapshot(snapshot, remoteUpdatedAt: remote.updatedAt)
@@ -355,7 +381,7 @@ public final class GarageStore: ObservableObject {
                 let count: Int? = (try? Data(contentsOf: url)).flatMap { data in
                     switch GaragePersistence.decode(data) {
                     case .ok(let v), .migratedLegacy(let v): return v.count
-                    case .empty, .unreadable: return nil
+                    case .empty, .unsupportedVersion, .unreadable: return nil
                     }
                 }
                 return RecoverySnapshot(url: url, kind: kind, savedAt: savedAt, vehicleCount: count)
@@ -372,7 +398,7 @@ public final class GarageStore: ObservableObject {
         let restored: [Vehicle]
         switch GaragePersistence.decode(data) {
         case .ok(let v), .migratedLegacy(let v): restored = v
-        case .empty, .unreadable: return false
+        case .empty, .unsupportedVersion, .unreadable: return false
         }
         writeSnapshot(vehicles, label: "pre-restore")
         vehicles = restored   // didSet persists and schedules a push
@@ -431,6 +457,9 @@ public final class GarageStore: ObservableObject {
     /// Set when a present-but-corrupt garage file was found on load. The unreadable bytes are
     /// preserved at this URL rather than discarded, so nothing is lost silently.
     @Published public private(set) var loadFailureBackupURL: URL?
+    /// A document from a newer app is preserved and left untouched instead of being decoded and
+    /// later rewritten as this app's older schema.
+    @Published public private(set) var unsupportedSchemaVersion: Int?
 
     public func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
@@ -445,6 +474,10 @@ public final class GarageStore: ObservableObject {
             if let migrated = try? GaragePersistence.encode(loaded) {
                 try? migrated.write(to: fileURL, options: .atomic)
             }
+        case .unsupportedVersion(let version):
+            unsupportedSchemaVersion = version
+            loadFailureBackupURL = backUpUnreadableFile(data)
+            vehicles = []
         case .unreadable:
             // Never silently wipe. Preserve the unreadable file, then continue with an empty
             // garage (which will restore from iCloud or the seed rather than overwrite blindly).

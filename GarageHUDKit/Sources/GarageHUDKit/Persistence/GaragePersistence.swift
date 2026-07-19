@@ -19,6 +19,7 @@ public enum GaragePersistence {
         case empty                          // no/blank file — a fresh garage
         case ok([Vehicle])                  // decoded at the current (or a newer) version
         case migratedLegacy([Vehicle])      // decoded a pre-versioning bare array
+        case unsupportedVersion(Int)         // newer schema: preserve; never downgrade/rewrite
         case unreadable                     // present but corrupt — must be preserved, not dropped
     }
 
@@ -39,9 +40,12 @@ public enum GaragePersistence {
     public static func decode(_ data: Data) -> LoadResult {
         guard !data.isEmpty else { return .empty }
         let dec = decoder()
-        // Current/forward: a versioned document. A newer schemaVersion still decodes its
-        // vehicles here (fields are additive), so a newer device's file won't be dropped.
+        // Current: a versioned document. A future schema is recognized but not decoded into this
+        // older mutable model, because saving it would discard fields this app does not know.
         if let doc = try? dec.decode(Document.self, from: data) {
+            guard doc.schemaVersion <= currentSchemaVersion else {
+                return .unsupportedVersion(doc.schemaVersion)
+            }
             return .ok(doc.vehicles)
         }
         // Legacy: a pre-versioning bare array.

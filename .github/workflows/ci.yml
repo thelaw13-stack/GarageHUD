@@ -26,12 +26,12 @@ jobs:
         run: swift --version
       - name: Build
         working-directory: GarageHUDKit
-        run: swift build
+        run: swift build -Xswiftc -warnings-as-errors
       - name: Test (emit JUnit results)
         working-directory: GarageHUDKit
         # --xunit-output requires --parallel to actually write the file; our tests are
         # parallel-safe (unique temp files / UserDefaults suites).
-        run: swift test --parallel --xunit-output test-results.xml
+        run: swift test -Xswiftc -warnings-as-errors --parallel --xunit-output test-results.xml
       - name: Publish test results to the PR
         uses: EnricoMi/publish-unit-test-result-action/macos@v2
         if: always()   # report pass AND fail, so a red run still explains itself
@@ -46,8 +46,11 @@ jobs:
           path: GarageHUDKit/test-results.xml
 
   ios-build:
-    name: iOS app build (simulator)
+    name: iOS app build (${{ matrix.configuration }}, simulator)
     runs-on: macos-15
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
     steps:
       - uses: actions/checkout@v4
       - name: Build app for iOS Simulator
@@ -56,6 +59,8 @@ jobs:
             -project GarageHUD-iOS/GarageHUD.xcodeproj \
             -scheme GarageHUD \
             -destination 'generic/platform=iOS Simulator' \
-            -configuration Debug \
+            -configuration '${{ matrix.configuration }}' \
             CODE_SIGNING_ALLOWED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=YES \
+            GCC_TREAT_WARNINGS_AS_ERRORS=YES \
             build

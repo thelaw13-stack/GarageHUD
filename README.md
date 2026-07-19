@@ -42,7 +42,7 @@ sources directly and adds entitlements, Info.plist usage strings, and app icon.
 
 ```sh
 swift build       # compiles clean under -strict-concurrency=complete
-swift test        # 86 tests: reasoning rules, telemetry decoding, handshake + transcript replay,
+swift test        # 464 tests: reasoning rules, telemetry decoding, handshake + transcript replay,
                   # briefing, stream lifecycle, envelope/knowledge honesty, injected-clock determinism
 ```
 
