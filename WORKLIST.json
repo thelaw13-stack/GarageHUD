@@ -1457,6 +1457,29 @@
         "date": "2026-07-19",
         "notes": "This changes only recovery-file serialization. The primary garage format and backward-compatible decoder are unchanged. TD-004 was also corrected to record the two successful measured-data Veepeak sessions."
       }
+    },
+    {
+      "id": "W-059",
+      "title": "Collapse duplicate OBD connection-journal transitions",
+      "why": "The July 19 successful Veepeak report logged the same PROTOCOL transition four times at +2.1s. Those were owner-facing render refreshes during sequential ELM configuration commands, not four retries, so the support report made a healthy handshake look stalled.",
+      "depends_on": [
+        "W-057"
+      ],
+      "completion_criteria": [
+        "Consecutive entries with the same stage and message are stored once",
+        "A later identical transition after a real intervening state remains visible, preserving reconnect evidence",
+        "The successful field timeline reads as distinct milestones rather than repeated render refreshes"
+      ],
+      "testing_criteria": [
+        "OBDConnectionJournalTests pins both duplicate collapse and later retry preservation; full suite green with warnings as errors; Debug and Release iOS Simulator builds green"
+      ],
+      "status": "complete",
+      "result": {
+        "tests": "464 -> 465, +1; warnings-as-errors; Debug + Release iOS Simulator builds green",
+        "commits": [],
+        "date": "2026-07-19",
+        "notes": "Fix derived directly from the 503.6-second measured-data Veepeak field report. Only consecutive exact duplicates are collapsed; different messages and repeated states after an intervening transition remain durable."
+      }
     }
   ]
 }

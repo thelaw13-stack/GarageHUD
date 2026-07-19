@@ -141,6 +141,11 @@ public enum OBDConnectionJournalStore {
     public static func append(stage: String, message: String, defaults: UserDefaults = .standard) {
         var journal = load(defaults: defaults)
             ?? OBDConnectionJournal(adapterSelection: OBDAdapterSelectionStore.load(defaults: defaults))
+        // A handshake can issue several configuration commands without changing the owner-facing
+        // state. `OBDLiveDataSource.transition` is intentionally called for each command so the
+        // live frame stays current, but repeating the same journal line makes a healthy attempt
+        // look like it retried or stalled. Keep transitions durable, not render refreshes.
+        if journal.latest?.stage == stage, journal.latest?.message == message { return }
         journal.entries.append(OBDConnectionJournal.Entry(stage: stage, message: message))
         journal.entries = Array(journal.entries.suffix(entryLimit))
         save(journal, defaults: defaults)

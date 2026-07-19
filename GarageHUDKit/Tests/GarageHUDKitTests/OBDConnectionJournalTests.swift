@@ -59,6 +59,31 @@ final class OBDConnectionJournalTests: XCTestCase {
         XCTAssertEqual(entries.last?.message, "Attempt 49")
     }
 
+    func testConsecutiveDuplicateTransitionsAreCollapsedWithoutHidingLaterRetries() {
+        let (defaults, suite) = defaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        OBDConnectionJournalStore.begin(selection: .veepeakOBDCheckBLE, defaults: defaults)
+        for _ in 0..<4 {
+            OBDConnectionJournalStore.append(
+                stage: "PROTOCOL",
+                message: "Negotiating the vehicle protocol…",
+                defaults: defaults)
+        }
+
+        var entries = OBDConnectionJournalStore.load(defaults: defaults)!.entries
+        XCTAssertEqual(entries.count, 1)
+
+        OBDConnectionJournalStore.append(stage: "RETRYING", message: "Bluetooth link dropped", defaults: defaults)
+        OBDConnectionJournalStore.append(
+            stage: "PROTOCOL",
+            message: "Negotiating the vehicle protocol…",
+            defaults: defaults)
+
+        entries = OBDConnectionJournalStore.load(defaults: defaults)!.entries
+        XCTAssertEqual(entries.map(\.stage), ["PROTOCOL", "RETRYING", "PROTOCOL"])
+    }
+
     func testDiagnosisIdentifiesDiscoveryAndChannelFailures() {
         let notSeen = OBDConnectionJournal(adapterSelection: .otherBLE, entries: [
             .init(stage: "SCANNING", message: "Searching")
