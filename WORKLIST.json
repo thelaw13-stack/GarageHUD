@@ -376,7 +376,7 @@
       "blocked_reason": null,
       "result": {
         "tests": "465 -> 470, +5; zero warnings under -strict-concurrency=complete",
-        "commits": ["PENDING-BACKFILL"],
+        "commits": ["cde99f9"],
         "date": "2026-07-19",
         "notes": "Root cause: horsepowerGainedOverStock is derived (measured - estimatedStockWheelHP, Vehicle.swift:607) but StewardGrounding.record emitted it as a bare sibling fact beside the measured figure, with no rule against arithmetic. Fix has three parts: (1) the measured line is labelled as the car's total at the wheels, (2) the gain names its containment explicitly ('~N whp of that 381 whp ... already included ... NOT additional ... Do not add these together'), (3) a general instruction forbids combining recorded values, since derived figures already contain each other. Extended to the Investment section unprompted: documentedReconcile is an alternative accounting and pricedSoFar is a portion of the total, so the identical additive trap existed for the owner's money and is now labelled too. Device-validated by Tim on the Debug build: 'how much power does it make?' returned 381, and the deliberate trap follow-up ('so what's the total with the gain?') did not produce a summed number. Honest limit: these are instructions to a language model plus tests pinning the record's wording — the tests constrain the prompt, not the model's obedience, so this is mitigation rather than a hard arithmetic guard."
       }
