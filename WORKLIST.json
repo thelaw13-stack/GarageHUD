@@ -1476,7 +1476,9 @@
       "status": "complete",
       "result": {
         "tests": "464 -> 465, +1; warnings-as-errors; Debug + Release iOS Simulator builds green",
-        "commits": [],
+        "commits": [
+          "a7f3a34"
+        ],
         "date": "2026-07-19",
         "notes": "Fix derived directly from the 503.6-second measured-data Veepeak field report. Only consecutive exact duplicates are collapsed; different messages and repeated states after an intervening transition remain durable."
       }
