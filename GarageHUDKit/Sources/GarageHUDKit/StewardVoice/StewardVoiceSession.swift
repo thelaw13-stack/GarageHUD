@@ -108,7 +108,18 @@ public final class StewardVoiceSession: NSObject, ObservableObject {
 
     // MARK: Listen
 
-    public func toggle() { isListening ? stop() : start() }
+    /// The mic control. Tapping while listening ends the utterance *and* asks it — one gesture,
+    /// one response (W-062). Previously this stopped without submitting, because `stop()` cancels
+    /// the recognition task before its final result can arrive, so the `isFinal` path that calls
+    /// `finish` never ran and the owner was left holding a transcript with no way to send it.
+    public func toggle() { isListening ? stopAndSubmit() : start() }
+
+    /// End listening and ask what was heard. Saying nothing simply cancels — an empty tap is not
+    /// a question, and must not fire an empty exchange.
+    public func stopAndSubmit() {
+        guard isListening else { return }
+        finish(with: partialTranscript)
+    }
 
     public func start() {
         guard !isListening, let recognizer, recognizer.isAvailable else { return }
@@ -169,9 +180,11 @@ public final class StewardVoiceSession: NSObject, ObservableObject {
     }
 
     private func finish(with utterance: String) {
-        let trimmed = utterance.trimmingCharacters(in: .whitespacesAndNewlines)
+        // One rule for both paths: the recognizer finalizing on its own, and the owner ending the
+        // utterance with a second mic tap.
+        let submission = SpeechSubmission.utteranceToSubmit(utterance)
         stop()
-        guard !trimmed.isEmpty else { return }
+        guard let trimmed = submission else { return }
         // A fleet-level session (no single-car context) doesn't field free-form questions —
         // it only speaks prebuilt scripts like the briefing.
         guard let vehicle else { return }

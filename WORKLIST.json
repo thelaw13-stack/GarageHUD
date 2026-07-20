@@ -331,17 +331,25 @@
       "testing_criteria": [
         "manual on-device validation; record findings and any TD updates here"
       ],
-      "status": "in_progress",
+      "status": "complete",
       "blocked_reason": null,
       "field_findings_2026_07_19": {
-        "device": "iPhone 15 Pro Max, iOS 26.6, Release build of 43635eb",
+        "device": "iPhone 15 Pro Max, iOS 26.6, developer mode enabled. Initial findings came from a Release build of 43635eb; all re-validation after the W-061 and W-062 fixes was on Debug builds (Debug is the correct configuration for this phone — it carries AppIconDev).",
         "llm_available": "PASS — StewardAssistant.isLLMAvailable resolved true on real hardware; the LLM quick-ask chips rendered, proving all three gates (canImport, iOS 26, SystemLanguageModel availability) cleared. First observation outside logic tests.",
         "latency": "PASS — roughly 1.2s to a full on-device answer.",
         "refuses_out_of_record": "PASS — asked for a Hellcat torque curve, it answered that the 2008 Subaru Forester XT Sport does not have a Hellcat engine. Named the actual vehicle and denied the false premise without inventing a figure.",
         "honors_confidence_bands": "FAIL, then PASS after the W-061 fix — first attempt summed a [Strong evidence] measured 381 whp with a [estimate] ~201 whp gain and reported the total as fact. After the grounding fix, re-asked on device: returned 381, and a deliberate trap follow-up asking for 'the total with the gain' did not produce a summed figure.",
-        "speech_in": "PARTIAL — permission prompt appeared, mic listened, transcription worked against the real mic; but there is no send affordance. See W-062."
+        "speech_in": "PARTIAL, then PASS after the W-062 fix — permission prompt appeared, mic listened, and transcription worked against the real mic, but the second tap stopped without sending. After the fix, Tim confirmed on device that one gesture ends the utterance and asks it."
       },
-      "result": null
+      "result": {
+        "tests": "465 -> 480 across the session, +15; zero warnings under -strict-concurrency=complete",
+        "commits": [
+          "cde99f9",
+          "PENDING-BACKFILL"
+        ],
+        "date": "2026-07-19",
+        "notes": "First real-hardware validation of the conversational Steward, on Tim's iPhone 15 Pro Max (iOS 26.6, Debug build with the dev icon). PASSES: StewardAssistant.isLLMAvailable resolved true on device, proving all three gates (canImport FoundationModels, iOS 26 availability, SystemLanguageModel runtime availability) clear together; roughly 1.2s to a full on-device answer; out-of-record refusal is clean — asked for a Hellcat torque curve it named the 2008 Forester XT Sport and denied the premise without inventing a figure; speech-in transcribes against the real mic and now submits in one gesture. Two failures were found by asking real questions and both were fixed and re-validated in the same session: confidence-band honesty (W-061, summed a measured figure with a derived estimate) and the speech-in send gesture (W-062). Neither was reachable by the test suite — the record was accurate line by line, and it was the adjacency of two facts that lied. Cloud voice was split to W-060 and is deferred by owner decision so GarageHUD stays free to run; it is not part of this item. Still open and NOT claimed here: the LLM path never carries a typed confidence band (StewardLLM returns StewardReply(text:) with confidence nil), so the evidence chip that renders for keyword answers never appears for LLM answers — awaiting Tim's defect-or-deliberate ruling."
+      }
     },
     {
       "id": "W-060",
@@ -376,7 +384,9 @@
       "blocked_reason": null,
       "result": {
         "tests": "465 -> 470, +5; zero warnings under -strict-concurrency=complete",
-        "commits": ["cde99f9"],
+        "commits": [
+          "cde99f9"
+        ],
         "date": "2026-07-19",
         "notes": "Root cause: horsepowerGainedOverStock is derived (measured - estimatedStockWheelHP, Vehicle.swift:607) but StewardGrounding.record emitted it as a bare sibling fact beside the measured figure, with no rule against arithmetic. Fix has three parts: (1) the measured line is labelled as the car's total at the wheels, (2) the gain names its containment explicitly ('~N whp of that 381 whp ... already included ... NOT additional ... Do not add these together'), (3) a general instruction forbids combining recorded values, since derived figures already contain each other. Extended to the Investment section unprompted: documentedReconcile is an alternative accounting and pricedSoFar is a portion of the total, so the identical additive trap existed for the owner's money and is now labelled too. Device-validated by Tim on the Debug build: 'how much power does it make?' returned 381, and the deliberate trap follow-up ('so what's the total with the gain?') did not produce a summed number. Honest limit: these are instructions to a language model plus tests pinning the record's wording — the tests constrain the prompt, not the model's obedience, so this is mitigation rather than a hard arithmetic guard."
       }
@@ -394,9 +404,16 @@
       "testing_criteria": [
         "full package suite green; on-device confirmation by Tim that one gesture sends"
       ],
-      "status": "incomplete",
+      "status": "complete",
       "blocked_reason": null,
-      "result": null
+      "result": {
+        "tests": "476 -> 480, +4; zero warnings under -strict-concurrency=complete",
+        "commits": [
+          "PENDING-BACKFILL"
+        ],
+        "date": "2026-07-19",
+        "notes": "Root cause was not a missing control: finish(with:) already submitted the utterance, but it only ran on result.isFinal, and stop() calls task?.cancel() which discards the pending final result. The second mic tap therefore destroyed the very path that would have sent the question. toggle() now routes a user-initiated stop through stopAndSubmit(), which asks what has already been transcribed instead of waiting for a final result cancellation guarantees will never arrive. No new button and no new affordance vocabulary — the mic tap simply does what it already looked like it did (DD-004). Saying nothing still cancels rather than firing an empty exchange, pinned by SpeechSubmissionTests. Honest limit: the pure submit rule is unit-tested, but the mic round-trip needs real hardware, so Tim's device confirmation is the evidence."
+      }
     },
     {
       "id": "W-063",
@@ -415,7 +432,9 @@
       "blocked_reason": null,
       "result": {
         "tests": "470 -> 476, +6; zero warnings under -strict-concurrency=complete",
-        "commits": ["da0f50c"],
+        "commits": [
+          "da0f50c"
+        ],
         "date": "2026-07-19",
         "notes": "New pure policy ScreenWake.shouldStayAwake(sessionRunning:connection:) decides from session state rather than view lifetime, applied in LiveSessionView via UIApplication.isIdleTimerDisabled behind canImport(UIKit). Holds wake through bring-up (scanning/handshaking) and through degraded/reconnecting — those are precisely when the owner is watching — and releases on .disconnected or a stopped session. stop() releases unconditionally so a session ending by button, error, or view teardown cannot strand the screen awake. Device-validated by Tim with Auto-Lock at 30s on the simulated feed (no car required): screen stayed lit with dials moving through a running session, and slept normally after Stop. Deliberate asymmetry pinned by test: OBDConnectionState.isLive stays strictly .polling (the only state where values may be called measured) while wake covers the whole engaged session."
       }
