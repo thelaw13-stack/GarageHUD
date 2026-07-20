@@ -495,6 +495,44 @@
       }
     },
     {
+      "id": "W-066",
+      "title": "iPhone text does not respond to Dynamic Type — 10pt labels are fixed",
+      "why": "Field-found 2026-07-19: several sections are too small to read comfortably on the phone. Root cause is not sizing taste but an opt-out: HUDTheme.monoFont uses fixed .system(size:) values (title 30, body 14, label 10), and fixed point sizes ignore Dynamic Type completely. Raising text size in iOS Settings changes nothing in GarageHUD. Pinch-to-zoom would treat the symptom; the OS mechanism is the fix, and it also serves the owner reading a spec in a dim garage with oily hands.",
+      "depends_on": [],
+      "completion_criteria": [
+        "Typography scales with the owner's iOS text-size setting",
+        "The monospaced HUD character of the design language is preserved — this is not a restyle",
+        "Layouts survive the largest accessibility sizes without truncation or overlap on iPhone",
+        "Tim approves the approach before it lands, since it touches every screen"
+      ],
+      "testing_criteria": [
+        "full package suite green; on-device check at default, large, and an accessibility text size"
+      ],
+      "status": "incomplete",
+      "blocked_reason": null,
+      "result": null,
+      "recommendation": "Map the three roles onto text styles with monospaced design (e.g. .system(.body, design: .monospaced)) or Font.custom(size:relativeTo:), so sizes scale from the owner's setting while the mono look is kept. Deliberately NOT done unilaterally: it changes exact sizes on every screen and the design language is Tim's call."
+    },
+    {
+      "id": "W-067",
+      "title": "Car-page hero crops the photo — fixed-height band with fill and clip",
+      "why": "Field-found 2026-07-19: photos are cut off on the car page. VehicleIdentitySurface.photoBand pins a height (176 compact / 230 regular), scales the image with .scaledToFill() and .clipped(), so any photo whose aspect ratio differs from the band loses its top and bottom. A landscape shot of a car loses roof and wheels — the subject, in an app whose whole point is looking at the car.",
+      "depends_on": [],
+      "completion_criteria": [
+        "A car photo is legible on the car page without losing the vehicle itself",
+        "The identity block stays visually calm — no letterboxed grey bars fighting the palette",
+        "Behaviour is predictable across portrait and landscape source photos",
+        "Tim chooses the approach: fit-with-treatment, a taller band, or an owner-set focal point"
+      ],
+      "testing_criteria": [
+        "on-device check with a real landscape and a real portrait photo from Tim's library"
+      ],
+      "status": "incomplete",
+      "blocked_reason": null,
+      "result": null,
+      "recommendation": "Three honest options: (1) scaledToFit with a blurred or panel-toned backdrop — nothing cropped, keeps the band height; (2) keep fill but let the owner set the focal point per photo, which is the most work and the most control; (3) raise the band height and accept a gentler crop. Option 1 is the smallest change that stops losing the subject."
+    },
+    {
       "id": "W-014",
       "title": "OBD hardware validation",
       "why": "Real-adapter integration, ISO-TP/multi-ECU headers, and live disconnect/reconnect are unverified against physical hardware (TD-004). Synthetic transcript replay is done.",
