@@ -615,8 +615,8 @@
       "testing_criteria": [
         "full package suite green; a placeholder must not produce a confident derived figure anywhere in the honesty sweep"
       ],
-      "status": "incomplete",
-      "blocked_reason": null,
+      "status": "blocked",
+      "blocked_reason": "Folded into W-073 (ADR-0006 accepted). Kept as a named acceptance case the implementation must satisfy, not worked standalone.",
       "result": null,
       "recommendation": "Likely a provenance marker alongside the value rather than a new field per figure — the PowerFigure/InvestmentFigure pattern of pairing a number with its wording already exists and is the natural home. Design first: this touches the honesty spine, and getting it wrong makes every figure look doubtful."
     },
@@ -633,8 +633,8 @@
       "testing_criteria": [
         "full package suite green including a sweep case for an unmeasured car's card"
       ],
-      "status": "incomplete",
-      "blocked_reason": null,
+      "status": "blocked",
+      "blocked_reason": "Folded into W-073 (ADR-0006 accepted). Kept as a named acceptance case the implementation must satisfy, not worked standalone.",
       "result": null
     },
     {
@@ -649,6 +649,28 @@
       ],
       "testing_criteria": [
         "full package suite green; fleet totals must not include acquisition cost"
+      ],
+      "status": "blocked",
+      "blocked_reason": "Folded into W-073 (ADR-0006 accepted). Kept as a named acceptance case the implementation must satisfy, not worked standalone.",
+      "result": null
+    },
+    {
+      "id": "W-073",
+      "title": "Provenance spine — confidence that can only decrease (ADR-0006)",
+      "why": "One principle behind W-070/071/072: a value's origin is lost the instant it becomes a bare number, so a guess is indistinguishable from a measurement and a derivation can launder one into the other. ADR-0006 (accepted) attaches provenance (unknown/estimated/sourced/measured) to load-bearing figures, defaults a typed number to estimated, makes unknown first-class, and enforces that a derived figure inherits its weakest input's provenance and is shown with no more confidence than that input earned.",
+      "depends_on": [],
+      "completion_criteria": [
+        "Provenance is a pure, closed, ordered type with unit tests (unknown < estimated < sourced < measured), plus the monotonic combine (weakest wins)",
+        "Load-bearing figures carry provenance: factoryHorsepower, factoryTorque, factoryWeightLbs, purchasePrice, documentedTotalInvestment",
+        "W-070: an estimated/placeholder factoryHorsepower never produces a confidently-presented stock baseline — the derived figure is estimated or suppressed",
+        "W-071: a crank estimate and a wheel baseline are never presented as a confident comparable pair",
+        "W-072: money entry makes acquisition/build/service obviously distinct at the point of typing",
+        "unknown is a comfortable, graceful entry state — no fabricated derivations from it, honest 'not recorded'",
+        "Migration: legacy unmarked values decode as unspecified and render exactly as today — no value retroactively cast into doubt",
+        "The cross-surface honesty sweep covers the new rule so it cannot regress"
+      ],
+      "testing_criteria": [
+        "full package suite green with provenance + monotonic-combine unit tests and honesty-sweep cases; then on-device check that the Baja's 75 hp no longer yields a hard 63 whp baseline"
       ],
       "status": "incomplete",
       "blocked_reason": null,
