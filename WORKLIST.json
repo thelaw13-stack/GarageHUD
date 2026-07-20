@@ -677,6 +677,25 @@
       "result": null
     },
     {
+      "id": "W-074",
+      "title": "Provenance is only visible on the exported fleet sheet, not where the owner edits",
+      "why": "Found 2026-07-20 confirming the power slice. Tim retyped the Baja's factory HP on the Specs screen (provenance correctly became estimated) but saw no change, because the stock baseline and its new '~/est' marking render ONLY on the exported fleet-sheet PDF. The honesty signal should be visible on the surface where the value is edited and viewed (Specs / dashboard), not only in an export the owner must regenerate. The fix works; it's just invisible at the point of use.",
+      "depends_on": [
+        "W-073"
+      ],
+      "completion_criteria": [
+        "The factory power figure and its derived baseline show their origin (est/documented/measured) on the Specs screen",
+        "An estimated or unknown-derived figure never reads as a hard number on any on-screen surface",
+        "Consistent wording with the fleet sheet — one vocabulary, not two"
+      ],
+      "testing_criteria": [
+        "full package suite green; on-device check that editing a value shows its honesty marking in place"
+      ],
+      "status": "incomplete",
+      "blocked_reason": null,
+      "result": null
+    },
+    {
       "id": "W-014",
       "title": "OBD hardware validation",
       "why": "Real-adapter integration, ISO-TP/multi-ECU headers, and live disconnect/reconnect are unverified against physical hardware (TD-004). Synthetic transcript replay is done.",
