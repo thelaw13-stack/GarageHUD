@@ -104,6 +104,9 @@ public final class GarageStore: ObservableObject {
         rollFleetDigest()       // "since you were last here": diff prior snapshot, then re-baseline
         if cloud != nil {
             Task { await initialSync() }
+            // W-068: register the standing change subscription so another device's write nudges
+            // this one, instead of freshness depending on a relaunch.
+            Task { await cloud?.ensureChangeSubscription() }
         }
     }
 
@@ -240,6 +243,10 @@ public final class GarageStore: ObservableObject {
         func real(_ list: [Vehicle]) -> Bool { list.contains { !$0.parts.isEmpty || !$0.performanceRecords.isEmpty } }
         return real(vehicles) && !real(remote)
     }
+
+    /// Called when iCloud reports the garage changed on another device (W-068). Deliberately just
+    /// the existing guarded pull — the nudge decides *when* to look, never *what* to believe.
+    public func remoteChangeNoticed() { syncNow() }
 
     /// Pull-only refresh, safe to call on foreground / manual "sync now".
     public func syncNow() {

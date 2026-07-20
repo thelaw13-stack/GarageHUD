@@ -45,6 +45,44 @@ public final class CloudSyncManager {
 
     public enum SyncError: Error { case noAccount }
 
+    // MARK: Change notification (W-068)
+
+    /// Identifier for the standing subscription. Fixed, so re-running this is idempotent — saving a
+    /// subscription that already exists returns `.serverRejectedRequest`, which is a success here,
+    /// not a failure. Without a fixed id every launch would create another subscription and the
+    /// owner's iCloud would slowly fill with duplicates all pushing for the same change.
+    private static let garageSubscriptionID = "garage-changes-v1"
+
+    /// Ask iCloud to nudge this device whenever the garage record changes on another one.
+    ///
+    /// Before this, GarageHUD only fetched at launch and on becoming active, so an app left open —
+    /// a Mac sitting frontmost in the garage — never learned the phone had written anything, and
+    /// correct sync looked broken. The nudge is silent: `shouldSendContentAvailable` wakes the app
+    /// to fetch, with no alert, no badge, no sound, and no permission prompt. It carries no data
+    /// itself; it only says "look again", and the existing guarded pull decides everything else.
+    ///
+    /// Safe to call on every launch. Failure is deliberately quiet — an owner with no iCloud
+    /// account, or offline, still has a working local app, and this is an optimisation of freshness
+    /// rather than a requirement for correctness.
+    public func ensureChangeSubscription() async {
+        guard Self.canUseCloudKitContainer, await accountAvailable() else { return }
+        let subscription = CKQuerySubscription(
+            recordType: garageRecordType,
+            predicate: NSPredicate(value: true),
+            subscriptionID: Self.garageSubscriptionID,
+            options: [.firesOnRecordUpdate, .firesOnRecordCreation])
+        let info = CKSubscription.NotificationInfo()
+        info.shouldSendContentAvailable = true   // silent: wake and fetch, never alert the owner
+        subscription.notificationInfo = info
+        do {
+            _ = try await db.save(subscription)
+        } catch let error as CKError where error.code == .serverRejectedRequest {
+            // Already registered from a previous launch — the desired state, not a problem.
+        } catch {
+            // Offline, no account, or iCloud unavailable. Launch/foreground fetching still works.
+        }
+    }
+
     public func accountAvailable() async -> Bool {
         (try? await container.accountStatus()) == .available
     }

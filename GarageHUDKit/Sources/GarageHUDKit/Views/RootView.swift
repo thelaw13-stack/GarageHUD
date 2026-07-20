@@ -32,6 +32,12 @@ public struct RootView: View {
         .sheet(isPresented: $showingUpgrade) {
             UpgradeView(purchases: purchases)
         }
+        // W-068: iCloud's silent nudge arrives as a notification from the app delegate; turn it into
+        // the same guarded pull used on foreground. Freshness stops depending on a relaunch.
+        .onReceive(NotificationCenter.default.publisher(
+            for: Notification.Name("GarageHUD.remoteChangeNoticed"))) { _ in
+            store.remoteChangeNoticed()
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { store.syncNow() }
             #if canImport(UserNotifications)

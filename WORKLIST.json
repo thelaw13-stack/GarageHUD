@@ -567,10 +567,11 @@
       "testing_criteria": [
         "full package suite green; then a two-device check with Tim where the second device is left OPEN and untouched and still converges"
       ],
-      "status": "incomplete",
+      "status": "in_progress",
       "blocked_reason": null,
       "result": null,
-      "recommendation": "A CKDatabaseSubscription with a silent push is the correct mechanism and costs nothing when idle; a foreground timer is the cheap fallback but burns battery and still misses a backgrounded-then-viewed device. Worth deciding with Tim, since it is the difference between sync that works and sync that appears to work."
+      "recommendation": "A CKDatabaseSubscription with a silent push is the correct mechanism and costs nothing when idle; a foreground timer is the cheap fallback but burns battery and still misses a backgrounded-then-viewed device. Worth deciding with Tim, since it is the difference between sync that works and sync that appears to work.",
+      "implementation_note": "CKQuerySubscription on the Garage record type, saved once with a fixed subscription id so re-running is idempotent — a .serverRejectedRequest on save means it already exists and is treated as success, since without a fixed id every launch would add another duplicate all pushing for the same change. notificationInfo sets shouldSendContentAvailable only: silent, no alert, badge, sound, or permission prompt, and deliberately no UNUserNotificationCenter authorization request — this is plumbing, not a notifications feature, and a dialog for something the owner should never see would be its own defect. A PushDelegate (UIApplicationDelegate on iOS, NSApplicationDelegate on macOS) registers for remote notifications and posts a NotificationCenter message; RootView turns it into the existing guarded syncNow(). The push carries no garage data and is never trusted with any — it only says 'look again', and the conservative pull plus the stamped merge decide what to believe. INFOPLIST_KEY_UIBackgroundModes = remote-notification added to both build configurations, without which iOS drops the nudge when the app is not frontmost. iOS reports .newData rather than .noData because the triggered fetch is asynchronous and reporting no-data would teach iOS to throttle delivery, quietly reintroducing the staleness this fixes. Registration failure is silent by design: launch/foreground fetching still works, so the app stays correct, just less fresh. Entitlements already carried aps-environment and the iCloud container, so nothing new was needed from Tim's Apple account. Built and installed to both the phone and /Applications/GarageHUD.app; awaiting the two-device check where the second device is left OPEN and untouched."
     },
     {
       "id": "W-069",
