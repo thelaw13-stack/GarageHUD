@@ -700,7 +700,7 @@
           "e3c34cf",
           "4a7bd0a",
           "db622b9",
-          "PENDING"
+          "986d49b"
         ],
         "date": "2026-07-20",
         "notes": "ADR-0006 fully implemented across six increments, all device-validated or sweep-locked: (1) the pure Provenance type + monotonic weakest() [97f910e]; (2) power slice — factoryHorsepower provenance, humble default, derived baseline, fleet sheet marking [8215fea]; (3) in-place visibility on the Specs screen [e3c34cf]; (4) money/meaning — MoneyFact names acquisition/build/service distinctly at entry, totalInvested proven to exclude purchase price [4a7bd0a]; (5) torque/weight + power-to-weight through the monotonic rule [db622b9]; (6) honesty-sweep close-out — estimated/guessed-weight/unknown provenance vehicles added to the adversarial matrix, plus a structural monotonic invariant (rule 7) that a derived figure never out-ranks its weakest input. Rule 7 vacuity-tested by hand: inverting a derived provenance to falsely claim .measured makes the sweep fail. A textual rule 8 draft was dropped as redundant with the existing 'stock/estimat marker' rule 1. Migration honoured throughout: legacy .unspecified values render exactly as today, no retroactive doubt."
