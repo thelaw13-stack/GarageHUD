@@ -508,9 +508,16 @@
       "testing_criteria": [
         "full package suite green; on-device check at default, large, and an accessibility text size"
       ],
-      "status": "incomplete",
+      "status": "complete",
       "blocked_reason": null,
-      "result": null,
+      "result": {
+        "tests": "509 -> 512, +3; zero warnings under -strict-concurrency=complete",
+        "commits": [
+          "PENDING"
+        ],
+        "date": "2026-07-19",
+        "notes": "HUDTheme.monoFont now runs each design size through UIFontMetrics, so the whole type scale follows the owner's iOS text-size setting. Deliberately keeps the exact design scale (30/19/14/10) at the default setting, so nothing moves for an owner who never changes it; mapping onto system text styles would have resized every screen for everyone. UIFontMetrics is Apple's own curve rather than a multiplier table invented here. Tests pin the invariants that matter under scaling: sizes never shrink below the design size, the strict four-level scale stays ordered (weight, not size, carries emphasis — a collapse would erase the hierarchy), and the value is stable across repeated calls since the helpers run on every body evaluation. Tim confirmed on device: working as intended. Scope limit, unchanged: the 41 remaining fixed .system(size:) call sites are all SF Symbol icons, not text, so icons still do not scale; and macOS has no Dynamic Type so sizes pass through there. Behaviour at the largest accessibility sizes was not separately itemized by Tim — if a dense panel truncates later, fix that panel's layout rather than capping the text."
+      },
       "recommendation": "Map the three roles onto text styles with monospaced design (e.g. .system(.body, design: .monospaced)) or Font.custom(size:relativeTo:), so sizes scale from the owner's setting while the mono look is kept. Deliberately NOT done unilaterally: it changes exact sizes on every screen and the design language is Tim's call."
     },
     {
@@ -527,9 +534,16 @@
       "testing_criteria": [
         "on-device check with a real landscape and a real portrait photo from Tim's library"
       ],
-      "status": "incomplete",
+      "status": "complete",
       "blocked_reason": null,
-      "result": null,
+      "result": {
+        "tests": "512, unchanged — view-layer change with no testable pure logic",
+        "commits": [
+          "PENDING"
+        ],
+        "date": "2026-07-19",
+        "notes": "VehicleIdentitySurface fitted the photo whole inside the band, over a blurred dimmed copy of itself, replacing scaledToFill + clipped. The old behaviour cropped harder the wider the window got — Tim reported it worsening in fullscreen, which is exactly fill against a widening aspect ratio. The backdrop keeps the band visually full instead of showing letterbox bars fighting the palette, and is accessibilityHidden since it carries nothing the fitted photo does not. Tim confirmed working as intended. Diagnosis note: the first screenshot still showed cropping because two GarageHUD builds were running at once (a Jul 14 Codex binary and the current one) sharing the same bundle id and the same garage.json — the screenshot was the old window."
+      },
       "recommendation": "Three honest options: (1) scaledToFit with a blurred or panel-toned backdrop — nothing cropped, keeps the band height; (2) keep fill but let the owner set the focal point per photo, which is the most work and the most control; (3) raise the band height and accept a gentler crop. Option 1 is the smallest change that stops losing the subject."
     },
     {

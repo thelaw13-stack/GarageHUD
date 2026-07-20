@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 public enum HUDTheme {
     // MARK: Palette — dark neutral cockpit, restrained signal color, the car/photo as the
@@ -25,8 +28,28 @@ public enum HUDTheme {
     public static let textTertiary = Color(hex: 0x666E78)   // Dim Steel — timestamps / quiet labels
 
     // MARK: Typography — a strict four-level scale. Use weight, not new sizes, for emphasis.
+    //
+    // W-066: these sizes used to be fixed points, which meant the app opted out of Dynamic Type
+    // entirely — raising text size in iOS Settings changed nothing, and there is no in-app zoom
+    // either, so the owner had no way at all to make GarageHUD readable. Scaling the point size
+    // keeps the exact design scale at the default setting (30/19/14/10, unchanged) while letting
+    // the owner's own setting move it. The alternative — mapping onto system text styles — would
+    // have altered every size on every screen even for owners who never touch the setting.
     public static func monoFont(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight, design: .monospaced)
+        .system(size: scaled(size), weight: weight, design: .monospaced)
+    }
+
+    /// The owner's text-size setting applied to a design size.
+    ///
+    /// `UIFontMetrics` is the OS's own scaling curve rather than a table invented here, so it stays
+    /// correct as Apple tunes it. macOS has no Dynamic Type, so sizes pass through unchanged — this
+    /// is a phone-first fix, which is where the complaint came from.
+    static func scaled(_ size: CGFloat) -> CGFloat {
+        #if canImport(UIKit) && !os(watchOS)
+        return UIFontMetrics(forTextStyle: .body).scaledValue(for: size)
+        #else
+        return size
+        #endif
     }
     public static func title(_ weight: Font.Weight = .bold) -> Font { monoFont(30, weight: weight) }
     public static func section(_ weight: Font.Weight = .semibold) -> Font { monoFont(19, weight: weight) }

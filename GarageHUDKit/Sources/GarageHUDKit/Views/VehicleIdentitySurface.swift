@@ -31,8 +31,13 @@ struct VehicleIdentitySurface: View {
         .task(id: vehicle.heroPhoto?.filename) { await loadHeroImage() }
     }
 
+    /// W-067: the band used to scale the photo to *fill* and clip it, so any photo whose aspect
+    /// ratio differed from the band lost its top and bottom — a landscape shot of a car lost roof
+    /// and wheels, which is the subject. The car is now fitted whole inside the band, over a
+    /// blurred copy of itself so the band still reads as full rather than as letterbox bars
+    /// fighting the palette. Nothing of the car is ever cut off.
     private var photoBand: some View {
-        photoField
+        photoContent
             .frame(maxWidth: .infinity)
             .frame(height: horizontalSizeClass == .compact ? 176 : 230)
             .clipped()
@@ -48,19 +53,35 @@ struct VehicleIdentitySurface: View {
     }
 
     @ViewBuilder
+    private var photoContent: some View {
+        if image != nil {
+            ZStack {
+                // Backdrop: the same photo, filled and blurred, purely so the band has presence.
+                // Hidden from accessibility — it carries no information the fitted photo doesn't.
+                photoField
+                    .scaledToFill()
+                    .blur(radius: 24)
+                    .opacity(0.45)
+                    .accessibilityHidden(true)
+                // The car itself, whole.
+                photoField
+                    .scaledToFit()
+            }
+        } else {
+            VehicleVisualFallback(vehicle: vehicle, style: .hero)
+        }
+    }
+
+    /// The photo, resizable but with no content mode chosen — the caller decides whether this
+    /// instance is the fitted subject or the blurred backdrop.
+    @ViewBuilder
     private var photoField: some View {
         if let image {
             #if canImport(AppKit)
-            Image(nsImage: image)
-                .resizable()
-                .scaledToFill()
+            Image(nsImage: image).resizable()
             #else
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
+            Image(uiImage: image).resizable()
             #endif
-        } else {
-            VehicleVisualFallback(vehicle: vehicle, style: .hero)
         }
     }
 
