@@ -513,7 +513,7 @@
       "result": {
         "tests": "509 -> 512, +3; zero warnings under -strict-concurrency=complete",
         "commits": [
-          "PENDING"
+          "e4828b2"
         ],
         "date": "2026-07-19",
         "notes": "HUDTheme.monoFont now runs each design size through UIFontMetrics, so the whole type scale follows the owner's iOS text-size setting. Deliberately keeps the exact design scale (30/19/14/10) at the default setting, so nothing moves for an owner who never changes it; mapping onto system text styles would have resized every screen for everyone. UIFontMetrics is Apple's own curve rather than a multiplier table invented here. Tests pin the invariants that matter under scaling: sizes never shrink below the design size, the strict four-level scale stays ordered (weight, not size, carries emphasis — a collapse would erase the hierarchy), and the value is stable across repeated calls since the helpers run on every body evaluation. Tim confirmed on device: working as intended. Scope limit, unchanged: the 41 remaining fixed .system(size:) call sites are all SF Symbol icons, not text, so icons still do not scale; and macOS has no Dynamic Type so sizes pass through there. Behaviour at the largest accessibility sizes was not separately itemized by Tim — if a dense panel truncates later, fix that panel's layout rather than capping the text."
@@ -539,7 +539,7 @@
       "result": {
         "tests": "512, unchanged — view-layer change with no testable pure logic",
         "commits": [
-          "PENDING"
+          "e4828b2"
         ],
         "date": "2026-07-19",
         "notes": "VehicleIdentitySurface fitted the photo whole inside the band, over a blurred dimmed copy of itself, replacing scaledToFill + clipped. The old behaviour cropped harder the wider the window got — Tim reported it worsening in fullscreen, which is exactly fill against a widening aspect ratio. The backdrop keeps the band visually full instead of showing letterbox bars fighting the palette, and is accessibilityHidden since it carries nothing the fitted photo does not. Tim confirmed working as intended. Diagnosis note: the first screenshot still showed cropping because two GarageHUD builds were running at once (a Jul 14 Codex binary and the current one) sharing the same bundle id and the same garage.json — the screenshot was the old window."
