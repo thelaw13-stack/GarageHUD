@@ -59,8 +59,19 @@ public struct FleetSheetCardModel: Equatable, Sendable {
             noPowerText: figure == nil ? "NOT YET MEASURED" : nil,
             investmentValue: investment.map { money($0.total) },
             investmentCaption: investment?.sourceShort,
-            stockBaselineValue: vehicle.estimatedStockWheelHP.map { "\(Int($0)) whp" },
-            stockBaselineCaption: vehicle.estimatedStockWheelHP != nil ? vehicle.drivetrain.displayName : nil,
+            stockBaselineValue: vehicle.estimatedStockWheelHP.map { baseline in
+                // ADR-0006 §4: a baseline resting on an owner estimate must not read as a hard
+                // number stacked under the crank headline (W-070/W-071). Marked "~… est" only when
+                // it is genuinely an estimate; a legacy (unspecified) value renders as today, and a
+                // measured/documented one keeps its plain form.
+                vehicle.estimatedStockWheelHPProvenance == .estimated
+                    ? "~\(Int(baseline)) whp"
+                    : "\(Int(baseline)) whp"
+            },
+            stockBaselineCaption: vehicle.estimatedStockWheelHP.map { _ in
+                let origin = vehicle.estimatedStockWheelHPProvenance == .estimated ? "est · " : ""
+                return origin + vehicle.drivetrain.displayName
+            },
             goalText: goalText,
             goalPercent: fraction.map { "\(Int(($0 * 100).rounded()))% to goal" },
             goalReached: (fraction ?? 0) >= 1,

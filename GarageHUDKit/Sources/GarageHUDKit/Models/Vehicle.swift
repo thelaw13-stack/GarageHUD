@@ -17,6 +17,10 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     public var factoryHorsepower: Double?
     public var factoryTorque: Double?
     public var factoryWeightLbs: Double?
+    /// Where `factoryHorsepower` came from (ADR-0006). Absent on legacy documents → `.unspecified`,
+    /// which renders exactly as today. A number the owner types defaults to `.estimated`, so a
+    /// placeholder can never masquerade as a documented spec or seed a confident baseline (W-070).
+    public var factoryHorsepowerProvenance: Provenance = .unspecified
     /// The measurement basis of `factoryHorsepower`. Defaults to `.factoryCrank`, which is
     /// what a manufacturer rating almost always is — and why comparing it to a wheel-dyno
     /// number is only ever an approximation.
@@ -133,6 +137,10 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         engineDescription = try c.decodeIfPresent(String.self, forKey: .engineDescription) ?? ""
         drivetrainDescription = try c.decodeIfPresent(String.self, forKey: .drivetrainDescription) ?? ""
         factoryHorsepower = try c.decodeIfPresent(Double.self, forKey: .factoryHorsepower)
+        // ADR-0006. Hand-written decoder: absent means a pre-provenance document, which decodes as
+        // .unspecified so legacy values render exactly as today (the three stamp decoders taught us
+        // a new field vanishes on read unless added here by hand).
+        factoryHorsepowerProvenance = try c.decodeIfPresent(Provenance.self, forKey: .factoryHorsepowerProvenance) ?? .unspecified
         factoryTorque = try c.decodeIfPresent(Double.self, forKey: .factoryTorque)
         factoryWeightLbs = try c.decodeIfPresent(Double.self, forKey: .factoryWeightLbs)
         factoryPowerBasis = try c.decodeIfPresent(PowerBasis.self, forKey: .factoryPowerBasis) ?? .factoryCrank
@@ -601,6 +609,18 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         guard let factory = factoryHorsepower else { return nil }
         if factoryPowerBasis == .measuredWheel { return factory }
         return factory * (1 - drivetrain.typicalLossFraction)
+    }
+
+    /// The origin of `estimatedStockWheelHP` (ADR-0006 §4). It inherits the weakest of everything it
+    /// rests on: the factory figure's own provenance, and — when the baseline is brought down from
+    /// crank on an *assumed* drivetrain loss — an `.estimated` term for that assumption. So a
+    /// baseline built on a placeholder factory number is at best an estimate, never a hard figure,
+    /// and the surfaces that show it must not present it as one (W-070, W-071).
+    public var estimatedStockWheelHPProvenance: Provenance {
+        guard factoryHorsepower != nil else { return .unknown }
+        var inputs = [factoryHorsepowerProvenance]
+        if stockWheelBaselineIsAssumed { inputs.append(.estimated) }
+        return Provenance.weakest(inputs)
     }
 
     /// True when the stock-wheel baseline rests on an *assumed* drivetrain loss (drivetrain

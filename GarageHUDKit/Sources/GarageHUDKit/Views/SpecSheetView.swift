@@ -27,7 +27,7 @@ struct SpecSheetView: View {
 
                 HUDPanel(title: "Factory Baseline") {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 16)], spacing: 16) {
-                        editableStat(label: "Horsepower", value: $vehicle.factoryHorsepower, unit: "HP")
+                        editableStat(label: "Horsepower", value: horsepowerBinding, unit: "HP")
                         editableStat(label: "Torque", value: $vehicle.factoryTorque, unit: "LB-FT")
                         editableStat(label: "Weight", value: $vehicle.factoryWeightLbs, unit: "LBS")
                     }
@@ -427,6 +427,19 @@ struct SpecSheetView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The humble default (ADR-0006 §2): typing a horsepower figure marks it an owner estimate.
+    /// Claiming a source is a deliberate act, never a side effect of typing — so a placeholder can
+    /// never masquerade as a documented spec. Clearing the field returns it to unknown.
+    private var horsepowerBinding: Binding<Double?> {
+        Binding(
+            get: { vehicle.factoryHorsepower },
+            set: { newValue in
+                vehicle.factoryHorsepower = newValue
+                vehicle.factoryHorsepowerProvenance = (newValue == nil) ? .unknown : .estimated
+            }
+        )
     }
 
     @ViewBuilder
