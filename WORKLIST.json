@@ -353,7 +353,7 @@
     },
     {
       "id": "W-060",
-      "title": "Cloud voice end-to-end validation (deferred — stays free)",
+      "title": "Cloud voice — CLOSED, will not implement (owner's final decision)",
       "why": "Split from W-013 on 2026-07-19. The cloud neural TTS path (CloudVoice / gpt-4o-mini-tts) is built, gated, and unit-tested, but exercising it end-to-end costs money and requires an OpenAI key.",
       "depends_on": [],
       "completion_criteria": [
@@ -362,9 +362,13 @@
       "testing_criteria": [
         "manual on-device validation; record findings and any TD updates here"
       ],
-      "status": "blocked",
-      "blocked_reason": "Deferred by owner decision, not by capability: Tim declined to use a paid voice key on 2026-07-19 — GarageHUD is to stay free to run for now. The on-device Premium/Enhanced voice is the shipping voice path instead. Revisit only if Tim chooses to fund it; the code path stays gated and inert until then. Verified inert: CloudVoiceConfig defaults enabled=false and no key is stored, so no request can be issued and no cost can be incurred.",
-      "result": null
+      "status": "complete",
+      "blocked_reason": null,
+      "result": {
+        "date": "2026-07-20",
+        "decision": "WILL NOT DO — final",
+        "notes": "Tim's final decision 2026-07-20: GarageHUD will not add the paid cloud voice. This is a settled product choice, not deferred work — do not reopen it, and do not treat the built-but-inert CloudVoice / gpt-4o-mini-tts path as an unfinished feature. The on-device Premium/Enhanced AVSpeechSynthesizer voice is the shipping and only voice path. The code path remains gated and inert (CloudVoiceConfig defaults off, no key stored, verified unable to incur cost). If it is ever removed, that's cleanup, not a change of direction. No test or build impact."
+      }
     },
     {
       "id": "W-061",

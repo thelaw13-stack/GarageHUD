@@ -41,8 +41,9 @@ key — latency, audio-session interplay with the mic, and cost in practice; the
 path is still the offline fallback (the first-run nudge when only a default voice is installed —
 `needsBetterVoiceDownload` — is surfaced as a dismissible banner in Ask Steward; W-010, `e72a4b0`).
 
-Owner decision (2026-07-19): cloud voice stays **off** — GarageHUD is to remain free to run for now,
-so the paid `gpt-4o-mini-tts` path will not be exercised. The on-device Premium/Enhanced voice is
+Owner decision — **FINAL** (2026-07-20): GarageHUD will **not** add the paid cloud voice. This is a
+settled product choice, not deferred work (W-060 closed will-not-do). The paid `gpt-4o-mini-tts`
+path will not be exercised or shipped. The on-device Premium/Enhanced voice is
 therefore the shipping voice path, not a fallback. Item (1) below is deferred by choice, not blocked
 by capability. (2) Exercise the LLM path on an Apple-Intelligence device (iPhone
 15 Pro+ / iOS 26): latency, refusal behavior on out-of-record questions, and that it honors the
