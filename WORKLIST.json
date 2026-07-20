@@ -415,7 +415,7 @@
       "blocked_reason": null,
       "result": {
         "tests": "470 -> 476, +6; zero warnings under -strict-concurrency=complete",
-        "commits": ["PENDING-BACKFILL"],
+        "commits": ["da0f50c"],
         "date": "2026-07-19",
         "notes": "New pure policy ScreenWake.shouldStayAwake(sessionRunning:connection:) decides from session state rather than view lifetime, applied in LiveSessionView via UIApplication.isIdleTimerDisabled behind canImport(UIKit). Holds wake through bring-up (scanning/handshaking) and through degraded/reconnecting — those are precisely when the owner is watching — and releases on .disconnected or a stopped session. stop() releases unconditionally so a session ending by button, error, or view teardown cannot strand the screen awake. Device-validated by Tim with Auto-Lock at 30s on the simulated feed (no car required): screen stayed lit with dials moving through a running session, and slept normally after Stop. Deliberate asymmetry pinned by test: OBDConnectionState.isLive stays strictly .polling (the only state where values may be called measured) while wake covers the whole engaged session."
       }
