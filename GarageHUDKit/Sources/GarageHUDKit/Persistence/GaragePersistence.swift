@@ -8,7 +8,16 @@ import Foundation
 /// `[Vehicle]` array) is recognized and migrated. A file that is present but decodes as neither
 /// is reported `unreadable` — never silently discarded — so the caller can preserve it.
 public enum GaragePersistence {
-    public static let currentSchemaVersion = 1
+    /// v2 (ADR-0005) adds sync stamps: `Vehicle.groupStamps` plus a per-record `stamp` on `Part`
+    /// and `MaintenanceItem`. The bump is deliberate and costly on purpose. A v1 client can still
+    /// *decode* a v2 document — every stamp field is optional — but it would drop the stamps on the
+    /// next write, silently resurrecting the edit races this removes. Refusing is the honest
+    /// failure: `.unsupportedVersion` preserves the document untouched and tells the owner, where
+    /// silent stamp-stripping would look like everything working while merges quietly degraded.
+    ///
+    /// Consequence to plan for: every device must run a v2 build. A v1 Mac will refuse a v2
+    /// document rather than sync with it.
+    public static let currentSchemaVersion = 2
 
     struct Document: Codable {
         var schemaVersion: Int

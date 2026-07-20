@@ -72,6 +72,11 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// tombstone on either side suppresses the record everywhere. Grows only on deletion (a handful
     /// ever, for a personal garage), so no compaction is needed yet.
     public var deletedRecordIDs: Set<UUID> = []
+    /// Edit ordering for the coherence groups (ADR-0005), keyed by `CoherenceGroup.rawValue` so the
+    /// JSON shape is a plain object rather than Swift's alternating key/value array. Absent means
+    /// `SyncStamp.zero` — unknown and oldest — so a legacy document merges exactly as it does today
+    /// while a deliberate edit from an upgraded client wins over an untouched value.
+    public var groupStamps: [String: SyncStamp] = [:]
     /// Where this build is headed — the owner's stated goal, so the Steward can reason about the
     /// *path* (sequence, support, next purchase) and not just the present state. Nil = no plan set.
     public var buildGoal: BuildGoal?
@@ -149,6 +154,9 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         buildGoal = try c.decodeIfPresent(BuildGoal.self, forKey: .buildGoal)
         coverPhotoID = try c.decodeIfPresent(UUID.self, forKey: .coverPhotoID)
         deletedRecordIDs = try c.decodeIfPresent(Set<UUID>.self, forKey: .deletedRecordIDs) ?? []
+        // ADR-0005. Absent means an unstamped legacy document: every group reads `.zero`, so the
+        // merge falls back to adopt-side-wins exactly as before stamping existed.
+        groupStamps = try c.decodeIfPresent([String: SyncStamp].self, forKey: .groupStamps) ?? [:]
     }
 
     /// Reassign a fresh id to any record that duplicates an earlier one's id, within each collection

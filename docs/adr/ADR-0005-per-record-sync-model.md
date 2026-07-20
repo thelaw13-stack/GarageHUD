@@ -2,8 +2,9 @@
 
 ## Status
 
-**Proposed** — design only. No persistence code has been written against this. It supersedes nothing
-until accepted; [ADR-0001](ADR-0001-whole-document-sync.md) remains in force.
+**Accepted** — 2026-07-19, by Tim, as written (coherence grouping unamended). Implementation is
+tracked as `W-064`. [ADR-0001](ADR-0001-whole-document-sync.md) remains in force for everything this
+does not cover: the vehicle set, append-only records, and the conflict-snapshot guard.
 
 ## Context
 

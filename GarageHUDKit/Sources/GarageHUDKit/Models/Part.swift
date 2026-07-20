@@ -15,6 +15,10 @@ public struct Part: Identifiable, Codable, Hashable, Sendable {
     public var photos: [Photo] = []
     /// Flagged for attention during a rebuild — needs inspection, replacement, or reorder.
     public var flaggedForRebuild: Bool = false
+    /// Edit ordering for this record (ADR-0005). Nil means unstamped — treated as `SyncStamp.zero`,
+    /// so a legacy record loses to a deliberate edit and two unstamped sides fall back to today's
+    /// adopt-side-wins behaviour.
+    public var stamp: SyncStamp? = nil
 
     public init(
         id: UUID = UUID(),
@@ -64,5 +68,8 @@ public struct Part: Identifiable, Codable, Hashable, Sendable {
         notes = try c.decodeIfPresent(String.self, forKey: .notes) ?? ""
         photos = try c.decodeIfPresent([Photo].self, forKey: .photos) ?? []
         flaggedForRebuild = try c.decodeIfPresent(Bool.self, forKey: .flaggedForRebuild) ?? false
+        // ADR-0005. This decoder is hand-written, so a new field is silently dropped on read
+        // unless it is added here — encoding is synthesized and would happily round-trip it out.
+        stamp = try c.decodeIfPresent(SyncStamp.self, forKey: .stamp)
     }
 }

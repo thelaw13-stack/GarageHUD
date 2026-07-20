@@ -14,6 +14,10 @@ public struct MaintenanceItem: Identifiable, Codable, Hashable, Sendable {
     public var intervalMiles: Int? = nil
     /// The odometer at the last service — the baseline the mileage interval counts from.
     public var lastServicedMileage: Int? = nil
+    /// Edit ordering for this record (ADR-0005). Nil means unstamped — treated as `SyncStamp.zero`,
+    /// so a legacy record loses to a deliberate edit and two unstamped sides fall back to today's
+    /// adopt-side-wins behaviour.
+    public var stamp: SyncStamp? = nil
 
     public init(id: UUID = UUID(), name: String, intervalMonths: Int, lastServiced: Date,
                 note: String = "", intervalMiles: Int? = nil, lastServicedMileage: Int? = nil) {
@@ -35,6 +39,9 @@ public struct MaintenanceItem: Identifiable, Codable, Hashable, Sendable {
         note = try c.decodeIfPresent(String.self, forKey: .note) ?? ""
         intervalMiles = try c.decodeIfPresent(Int.self, forKey: .intervalMiles)
         lastServicedMileage = try c.decodeIfPresent(Int.self, forKey: .lastServicedMileage)
+        // ADR-0005. Hand-written decoder: without this line the stamp encodes on write and vanishes
+        // on read, so every maintenance edit would silently fall back to adopt-side-wins.
+        stamp = try c.decodeIfPresent(SyncStamp.self, forKey: .stamp)
     }
 
     public enum Due: Sendable, Equatable { case ok, dueSoon, overdue }

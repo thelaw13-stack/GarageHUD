@@ -41,8 +41,42 @@ enum GarageMerge {
             merged.buildEvents = union(adopted.buildEvents, held.buildEvents, suppressing: tombstones)
             merged.notes = union(adopted.notes, held.notes, suppressing: tombstones)
             merged.photos = union(adopted.photos, held.photos, suppressing: tombstones)
+            // ADR-0005: edited state resolves by stamp instead of adopt-side-wins. Unstamped on both
+            // sides is `.zero` vs `.zero`, which is not `>`, so the adopting side still wins and
+            // legacy documents merge exactly as before.
+            mergeGroups(into: &merged, adopted: adopted, held: held)
+            merged.parts = mergeStamped(adopted.parts, held.parts, suppressing: tombstones)
+            merged.maintenance = mergeStamped(adopted.maintenance, held.maintenance, suppressing: tombstones)
             return merged
         }
+    }
+
+    /// Resolve each coherence group as a unit. The group — never the field — is the unit of merge,
+    /// so the result is always a state one device genuinely held for that group (ADR-0005 trap 2).
+    private static func mergeGroups(into merged: inout Vehicle, adopted: Vehicle, held: Vehicle) {
+        for group in CoherenceGroup.allCases where held.stamp(for: group) > adopted.stamp(for: group) {
+            merged.adopt(group, from: held)
+        }
+    }
+
+    /// Per-record resolution for edited collections.
+    ///
+    /// Records only one side has are kept (minus tombstones), so concurrent edits to *different*
+    /// parts both survive — today one side's whole array loses. Records both sides hold resolve by
+    /// stamp, with the adopting side keeping its version on a tie, preserving current behaviour for
+    /// unstamped data. Ordering follows the adopting side, then local-only records, matching
+    /// `union` so the two collections behave alike.
+    private static func mergeStamped<T>(_ adopting: [T], _ localHeld: [T],
+                                        suppressing tombstones: Set<UUID>) -> [T]
+    where T: Identifiable, T.ID == UUID, T: Stamped {
+        let heldByID = Dictionary(uniqueKeysWithValues: localHeld.map { ($0.id, $0) })
+        let adoptedIDs = Set(adopting.map(\.id))
+        let resolved = adopting.map { mine -> T in
+            guard let theirs = heldByID[mine.id] else { return mine }
+            return (theirs.stamp ?? .zero) > (mine.stamp ?? .zero) ? theirs : mine
+        }
+        let localOnly = localHeld.filter { !adoptedIDs.contains($0.id) }
+        return (resolved + localOnly).filter { !tombstones.contains($0.id) }
     }
 
     /// Adopting side first (its versions win on id collisions), then local-only records — with any
