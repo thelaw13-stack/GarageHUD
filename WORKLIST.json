@@ -573,6 +573,26 @@
       "recommendation": "A CKDatabaseSubscription with a silent push is the correct mechanism and costs nothing when idle; a foreground timer is the cheap fallback but burns battery and still misses a backgrounded-then-viewed device. Worth deciding with Tim, since it is the difference between sync that works and sync that appears to work."
     },
     {
+      "id": "W-069",
+      "title": "Connection report cannot evidence multi-ECU / ISO-TP — instrument it before spending another session",
+      "why": "Found 2026-07-20. The W-014 driveway checklist tells the owner multi-ECU is captured automatically in the Connection Report, but nothing in the app records a protocol number, responder count, or multi-frame assembly — the journal holds only stage and message strings. Tim ran the Tundra, the fleet's best multi-ECU candidate, and the resulting report cannot say whether multi-frame was exercised. The criterion is therefore unmeasured rather than failed, and a scarce driveway session was spent learning that the instrument is blind.",
+      "depends_on": [],
+      "completion_criteria": [
+        "The connection report carries the negotiated protocol and enough responder detail to tell single-ECU from multi-ECU",
+        "Multi-frame assembly, if it occurs, is visible as evidence rather than inferred",
+        "Derived PASSIVELY from traffic the handshake already produces — no new commands added to the proven bring-up sequence",
+        "The driveway checklist's Step 4 claim matches what the report can actually show",
+        "Regression coverage via transcript replay, alongside the existing OBDTranscriptReplayTests"
+      ],
+      "testing_criteria": [
+        "full package suite green with replay coverage for single- and multi-frame transcripts; then one driveway session on the Tundra to read a report that can answer the question"
+      ],
+      "status": "incomplete",
+      "blocked_reason": null,
+      "result": null,
+      "recommendation": "Derive it passively — count distinct responder headers and detect multi-line/continuation frames in responses ALREADY being received, and journal that. Do not add an ATDPN or any other probe to the bring-up: the handshake is proven across three field sessions and the re-entry brief is explicit about not destabilizing it without a field report and a regression test. Passive observation risks nothing."
+    },
+    {
       "id": "W-014",
       "title": "OBD hardware validation",
       "why": "Real-adapter integration, ISO-TP/multi-ECU headers, and live disconnect/reconnect are unverified against physical hardware (TD-004). Synthetic transcript replay is done.",
@@ -589,7 +609,13 @@
       ],
       "status": "in_progress",
       "blocked_reason": null,
-      "result": null
+      "result": null,
+      "field_findings_2026_07_20": {
+        "reconnect": "PASS — criterion 3 closed. Tim unplugged the Veepeak mid-session and replugged it. Journal: +142.1s DEGRADED (Bluetooth link closed unexpectedly) -> RETRYING (reconnect 1 of 5) -> SCANNING -> +149.1s FOUND at -37 dBm -> full re-handshake -> +153.4s MEASURING. 11.3s from drop to live data on the FIRST retry, with the handshake genuinely redone rather than assumed. It reported DEGRADED at the moment of loss instead of freezing stale values, which is the telemetry-honesty invariant holding at the one moment it matters. Unplugging is a harsher test than walking away — it removes adapter power, not just the radio link.",
+        "w059_confirmed": "The timeline shows ONE PROTOCOL line at +2.0s where the 2026-07-19 report had four identical consecutive ones. First field confirmation of the W-059 dedup fix.",
+        "multi_ecu": "UNMEASURED, not failed — and the session that could have measured it is spent. The car was the Tundra (2021, the best multi-ECU/ISO-TP candidate in the fleet). Nothing in the codebase or the journal records a negotiated protocol number, responder count, or multi-frame assembly: OBDConnectionJournal.Entry carries only stage and message strings, and a search for ISO-TP / multi-frame handling returns nothing. If the Tundra answered multi-frame today the report would look identical. Note without interpretation: BIND-REPLY took 2.2s on the Tundra vs 0.2s on the Foz — could be a slower or multi-responder vehicle, a colder start, or nothing.",
+        "checklist_defect": "docs/W-014_DRIVEWAY_CHECKLIST.md Step 4 states multi-ECU is 'captured in the Connection Report (Step 6)'. That is false — the report has no field that could carry it. A checklist promising evidence the instrument cannot collect will keep costing driveway sessions."
+      }
     },
     {
       "id": "W-015",

@@ -40,11 +40,26 @@ note it.
 On a private driveway/road, one wide-open-throttle pull. Pull Guardian should detect it and grade
 what it actually measured vs estimated. Skip if not safe — not required for W-014.
 
-## Step 4 — Multi-ECU / ISO-TP (criterion 2, automatic)
-Nothing to do by hand — if the car answers multi-frame, the decoder handles it. It's captured in the
-Connection Report (Step 6). Trucks/newer cars (Tundra) are the most likely to exercise this.
+## Step 4 — Multi-ECU / ISO-TP (criterion 2) — ⚠️ NOT CURRENTLY MEASURABLE
+**This step is on hold. Do not spend a session on it yet.**
 
-## Step 5 — Reconnect (criterion 3: survive a disconnect/reconnect)
+This previously said multi-ECU was captured automatically in the Connection Report. That was wrong:
+nothing in the app records a negotiated protocol number, responder count, or multi-frame assembly —
+the journal holds only stage and message strings. A run on a multi-ECU car produces a report
+identical to a single-ECU one, so the criterion comes back *unmeasured* rather than passed or
+failed. Tim spent a Tundra session on 2026-07-20 discovering exactly that.
+
+`W-069` instruments the report first, passively, from traffic the handshake already produces. Once
+that lands, this step becomes worth doing — on the Tundra, still the fleet's best candidate.
+
+## Step 5 — Reconnect (criterion 3) — ✅ PASSED 2026-07-20
+Kept for future regression runs. Tim unplugged the adapter mid-session and replugged it: the rail
+went DEGRADED → RETRYING (1 of 5) → SCANNING → FOUND (-37 dBm) → full re-handshake → MEASURING,
+11.3s from drop to live data on the first retry. Walking away far enough to drop the link proved
+impractical; unplugging is the harsher test anyway, since it cuts adapter power rather than just the
+radio link.
+
+Original instructions:
 While a session is live, do ONE of:
 - Walk ~30 ft away until it drops, then walk back, **or**
 - Unplug the adapter for 5 seconds and replug it.

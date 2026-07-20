@@ -64,7 +64,18 @@ The July 19 Veepeak field sequence now proves real BLE advertisement discovery, 
 serial channel, notification subscription, ELM identity, command configuration, a supported `41 00`
 vehicle response, polling, and decoded measured data. Two independent sessions reached measured data
 in 2.4 and 2.7 seconds, so the success is repeatable rather than a single lucky bind. A genuine
-mid-session disconnect/reconnect and a multi-ECU/ISO-TP vehicle remain unverified on hardware.
+**Mid-session disconnect/reconnect is now PROVEN (2026-07-20):** Tim unplugged the Veepeak mid-session
+and the app recovered on its own — DEGRADED at the moment of loss (not frozen stale values), RETRYING
+1 of 5, rediscovery at -37 dBm, a full honest re-handshake, and measured data again 11.3s after the
+drop. The same report also gave W-059's duplicate-transition fix its first field confirmation: one
+PROTOCOL line where the previous report had four.
+
+**Multi-ECU/ISO-TP remains UNMEASURED — and cannot currently be measured.** Nothing records a
+negotiated protocol, responder count, or multi-frame assembly; the journal carries only stage and
+message strings. A Tundra session on 2026-07-20 (the fleet's best multi-ECU candidate) produced a
+report that cannot say whether multi-frame was exercised. `W-069` instruments this passively — from
+traffic the handshake already produces, adding no probe to a bring-up proven across three field
+sessions — before another driveway session is spent.
 Synthetic transcript replay is done (`OBDTranscriptReplayTests`), and the connection report cleanly
 separates ELM/configuration success from a vehicle-bind failure with privacy-safe outcome categories.
 
