@@ -94,6 +94,8 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
     private let pids = OBDPID.allCases
     private var pidCursor = 0
     private var consecutivePollTimeouts = 0
+    /// W-069: the bus shape is journalled once per session, not once per poll.
+    private var hasNotedResponseShape = false
     private var stopRetriesForCurrentPID = 0
     private let maxPollTimeouts = OBDPID.allCases.count + 2
     private var reconnectAttempts = 0
@@ -280,6 +282,11 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
             }
             apply(handshake.handle(.reply(line)))
         case .polling:
+            // W-069: read who answered and how, passively, from this same chunk — the decoder keeps
+            // only the first decodable line, so extra responders and multi-frame segments were
+            // arriving and being discarded unseen. Journalled once per session so the connection
+            // report can evidence multi-ECU/ISO-TP instead of looking identical either way.
+            noteResponseShape(in: line)
             if let reading = OBDPIDDecoder.decode(line) {
                 store(reading)
                 consecutivePollTimeouts = 0
@@ -415,6 +422,19 @@ public final class OBDLiveDataSource: NSObject, LiveDataSource, @unchecked Senda
             emitFrame() // one full cycle done
         }
         pollCurrent()
+    }
+
+    /// Record the bus shape the first time something worth recording is seen (W-069).
+    ///
+    /// Once per session: the report wants evidence that a vehicle answered multi-frame or with
+    /// several control units, not a line per poll. Silence here is not proof of a single-ECU car —
+    /// it may simply never have been asked anything that provokes a multi-frame reply.
+    private func noteResponseShape(in chunk: String) {
+        guard !hasNotedResponseShape else { return }
+        let shape = OBDResponseShape.analyze(chunk)
+        guard shape.isNoteworthy else { return }
+        hasNotedResponseShape = true
+        OBDConnectionJournalStore.append(stage: "BUS", message: shape.journalMessage)
     }
 
     private func store(_ reading: OBDReading) {

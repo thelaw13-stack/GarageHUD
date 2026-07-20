@@ -587,10 +587,11 @@
       "testing_criteria": [
         "full package suite green with replay coverage for single- and multi-frame transcripts; then one driveway session on the Tundra to read a report that can answer the question"
       ],
-      "status": "incomplete",
+      "status": "in_progress",
       "blocked_reason": null,
       "result": null,
-      "recommendation": "Derive it passively — count distinct responder headers and detect multi-line/continuation frames in responses ALREADY being received, and journal that. Do not add an ATDPN or any other probe to the bring-up: the handshake is proven across three field sessions and the re-entry brief is explicit about not destabilizing it without a field report and a regression test. Passive observation risks nothing."
+      "recommendation": "Derive it passively — count distinct responder headers and detect multi-line/continuation frames in responses ALREADY being received, and journal that. Do not add an ATDPN or any other probe to the bring-up: the handshake is proven across three field sessions and the re-entry brief is explicit about not destabilizing it without a field report and a regression test. Passive observation risks nothing.",
+      "implementation_note": "OBDResponseShape.analyze reads the response chunk the poll loop already receives — the decoder keeps only the first decodable line, so extra responders and multi-frame segments were arriving and being discarded unseen. Two passive signals with headers off (ATH0): several decodable data lines answering one request means more than one responder; lines prefixed 0:/1:/2: are the ELM's segmented multi-frame form. Journalled once per session as a BUS entry so the connection report can carry it without a line per poll. No ATDPN and no probe added to the bring-up. Tests 512 -> 519, +7, including the failure that would have made the instrument confidently wrong rather than silent: counting continuation frames as independent ECUs, which would report multi-responder on every long single-ECU reply. Installed to the phone; awaiting a Tundra session to read a report that can finally answer the question. Honest limit by design: silence is not proof of a single-ECU vehicle — the car may never have been asked anything that provokes a multi-frame reply."
     },
     {
       "id": "W-014",
