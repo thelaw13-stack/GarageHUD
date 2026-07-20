@@ -345,7 +345,7 @@
         "tests": "465 -> 480 across the session, +15; zero warnings under -strict-concurrency=complete",
         "commits": [
           "cde99f9",
-          "PENDING-BACKFILL"
+          "f23ec12"
         ],
         "date": "2026-07-19",
         "notes": "First real-hardware validation of the conversational Steward, on Tim's iPhone 15 Pro Max (iOS 26.6, Debug build with the dev icon). PASSES: StewardAssistant.isLLMAvailable resolved true on device, proving all three gates (canImport FoundationModels, iOS 26 availability, SystemLanguageModel runtime availability) clear together; roughly 1.2s to a full on-device answer; out-of-record refusal is clean — asked for a Hellcat torque curve it named the 2008 Forester XT Sport and denied the premise without inventing a figure; speech-in transcribes against the real mic and now submits in one gesture. Two failures were found by asking real questions and both were fixed and re-validated in the same session: confidence-band honesty (W-061, summed a measured figure with a derived estimate) and the speech-in send gesture (W-062). Neither was reachable by the test suite — the record was accurate line by line, and it was the adjacency of two facts that lied. Cloud voice was split to W-060 and is deferred by owner decision so GarageHUD stays free to run; it is not part of this item. Still open and NOT claimed here: the LLM path never carries a typed confidence band (StewardLLM returns StewardReply(text:) with confidence nil), so the evidence chip that renders for keyword answers never appears for LLM answers — awaiting Tim's defect-or-deliberate ruling."
@@ -409,7 +409,7 @@
       "result": {
         "tests": "476 -> 480, +4; zero warnings under -strict-concurrency=complete",
         "commits": [
-          "PENDING-BACKFILL"
+          "f23ec12"
         ],
         "date": "2026-07-19",
         "notes": "Root cause was not a missing control: finish(with:) already submitted the utterance, but it only ran on result.isFinal, and stop() calls task?.cancel() which discards the pending final result. The second mic tap therefore destroyed the very path that would have sent the question. toggle() now routes a user-initiated stop through stopAndSubmit(), which asks what has already been transcribed instead of waiting for a final result cancellation guarantees will never arrive. No new button and no new affordance vocabulary — the mic tap simply does what it already looked like it did (DD-004). Saying nothing still cancels rather than firing an empty exchange, pinned by SpeechSubmissionTests. Honest limit: the pure submit rule is unit-tested, but the mic round-trip needs real hardware, so Tim's device confirmation is the evidence."
