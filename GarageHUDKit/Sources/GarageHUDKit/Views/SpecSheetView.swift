@@ -123,7 +123,12 @@ struct SpecSheetView: View {
                     Text(investment.explanation)
                         .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 }
-                editableStat(label: "Build-Sheet Total (optional)", value: $vehicle.documentedTotalInvestment, unit: "USD", color: HUDTheme.textSecondary)
+                // W-072: name the build slot by its role and say what it is NOT, so an acquisition
+                // cost can't quietly land here (which is exactly how the Baja's $8,000 did).
+                editableStat(label: "\(MoneyFact.build.role) — build-sheet total (optional)",
+                             value: $vehicle.documentedTotalInvestment, unit: "USD", color: HUDTheme.textSecondary)
+                Text(MoneyFact.build.distinctNote)
+                    .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 if let doc = vehicle.investmentFigure?.documentedReconcile {
                     Text("Your priced parts sum to \(vehicle.itemizedPartsCost.formatted(.currency(code: "USD"))), above the \(doc.formatted(.currency(code: "USD"))) on your build sheet — this total reflects your parts.")
                         .font(HUDTheme.label()).foregroundStyle(HUDTheme.amber)
@@ -157,8 +162,10 @@ struct SpecSheetView: View {
                     Text("Derived from your most recent dated event — log mileage on events to keep it current.")
                         .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 }
-                editableStat(label: "Purchase Price", value: $vehicle.purchasePrice, unit: "USD", color: HUDTheme.textPrimary)
-                Text("What you paid for the vehicle — kept separate from build spend.")
+                // W-072: the acquisition slot, named by role and stated as distinct from build spend
+                // and service, right where it's typed.
+                editableStat(label: MoneyFact.acquisition.role, value: $vehicle.purchasePrice, unit: "USD", color: HUDTheme.textPrimary)
+                Text(MoneyFact.acquisition.distinctNote)
                     .font(HUDTheme.label()).foregroundStyle(HUDTheme.textSecondary)
                 if vehicle.serviceSpend > 0 {
                     StatReadout(label: "Service Spend", value: vehicle.serviceSpend.formatted(.currency(code: "USD")), color: HUDTheme.textPrimary)
