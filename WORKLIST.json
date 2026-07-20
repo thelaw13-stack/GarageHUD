@@ -440,6 +440,25 @@
       }
     },
     {
+      "id": "W-064",
+      "title": "TD-001 phase 2 — per-record stamps and coherence groups (design accepted first)",
+      "why": "Scalars, parts, and maintenance are still adopt-side-wins, so concurrent edits are a coin flip — the pattern live telemetry made routine (phone writes during driveway sessions while the Mac holds spec edits). ADR-0005 designs the next step: hybrid-logical-clock stamps rather than untrustworthy device wall-clock time, and coherence GROUPS rather than free-floating fields, because field-level LWW can synthesize a vehicle that never existed on either device (a crank horsepower figure wearing a wheel basis label) — the same adjacency failure that produced W-061.",
+      "depends_on": [],
+      "completion_criteria": [
+        "ADR-0005 accepted by Tim (or amended and then accepted) — the coherence grouping is a judgment call and must be his",
+        "All ten tests in the ADR's test plan exist and pass, written before the merge implementation",
+        "Merging A into B and B into A produce identical results for every case",
+        "Legacy unstamped documents merge byte-identically to today's adopt-side-wins behaviour",
+        "W-054 append preservation and W-056 tombstone suites stay green without modification"
+      ],
+      "testing_criteria": [
+        "full package suite green with the ten new merge tests; no changes required to existing sync suites"
+      ],
+      "status": "blocked",
+      "blocked_reason": "Awaiting Tim's decision on ADR-0005 (docs/adr/ADR-0005-per-record-sync-model.md). Deliberately not started: the brief is explicit that this needs an explicit design and migration tests before any persistence code, and the coherence grouping is an architecture call the owner should make rather than inherit.",
+      "result": null
+    },
+    {
       "id": "W-014",
       "title": "OBD hardware validation",
       "why": "Real-adapter integration, ISO-TP/multi-ECU headers, and live disconnect/reconnect are unverified against physical hardware (TD-004). Synthetic transcript replay is done.",
