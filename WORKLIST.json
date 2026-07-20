@@ -459,7 +459,7 @@
       "result": {
         "tests": "480 -> 500, +20; zero warnings under -strict-concurrency=complete",
         "commits": [
-          "PENDING-BACKFILL"
+          "f200b32"
         ],
         "date": "2026-07-19",
         "notes": "ADR-0005 accepted by Tim as written. Implemented: SyncStamp (hybrid logical clock — physical time is only a floor, peers adopt any higher reading, node id is the deterministic final tiebreak), SyncClock with an injected wall clock, CoherenceGroup (identity/power/money/status/capability), Vehicle.groupStamps, per-record stamps on Part and MaintenanceItem, and stamp-aware resolution in GarageMerge. All ten ADR tests pass, including commutativity (merging A into B and B into A agree) and the legacy case (two unstamped sides still resolve adopt-side-wins, byte-identical to before). The W-054 append and W-056 tombstone suites passed untouched; a tombstone still outranks a newer stamped edit. Schema bumped 1 -> 2: a v1 client can decode a v2 document but would strip stamps on its next write and silently resurrect the races, so refusal via .unsupportedVersion is the honest failure — every device must run a v2 build. Bug caught by the plan's own test 8: Vehicle, Part AND MaintenanceItem each hand-write init(from:), while encoding is synthesized, so stamps encoded fine and vanished on read until each decoder was updated by hand; the round-trip test now covers all three, because testing two of the three is how the third stays broken. HONEST SCOPE LIMIT: no production code calls setStamp yet, so every stamp is .zero in practice and runtime behaviour is unchanged from before this commit. The merge layer is correct and inert. Activation is W-065."
