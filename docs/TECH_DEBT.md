@@ -2,7 +2,21 @@
 
 ## TD-007 — Voice + conversational Steward: on-device validation
 
-Priority: Medium
+Priority: Medium — **hardware validation done 2026-07-19 (W-013 complete)**
+
+Validated on Tim's iPhone 15 Pro Max (iOS 26.6): `StewardAssistant.isLLMAvailable` resolved true on
+real hardware, proving all three gates clear together; a full on-device answer takes roughly 1.2s;
+out-of-record refusal is clean (asked for a Hellcat torque curve it named the actual 2008 Forester
+XT Sport and denied the premise without inventing a figure); speech-in transcribes against the real
+mic and submits in one gesture. Two failures were found by asking real questions and fixed the same
+day — `W-061` (the Steward summed a measured figure with a figure derived from it) and `W-062` (the
+second mic tap cancelled the recognition task that would have sent the question). Neither was
+reachable by the suite. Cloud voice is split to `W-060` and deferred by owner decision; see below.
+
+Still open, not a blocker: the LLM path returns `StewardReply(text:)` with `confidence` nil, so the
+evidence chip that renders for keyword answers never appears for LLM answers. Arguably correct — an
+LLM answer can span facts at several bands and stamping one band on the paragraph would itself be a
+lie — but the choice is undocumented and unruled.
 
 Done: TTS now selects the best installed voice (Premium > Enhanced > default) instead of the
 robotic compact default — ranking is pure and unit-tested (`StewardVoicePreference`). "Ask
@@ -108,6 +122,17 @@ tombstones (or lost with the document it lived in) can't be honored; only real h
 Direction: event-based or operation-based sync with full history. Tombstones are the bridge's last
 conservative step; per-field edit-race resolution needs real per-record timestamps/versioning. Still
 the next major architectural item, but the highest-loss hole (resurrected deletes) is now closed.
+
+Designed (2026-07-19, awaiting owner decision): [ADR-0005](adr/ADR-0005-per-record-sync-model.md)
+proposes the intermediate step — hybrid-logical-clock stamps instead of device wall-clock time
+(a phone with a fast clock would otherwise win every race silently and invisibly), and stamping
+**coherence groups** rather than individual fields. The grouping matters more than the clock: naive
+field-level LWW can merge a Mac's `factoryHorsepower` edit with a phone's `factoryPowerBasis` edit
+and produce a crank figure labelled as a wheel figure — a car that existed on neither device,
+assembled from two individually correct edits. That is structurally identical to W-061, where every
+line of the grounding record was true and the adjacency was what lied. Tracked as `W-064`,
+deliberately blocked until Tim accepts or amends the coherence grouping; it is an architecture
+judgment the owner should make rather than inherit.
 
 ## TD-002 — Test coverage expanding
 
