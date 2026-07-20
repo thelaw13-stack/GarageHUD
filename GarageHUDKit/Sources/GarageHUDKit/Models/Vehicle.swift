@@ -611,6 +611,28 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         return factory * (1 - drivetrain.typicalLossFraction)
     }
 
+    /// How to name the *current factory* power figure where it's shown and edited (W-074), so the
+    /// origin is visible in place, not only on the exported fleet sheet. A legacy (`unspecified`)
+    /// value keeps the neutral "factory" wording — the migration promise, no retroactive doubt.
+    public var factoryPowerReadoutQualifier: String {
+        switch factoryHorsepowerProvenance {
+        case .measured:    return "measured"
+        case .sourced:     return "documented"
+        case .estimated:   return "estimate"
+        case .unspecified: return "factory"
+        case .unknown:     return "not recorded"
+        }
+    }
+
+    /// The stock-wheel baseline as it should read in place: "~53" when it rests on an estimate,
+    /// "53" otherwise. Nil when there's no factory figure. Pairs with `factoryPowerBasis`/drivetrain
+    /// wording built at the call site, mirroring the fleet sheet.
+    public var stockWheelBaselineDisplay: String? {
+        guard let baseline = estimatedStockWheelHP else { return nil }
+        let mark = estimatedStockWheelHPProvenance == .estimated ? "~" : ""
+        return "\(mark)\(Int(baseline))"
+    }
+
     /// The origin of `estimatedStockWheelHP` (ADR-0006 §4). It inherits the weakest of everything it
     /// rests on: the factory figure's own provenance, and — when the baseline is brought down from
     /// crank on an *assumed* drivetrain loss — an `.estimated` term for that assumption. So a

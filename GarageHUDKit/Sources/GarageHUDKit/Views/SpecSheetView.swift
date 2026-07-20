@@ -90,10 +90,21 @@ struct SpecSheetView: View {
                 LazyVGrid(columns: cols, spacing: 16) {
                     if let figure = vehicle.currentPowerFigure {
                         ProvenanceTappable(provenance: ProvenanceBuilder.power(for: vehicle)) {
-                            StatReadout(label: figure.isMeasured ? "Current (measured)" : "Current (factory)",
+                            // W-074: name the origin in place — "(estimate)" where it's an owner
+                            // guess, "(measured)" for a dyno, "(factory)" for legacy — so the honesty
+                            // signal lives where the value is edited, not only in the exported sheet.
+                            StatReadout(label: figure.isMeasured ? "Current (measured)"
+                                            : "Current (\(vehicle.factoryPowerReadoutQualifier))",
                                         value: "\(Int(figure.value))", unit: figure.unit.uppercased(),
                                         color: HUDTheme.textPrimary)
                         }
+                    }
+                    // W-074: the derived stock-wheel baseline, shown here (not only on the fleet
+                    // sheet) and marked "~ … est" when it rests on an estimate, so a placeholder can
+                    // never read as a hard baseline on the screen where it was typed.
+                    if !vehicle.hasMeasuredPower, let baseline = vehicle.stockWheelBaselineDisplay {
+                        StatReadout(label: "Stock baseline (\(vehicle.estimatedStockWheelHPProvenance == .estimated ? "est" : "derived"))",
+                                    value: baseline, unit: "WHP", color: HUDTheme.textSecondary)
                     }
                     if let ratio = vehicle.powerToWeight {
                         StatReadout(label: "Power / Weight", value: String(format: "%.2f", ratio), unit: "lb/hp", color: HUDTheme.textPrimary)
