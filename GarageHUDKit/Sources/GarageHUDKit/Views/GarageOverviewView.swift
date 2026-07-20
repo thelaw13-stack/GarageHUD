@@ -207,10 +207,68 @@ struct GarageOverviewView: View {
         }
     }
 
+    /// A calm, non-interactive read of sync state — the reassuring green check when the garage is
+    /// up to date, a muted slash when iCloud is unreachable, a spinner while working. It reports;
+    /// it never acts. The adjacent button is the only thing that acts.
+    private var syncStatusLight: some View {
+        Image(systemName: syncStatusGlyph)
+            .font(.system(size: 13))
+            .foregroundStyle(syncStatusColor)
+            .rotationEffect(.degrees(store.syncStatus == .syncing ? 360 : 0))
+            .animation(store.syncStatus == .syncing
+                       ? .linear(duration: 0.9).repeatForever(autoreverses: false)
+                       : .default, value: store.syncStatus == .syncing)
+            .accessibilityLabel(syncStatusLabel)
+            .help(syncStatusLabel)
+    }
+
+    private var syncStatusGlyph: String {
+        switch store.syncStatus {
+        case .syncing:            return "arrow.triangle.2.circlepath"
+        case .synced:             return "checkmark.icloud"
+        case .offline, .disabled: return "icloud.slash"
+        case .conflict:           return "exclamationmark.icloud"
+        }
+    }
+
+    private var syncStatusColor: Color {
+        switch store.syncStatus {
+        case .synced:             return HUDTheme.green
+        case .conflict:           return HUDTheme.amber
+        case .offline, .disabled: return HUDTheme.textTertiary
+        case .syncing:            return HUDTheme.cyan
+        }
+    }
+
+    private var syncStatusLabel: String {
+        switch store.syncStatus {
+        case .syncing:  return "Syncing…"
+        case .synced:   return "In sync with iCloud"
+        case .offline:  return "iCloud unreachable"
+        case .disabled: return "Sync off"
+        case .conflict: return "A safety copy was saved — review Recovery"
+        }
+    }
+
     @ViewBuilder
     private var headerActions: some View {
         if !store.vehicles.isEmpty {
             HStack(spacing: HUDTheme.space2) {
+                // W-068: status and action are deliberately separate (Tim's call). The light is a
+                // calm, non-interactive read of whether the garage is in sync; the button is the
+                // action. One glyph doing both jobs read as "double use" and lost the reassuring
+                // green check, so they're split.
+                if store.canSync {
+                    syncStatusLight
+                    Button { store.fullSync() } label: {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                    }
+                    .buttonStyle(.secondaryAction)
+                    .disabled(store.syncStatus == .syncing)
+                    .accessibilityLabel("Sync now")
+                    .help("Sync now")
+                }
+
                 // The human-readable fleet sheet — a polished PDF of the whole garage. The share
                 // arrow now means "share a sheet", consistently with the per-car build sheet.
                 ShareLink(item: SharableFleetSheet(vehicles: store.vehicles),

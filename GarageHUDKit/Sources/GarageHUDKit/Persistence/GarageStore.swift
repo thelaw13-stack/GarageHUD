@@ -248,6 +248,23 @@ public final class GarageStore: ObservableObject {
     /// the existing guarded pull — the nudge decides *when* to look, never *what* to believe.
     public func remoteChangeNoticed() { syncNow() }
 
+    /// Owner-triggered full sync (W-068): pull, merge, and push local changes up.
+    ///
+    /// The reliable counterpart to the silent push, which CloudKit delivers only best-effort. The
+    /// pull-only `syncNow` used on foreground cannot rescue a local edit that never reached the
+    /// cloud — if the remote hasn't advanced, its guard skips everything and a pending edit sits
+    /// stranded with no retry. That is exactly how a phone edit stayed on the phone. This routes
+    /// through `pushNow`, which pulls first (honouring the same conflict guard and stamped merge)
+    /// and then pushes this device's state, so a stranded edit on *either* device is carried across
+    /// on demand. Whoever holds the unpushed change taps this; the other device pulls it.
+    public func fullSync() {
+        guard cloud != nil else { return }
+        Task { await pushNow(vehicles) }
+    }
+
+    /// Whether a manual sync can do anything — drives the button's enabled state.
+    public var canSync: Bool { cloud != nil }
+
     /// Pull-only refresh, safe to call on foreground / manual "sync now".
     public func syncNow() {
         guard let cloud else { return }
