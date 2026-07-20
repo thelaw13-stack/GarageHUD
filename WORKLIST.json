@@ -26,7 +26,7 @@
     "device_deploy": "Use -configuration Debug for Tim's phone. Debug sets ASSETCATALOG_COMPILER_APPICON_NAME=AppIconDev (the papaya car-first icon); Release sets AppIcon and silently replaces the dev icon with the production one, destroying the on-device signal that tells a dev build apart. Installing Release over the dev build reverted the icon on 2026-07-19 — do not repeat it. Command: xcodebuild -project GarageHUD-iOS/GarageHUD.xcodeproj -scheme GarageHUD -configuration Debug -destination 'platform=iOS,id=00008130-001228121120001C' -allowProvisioningUpdates build ; then xcrun devicectl device install app --device 00008130-001228121120001C <app from Debug-iphoneos> ; then xcrun devicectl device process launch --device 00008130-001228121120001C com.vanlaw.GarageHUD. Build Release only to verify it compiles — never to install on the dev phone.",
     "roles": "Vector (AI) does all build/test/install/commit/sync. Tim unlocks the phone and pushes. Never hand Tim multi-step click instructions.",
     "commit_trailer": "Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "test_count_at_last_update": 464,
+    "test_count_at_last_update": 480,
     "last_updated": "2026-07-19"
   },
   "items": [
