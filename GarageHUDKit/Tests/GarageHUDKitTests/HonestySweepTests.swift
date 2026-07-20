@@ -135,6 +135,24 @@ final class HonestySweepTests: XCTestCase {
         bare.factoryHorsepower = 240
         out.append(("goalNoDyno", bare))
 
+        // ADR-0006: the provenance spine. Until now every matrix car left provenance at .unspecified
+        // (legacy), so the sweep never exercised an owner *estimate*. A placeholder figure — the
+        // Baja's 75 hp — must never launder itself into a hard number on any surface.
+        var estimatedPower = Vehicle(make: "VW", model: "Beetle Baja", year: 1970, garageSlot: 1,
+                                     factoryHorsepower: 63)
+        estimatedPower.factoryHorsepowerProvenance = .estimated
+        estimatedPower.drivetrain = .rwd
+        out.append(("estimatedPower", estimatedPower))
+
+        var estimatedWeight = measured    // a real dyno, but a guessed weight under it
+        estimatedWeight.factoryWeightLbs = 2_800
+        estimatedWeight.factoryWeightProvenance = .estimated
+        out.append(("measuredPowerGuessedWeight", estimatedWeight))
+
+        var unknownPower = Vehicle(make: "VW", model: "Type 2", year: 1968, garageSlot: 1)
+        unknownPower.factoryHorsepowerProvenance = .unknown   // never recorded — no fabricated baseline
+        out.append(("unknownPower", unknownPower))
+
         return out
     }
 
@@ -165,6 +183,8 @@ final class HonestySweepTests: XCTestCase {
                     violations += fabricationViolations(in: text, context: context)
                 }
             }
+            // Structural, not textual: the monotonic rule holds regardless of any surface.
+            violations += provenanceMonotonicViolations(vehicle: vehicle, context: "[\(vehicleName)]")
         }
 
         violations += overdueConsistencyViolations()
@@ -232,6 +252,34 @@ final class HonestySweepTests: XCTestCase {
         }
         return out
     }
+
+    /// Rule 7 (structural, ADR-0006 §4): a derived figure never claims stronger provenance than its
+    /// weakest input. This is the anti-laundering guarantee, checked on the model rather than the
+    /// text — it catches a future derivation that forgets to thread provenance, before any surface
+    /// can render the lie.
+    private func provenanceMonotonicViolations(vehicle v: Vehicle, context: String) -> [String] {
+        var out: [String] = []
+        if v.factoryHorsepower != nil,
+           v.estimatedStockWheelHPProvenance > v.factoryHorsepowerProvenance {
+            out.append("\(context) stock baseline (\(v.estimatedStockWheelHPProvenance)) out-ranks its "
+                       + "factory input (\(v.factoryHorsepowerProvenance))")
+        }
+        if v.powerToWeight != nil {
+            let inputs = Provenance.weakest([v.currentPowerProvenance, v.factoryWeightProvenance])
+            if v.powerToWeightProvenance > inputs {
+                out.append("\(context) power/weight (\(v.powerToWeightProvenance)) out-ranks its "
+                           + "inputs (\(inputs))")
+            }
+        }
+        return out
+    }
+
+    /// (An earlier draft added a textual "estimated baseline must carry a marker" rule here. It was
+    /// dropped as redundant: Rule 1 already requires every non-measured "N whp" to sit with an
+    /// estimate marker, and the "Estimated stock wheel baseline: …" framing satisfies it. The wide
+    /// window false-passed on a stray "est"; the tight window false-failed on the honest "Estimated"
+    /// prefix. The genuinely new guarantee the spine adds is the structural monotonic rule above,
+    /// which no textual rule already covered.)
 
     /// Rule 5: a car with nothing on record yields no power figures and no dollars.
     private func fabricationViolations(in text: String, context: String) -> [String] {

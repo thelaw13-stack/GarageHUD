@@ -615,9 +615,15 @@
       "testing_criteria": [
         "full package suite green; a placeholder must not produce a confident derived figure anywhere in the honesty sweep"
       ],
-      "status": "blocked",
-      "blocked_reason": "Folded into W-073 (ADR-0006 accepted). Kept as a named acceptance case the implementation must satisfy, not worked standalone.",
-      "result": null,
+      "status": "complete",
+      "blocked_reason": null,
+      "result": {
+        "date": "2026-07-20",
+        "notes": "Fixed by W-073 power slice: a typed factory figure defaults to .estimated and its derived baseline can never present as a hard number.",
+        "commits": [
+          "8215fea"
+        ]
+      },
       "recommendation": "Likely a provenance marker alongside the value rather than a new field per figure — the PowerFigure/InvestmentFigure pattern of pairing a number with its wording already exists and is the natural home. Design first: this touches the honesty spine, and getting it wrong makes every figure look doubtful."
     },
     {
@@ -633,9 +639,15 @@
       "testing_criteria": [
         "full package suite green including a sweep case for an unmeasured car's card"
       ],
-      "status": "blocked",
-      "blocked_reason": "Folded into W-073 (ADR-0006 accepted). Kept as a named acceptance case the implementation must satisfy, not worked standalone.",
-      "result": null
+      "status": "complete",
+      "blocked_reason": null,
+      "result": {
+        "date": "2026-07-20",
+        "notes": "Fixed by W-073 power slice: the fleet sheet marks an estimated baseline '~N whp / est', so a crank estimate is never stacked as a confident comparison under the headline.",
+        "commits": [
+          "8215fea"
+        ]
+      }
     },
     {
       "id": "W-072",
@@ -650,9 +662,15 @@
       "testing_criteria": [
         "full package suite green; fleet totals must not include acquisition cost"
       ],
-      "status": "blocked",
-      "blocked_reason": "Folded into W-073 (ADR-0006 accepted). Kept as a named acceptance case the implementation must satisfy, not worked standalone.",
-      "result": null
+      "status": "complete",
+      "blocked_reason": null,
+      "result": {
+        "date": "2026-07-20",
+        "notes": "Fixed by W-073 money slice: MoneyFact names the three money facts and what each is NOT at the point of entry; totalInvested proven to exclude purchase price.",
+        "commits": [
+          "8215fea"
+        ]
+      }
     },
     {
       "id": "W-073",
@@ -672,9 +690,21 @@
       "testing_criteria": [
         "full package suite green with provenance + monotonic-combine unit tests and honesty-sweep cases; then on-device check that the Baja's 75 hp no longer yields a hard 63 whp baseline"
       ],
-      "status": "incomplete",
+      "status": "complete",
       "blocked_reason": null,
-      "result": null
+      "result": {
+        "tests": "519 -> 552 across the spine, +33; zero warnings under -strict-concurrency=complete",
+        "commits": [
+          "97f910e",
+          "8215fea",
+          "e3c34cf",
+          "4a7bd0a",
+          "db622b9",
+          "PENDING"
+        ],
+        "date": "2026-07-20",
+        "notes": "ADR-0006 fully implemented across six increments, all device-validated or sweep-locked: (1) the pure Provenance type + monotonic weakest() [97f910e]; (2) power slice — factoryHorsepower provenance, humble default, derived baseline, fleet sheet marking [8215fea]; (3) in-place visibility on the Specs screen [e3c34cf]; (4) money/meaning — MoneyFact names acquisition/build/service distinctly at entry, totalInvested proven to exclude purchase price [4a7bd0a]; (5) torque/weight + power-to-weight through the monotonic rule [db622b9]; (6) honesty-sweep close-out — estimated/guessed-weight/unknown provenance vehicles added to the adversarial matrix, plus a structural monotonic invariant (rule 7) that a derived figure never out-ranks its weakest input. Rule 7 vacuity-tested by hand: inverting a derived provenance to falsely claim .measured makes the sweep fail. A textual rule 8 draft was dropped as redundant with the existing 'stock/estimat marker' rule 1. Migration honoured throughout: legacy .unspecified values render exactly as today, no retroactive doubt."
+      }
     },
     {
       "id": "W-074",
@@ -691,9 +721,15 @@
       "testing_criteria": [
         "full package suite green; on-device check that editing a value shows its honesty marking in place"
       ],
-      "status": "incomplete",
+      "status": "complete",
       "blocked_reason": null,
-      "result": null
+      "result": {
+        "date": "2026-07-20",
+        "notes": "Fixed by W-073 in-place visibility slice: the Specs POWER section names the factory figure's origin and shows the marked baseline where the value is edited, not only in the export.",
+        "commits": [
+          "8215fea"
+        ]
+      }
     },
     {
       "id": "W-014",
