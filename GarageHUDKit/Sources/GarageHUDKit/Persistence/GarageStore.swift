@@ -21,6 +21,11 @@ public final class GarageStore: ObservableObject {
 
     @Published public var vehicles: [Vehicle] = [] {
         didSet {
+            // W-065: stamp what the owner actually changed, by diffing against the state this save
+            // replaced. Only genuine local edits are stamped — a remote document arrives carrying
+            // the *other* device's stamps, and restamping it here would make this device the author
+            // of edits it merely received, and win every race by virtue of syncing last.
+            if !isLoading && !isApplyingRemote { stampLocalEdits(replacing: oldValue) }
             save()
             // Don't push during load/seed or while applying a remote pull, and not until
             // the initial sync has decided direction — otherwise fresh seed data could
@@ -41,6 +46,10 @@ public final class GarageStore: ObservableObject {
     // Sync state
     private let cloud: CloudSyncManager?
     private var isApplyingRemote = false
+    /// Guards the re-entrant write in `stampLocalEdits` (W-065).
+    private var isStamping = false
+    /// This device's clock, resumed across launches so stamp order survives a restart.
+    private var syncClock = SyncIdentity.loadClock()
     private var initialSyncPending: Bool
     private var pushTask: Task<Void, Never>?
     private let appliedKey = "GHUD.appliedCloudUpdatedAt"
@@ -495,6 +504,24 @@ public final class GarageStore: ObservableObject {
         guard !isLoading else { return }
         guard let data = try? GaragePersistence.encode(vehicles) else { return }
         try? data.write(to: fileURL, options: .atomic)
+    }
+
+    /// Apply sync stamps for a local edit (W-065, ADR-0005).
+    ///
+    /// Re-entrancy matters here: this writes to `vehicles`, which re-enters `didSet`. The guard flag
+    /// makes the second pass a no-op, and the assignment is skipped entirely when nothing changed so
+    /// an untouched save cannot loop or inflate the clock.
+    private func stampLocalEdits(replacing previous: [Vehicle]) {
+        guard !isStamping else { return }
+        isStamping = true
+        defer { isStamping = false }
+
+        var clock = syncClock
+        let stamped = SyncStamper.stamping(vehicles, against: previous, clock: &clock)
+        guard stamped != vehicles else { return }
+        syncClock = clock
+        SyncIdentity.save(clock)
+        vehicles = stamped
     }
 
     /// Compute the "since you were last here" digest against the stored snapshot, then re-baseline

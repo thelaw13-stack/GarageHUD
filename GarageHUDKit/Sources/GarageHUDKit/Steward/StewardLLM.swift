@@ -35,6 +35,15 @@ enum StewardLLM {
             let response = try await session.respond(to: prompt)
             let text = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return .failed("empty response") }
+            // `confidence` is deliberately nil, so no evidence chip renders for an LLM answer while
+            // the keyword core still shows one. Ruled 2026-07-19 rather than left as an oversight:
+            // an LLM answer can lean on a measured dyno figure and a weak estimate in the same
+            // paragraph, and stamping a single band across all of it would assert a confidence the
+            // answer does not uniformly have — a small lie in an app built not to tell them. The
+            // bands still reach the model in the record itself ("[Strong evidence]", "[Weak —
+            // estimate only]") and it is instructed to respect them, so band honesty lives in the
+            // prose. If a chip is ever wanted here, it needs per-claim bands, not one for the whole
+            // reply.
             return .answered(StewardReply(text: text))
         } catch {
             return .failed(String(describing: error))

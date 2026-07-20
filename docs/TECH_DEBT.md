@@ -13,10 +13,14 @@ day — `W-061` (the Steward summed a measured figure with a figure derived from
 second mic tap cancelled the recognition task that would have sent the question). Neither was
 reachable by the suite. Cloud voice is split to `W-060` and deferred by owner decision; see below.
 
-Still open, not a blocker: the LLM path returns `StewardReply(text:)` with `confidence` nil, so the
-evidence chip that renders for keyword answers never appears for LLM answers. Arguably correct — an
-LLM answer can span facts at several bands and stamping one band on the paragraph would itself be a
-lie — but the choice is undocumented and unruled.
+Ruled 2026-07-19: the LLM path returns `StewardReply(text:)` with `confidence` nil, so no evidence
+chip renders for an LLM answer while the keyword core still shows one. This is **deliberate**. An
+LLM answer can lean on a measured dyno figure and a weak estimate in the same paragraph, and one
+band stamped across all of it would assert a confidence the answer does not uniformly have. The
+bands still reach the model inside the record and it is instructed to respect them, so band honesty
+lives in the prose. A chip here would need per-claim bands, not one for the whole reply. Recorded in
+`StewardLLM.answer` so the next reader finds the reasoning at the code rather than guessing it was
+an oversight.
 
 Done: TTS now selects the best installed voice (Premium > Enhanced > default) instead of the
 robotic compact default — ranking is pure and unit-tested (`StewardVoicePreference`). "Ask

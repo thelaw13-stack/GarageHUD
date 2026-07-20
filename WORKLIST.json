@@ -483,9 +483,16 @@
       "testing_criteria": [
         "full package suite green; then a real two-device check with Tim — edit a spec on the Mac and a different group on the phone, sync, and confirm both survive"
       ],
-      "status": "incomplete",
+      "status": "in_progress",
       "blocked_reason": null,
-      "result": null
+      "result": null,
+      "field_findings": {
+        "implemented": "SyncStamper diffs a save against the state it replaced and stamps only what changed. Wired into GarageStore.vehicles.didSet using oldValue, guarded so it never runs while loading or applying a remote document — restamping a received document would make this device the author of edits it merely received and win every race by syncing last. Re-entrancy is handled: the stamping write re-enters didSet, an isStamping flag makes the second pass a no-op, and the assignment is skipped entirely when nothing changed.",
+        "identity": "SyncIdentity persists a stable per-install node id and the clock's last reading in UserDefaults. Both matter: a node id regenerated per launch makes the tiebreak meaningless, and a clock reset on launch restarts the counter at zero so an edit made just after opening could order BEHIND one made before closing — losing the owner's newest work.",
+        "group_detection": "Vehicle.groupMatches is defined in terms of adopt() rather than a second hand-written field list, so adding a field to a coherence group updates detection and merging together. A duplicated list is exactly how a field ends up merged but never detected as edited.",
+        "tests": "500 -> 509, +9. Covers: an edit stamps its group and only its group; a no-op save advances nothing; repeated saves are stable (a stamped record must not look changed merely because it was stamped, or the clock runs away); one part edit stamps only that part; a new vehicle needs no stamps; two groups stamped in one save get distinct increasing stamps; and the end-to-end property — two devices editing different groups both keep their edits, in both merge directions.",
+        "not_yet_validated": "No two-device run. The unit-level property holds, but nothing has been observed surviving a real CloudKit round trip between the Mac and the phone. Also unexercised: the schema 1->2 bump in practice, which means a v1 Mac will REFUSE a v2 document rather than sync with it, so both devices must be rebuilt before any real test."
+      }
     },
     {
       "id": "W-014",

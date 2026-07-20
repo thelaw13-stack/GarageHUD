@@ -19,6 +19,19 @@ public extension Vehicle {
         groupStamps[group.rawValue] = stamp
     }
 
+    /// Whether every field of `group` already matches `other`.
+    ///
+    /// Deliberately defined in terms of `adopt` rather than by listing the fields a second time: if
+    /// adopting the group from `other` changes nothing, the groups are equal. Adding a field to a
+    /// group therefore updates both behaviours at once, and the two can never drift apart — a
+    /// hand-written second list is exactly how a field ends up merged but never detected as edited.
+    func groupMatches(_ group: CoherenceGroup, _ other: Vehicle) -> Bool {
+        var probe = self
+        probe.adopt(group, from: other)
+        probe.groupStamps = groupStamps      // adopt carries the stamp across; compare values only
+        return probe == self
+    }
+
     /// Take every field of `group` from `other`, together with its stamp.
     ///
     /// Deliberately exhaustive over `CoherenceGroup` with no `default:` — adding a case forces this
