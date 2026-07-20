@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct LiveSessionView: View {
     @Binding var vehicle: Vehicle
@@ -34,6 +37,27 @@ struct LiveSessionView: View {
         }
         .background(HUDTheme.background)
         .onDisappear { stop() }
+        // W-063: the dials are only watchable if the phone stays awake. Driven by session state,
+        // not view lifetime, and re-evaluated as the link moves so a dropped adapter releases it.
+        .onChange(of: isRunning) { _, _ in applyScreenWake() }
+        .onChange(of: frame?.connectionState) { _, _ in applyScreenWake() }
+    }
+
+    /// Apply the wake decision. iOS-only: there is no idle timer to hold on macOS, and the policy
+    /// itself stays pure and testable in `ScreenWake`.
+    private func applyScreenWake() {
+        #if canImport(UIKit) && !os(watchOS)
+        UIApplication.shared.isIdleTimerDisabled =
+            ScreenWake.shouldStayAwake(sessionRunning: isRunning, connection: frame?.connectionState)
+        #endif
+    }
+
+    /// Always release the hold, whatever the session state believes. Called on stop so a session
+    /// that ends by any path — button, error, or the view going away — cannot strand the screen on.
+    private func releaseScreenWake() {
+        #if canImport(UIKit) && !os(watchOS)
+        UIApplication.shared.isIdleTimerDisabled = false
+        #endif
     }
 
     private var content: some View {
@@ -547,6 +571,7 @@ struct LiveSessionView: View {
         streamTask?.cancel()
         streamTask = nil
         isRunning = false
+        releaseScreenWake()
     }
 
     private var sessionButtonTitle: String {
