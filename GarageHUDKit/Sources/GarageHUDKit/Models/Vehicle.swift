@@ -21,6 +21,12 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     /// which renders exactly as today. A number the owner types defaults to `.estimated`, so a
     /// placeholder can never masquerade as a documented spec or seed a confident baseline (W-070).
     public var factoryHorsepowerProvenance: Provenance = .unspecified
+    /// Origin of `factoryTorque` (ADR-0006). Display-only figure, but marked so a typed guess reads
+    /// as an estimate in place rather than as a documented spec.
+    public var factoryTorqueProvenance: Provenance = .unspecified
+    /// Origin of `factoryWeightLbs` (ADR-0006). Seeds `powerToWeight`, so it flows through the
+    /// monotonic rule — a guessed weight can't produce a confident ratio.
+    public var factoryWeightProvenance: Provenance = .unspecified
     /// The measurement basis of `factoryHorsepower`. Defaults to `.factoryCrank`, which is
     /// what a manufacturer rating almost always is — and why comparing it to a wheel-dyno
     /// number is only ever an approximation.
@@ -142,6 +148,8 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
         // a new field vanishes on read unless added here by hand).
         factoryHorsepowerProvenance = try c.decodeIfPresent(Provenance.self, forKey: .factoryHorsepowerProvenance) ?? .unspecified
         factoryTorque = try c.decodeIfPresent(Double.self, forKey: .factoryTorque)
+        factoryTorqueProvenance = try c.decodeIfPresent(Provenance.self, forKey: .factoryTorqueProvenance) ?? .unspecified
+        factoryWeightProvenance = try c.decodeIfPresent(Provenance.self, forKey: .factoryWeightProvenance) ?? .unspecified
         factoryWeightLbs = try c.decodeIfPresent(Double.self, forKey: .factoryWeightLbs)
         factoryPowerBasis = try c.decodeIfPresent(PowerBasis.self, forKey: .factoryPowerBasis) ?? .factoryCrank
         drivetrain = try c.decodeIfPresent(Drivetrain.self, forKey: .drivetrain) ?? .unknown
@@ -569,6 +577,21 @@ public struct Vehicle: Identifiable, Codable, Hashable, Sendable {
     public var powerToWeight: Double? {
         guard let hp = currentHorsepowerEstimate, let weight = factoryWeightLbs, hp > 0 else { return nil }
         return weight / hp
+    }
+
+    /// Origin of the *current* power figure — a real measurement when there's a dyno, otherwise the
+    /// factory figure's own origin. The single place power provenance is decided, shared by the
+    /// readout and by `powerToWeightProvenance`.
+    public var currentPowerProvenance: Provenance {
+        hasMeasuredPower ? .measured : factoryHorsepowerProvenance
+    }
+
+    /// Origin of `powerToWeight` (ADR-0006 §4): the weakest of the power figure and the weight it's
+    /// divided by. A guessed weight or an estimated power drags the ratio down to an estimate, so it
+    /// never reads as a hard number built on soft inputs.
+    public var powerToWeightProvenance: Provenance {
+        guard powerToWeight != nil else { return .unknown }
+        return Provenance.weakest([currentPowerProvenance, factoryWeightProvenance])
     }
 
     /// The odometer as of the most recent event that recorded one — the vehicle's current mileage,

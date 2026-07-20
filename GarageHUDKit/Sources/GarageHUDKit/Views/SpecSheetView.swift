@@ -28,8 +28,8 @@ struct SpecSheetView: View {
                 HUDPanel(title: "Factory Baseline") {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 16)], spacing: 16) {
                         editableStat(label: "Horsepower", value: horsepowerBinding, unit: "HP")
-                        editableStat(label: "Torque", value: $vehicle.factoryTorque, unit: "LB-FT")
-                        editableStat(label: "Weight", value: $vehicle.factoryWeightLbs, unit: "LBS")
+                        editableStat(label: "Torque", value: torqueBinding, unit: "LB-FT")
+                        editableStat(label: "Weight", value: weightBinding, unit: "LBS")
                     }
                     HStack(spacing: 12) {
                         TextField("Engine", text: $vehicle.engineDescription)
@@ -107,7 +107,13 @@ struct SpecSheetView: View {
                                     value: baseline, unit: "WHP", color: HUDTheme.textSecondary)
                     }
                     if let ratio = vehicle.powerToWeight {
-                        StatReadout(label: "Power / Weight", value: String(format: "%.2f", ratio), unit: "lb/hp", color: HUDTheme.textPrimary)
+                        // W-073: the ratio inherits its weakest input; mark it when it's an estimate
+                        // so a guessed weight can't produce a hard-looking number.
+                        let estimated = vehicle.powerToWeightProvenance <= .estimated
+                            && vehicle.powerToWeightProvenance != .unspecified
+                        StatReadout(label: estimated ? "Power / Weight (est)" : "Power / Weight",
+                                    value: (estimated ? "~" : "") + String(format: "%.2f", ratio),
+                                    unit: "lb/hp", color: HUDTheme.textPrimary)
                     }
                     if let gained = vehicle.horsepowerGainedOverStock {
                         StatReadout(label: "Gained over stock", value: "+\(Int(gained))", unit: "HP", color: HUDTheme.textPrimary)
@@ -458,6 +464,19 @@ struct SpecSheetView: View {
                 vehicle.factoryHorsepowerProvenance = (newValue == nil) ? .unknown : .estimated
             }
         )
+    }
+
+    /// Humble default for torque and weight, same as horsepower (ADR-0006 §2).
+    private var torqueBinding: Binding<Double?> {
+        Binding(get: { vehicle.factoryTorque },
+                set: { vehicle.factoryTorque = $0
+                       vehicle.factoryTorqueProvenance = ($0 == nil) ? .unknown : .estimated })
+    }
+
+    private var weightBinding: Binding<Double?> {
+        Binding(get: { vehicle.factoryWeightLbs },
+                set: { vehicle.factoryWeightLbs = $0
+                       vehicle.factoryWeightProvenance = ($0 == nil) ? .unknown : .estimated })
     }
 
     @ViewBuilder
