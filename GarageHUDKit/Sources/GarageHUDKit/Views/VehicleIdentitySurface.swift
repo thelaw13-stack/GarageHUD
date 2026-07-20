@@ -38,8 +38,12 @@ struct VehicleIdentitySurface: View {
     /// fighting the palette. Nothing of the car is ever cut off.
     private var photoBand: some View {
         photoContent
-            .frame(maxWidth: .infinity)
-            .frame(height: horizontalSizeClass == .compact ? 176 : 230)
+            // W-067 follow-up: a fixed height over an unbounded width became a thin wide strip at
+            // fullscreen on desktop — the fitted car shrank into a sea of blur. The band now keeps a
+            // consistent shape (a wide banner aspect) with a capped width, centered with margins on
+            // a large window, so the car reads the same at any size. Compact (iPhone) keeps the
+            // familiar fixed height.
+            .modifier(HeroBandShape(compact: horizontalSizeClass == .compact))
             .clipped()
             .overlay(alignment: .bottom) {
                 LinearGradient(

@@ -24,6 +24,14 @@ public struct RootView: View {
             }
         }
         .environmentObject(store)
+        // Desktop text: keep the HUD at its designed sizes and don't follow the Mac system
+        // text-size setting (Tim's call). The theme fonts are already fixed on macOS, but system
+        // controls (fields, pickers) would otherwise scale on their own and break the layout — this
+        // pins the whole window to the default so everything stays consistent. iPhone is untouched:
+        // no modifier there, so W-066's Dynamic Type scaling keeps working.
+        #if os(macOS)
+        .dynamicTypeSize(.large)
+        #endif
         .background(HUDTheme.background)
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showingAddVehicle) {

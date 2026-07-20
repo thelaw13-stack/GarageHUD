@@ -736,6 +736,25 @@
       }
     },
     {
+      "id": "W-075",
+      "title": "Desktop: hero shape at fullscreen, and text no longer scales inconsistently",
+      "why": "Found 2026-07-20 on the desktop build. (1) The hero band used a fixed height over an unbounded width, so at fullscreen it became a thin wide strip — the fit-based detail hero shrank the car into blur, the fill-based garage hero cropped it. (2) App text (HUDTheme, 345 sites) scales on iPhone via UIFontMetrics (W-066) but is fixed on macOS, while macOS system controls follow the system text-size setting on their own — so changing text size on desktop broke the layout with some things scaling and others not.",
+      "depends_on": [],
+      "completion_criteria": [
+        "Hero keeps a consistent capped, centred banner shape at any desktop window size (Tim's choice)",
+        "iPhone hero unchanged",
+        "Desktop text does not follow the system text-size setting — HUD stays at designed sizes, no mismatch (Tim's choice)",
+        "iPhone Dynamic Type scaling (W-066) unchanged",
+        "full suite green"
+      ],
+      "testing_criteria": [
+        "on-device: fullscreen the Mac hero and confirm the car reads correctly and centred; change Mac system text size and confirm nothing breaks; confirm iPhone still scales"
+      ],
+      "status": "in_progress",
+      "blocked_reason": null,
+      "result": null
+    },
+    {
       "id": "W-014",
       "title": "OBD hardware validation",
       "why": "Real-adapter integration, ISO-TP/multi-ECU headers, and live disconnect/reconnect are unverified against physical hardware (TD-004). Synthetic transcript replay is done.",

@@ -21,7 +21,11 @@ struct GarageSpotlightView: View {
             imageStage
             instrumentRail
         }
-        .frame(maxWidth: .infinity)
+        // W-067 follow-up: cap the active-bay hero card on a wide desktop window (Tim's call) so it
+        // stays a fixed, correct shape instead of stretching into a thin full-width strip at
+        // fullscreen. iPhone (compact) keeps full width. The card is styled at the capped width,
+        // then centred with margins by the outer frame at the end of this chain.
+        .frame(maxWidth: horizontalSizeClass == .compact ? .infinity : 1000)
         .background(HUDTheme.panelBackground)
         .clipShape(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius))
         .overlay(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).strokeBorder(HUDTheme.hairline, lineWidth: 1))
@@ -30,6 +34,7 @@ struct GarageSpotlightView: View {
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(accessibilitySummary)
+        .frame(maxWidth: .infinity, alignment: .center)   // centre the capped card within the window
         .task(id: vehicle.heroPhoto?.filename) { await loadImage() }
     }
 
