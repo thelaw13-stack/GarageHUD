@@ -594,6 +594,59 @@
       "implementation_note": "OBDResponseShape.analyze reads the response chunk the poll loop already receives — the decoder keeps only the first decodable line, so extra responders and multi-frame segments were arriving and being discarded unseen. Two passive signals with headers off (ATH0): several decodable data lines answering one request means more than one responder; lines prefixed 0:/1:/2: are the ELM's segmented multi-frame form. Journalled once per session as a BUS entry so the connection report can carry it without a line per poll. No ATDPN and no probe added to the bring-up. Tests 512 -> 519, +7, including the failure that would have made the instrument confidently wrong rather than silent: counting continuation frames as independent ECUs, which would report multi-responder on every long single-ECU reply. Installed to the phone; awaiting a Tundra session to read a report that can finally answer the question. Honest limit by design: silence is not proof of a single-ECU vehicle — the car may never have been asked anything that provokes a multi-frame reply."
     },
     {
+      "id": "W-070",
+      "title": "A guessed figure is indistinguishable from a sourced one",
+      "why": "Found 2026-07-19 reviewing the fleet sheet with Tim. The Baja's 75 hp was a placeholder he typed to fill the field, but the record stores it in factoryHorsepower as a bare Double — identical to a figure read off a spec sheet. It then seeds estimatedStockWheelHP (63 whp), power-to-weight, and cost-per-hp reasoning, so one guess becomes several derived figures each carrying an evidence band it never earned. The existing '[Weak — estimate only]' label is honest about PRECISION but not about PROVENANCE: it reads as a sourced figure held loosely, not as a number invented to satisfy a required-looking field. This is the root cause behind W-071 and W-072 and the third adjacency-shaped honesty gap found today.",
+      "depends_on": [],
+      "completion_criteria": [
+        "The record can distinguish an owner's placeholder from a sourced or documented figure",
+        "A placeholder never seeds derived figures as though it were evidence, or is clearly marked wherever it does",
+        "Existing values are not silently reclassified — an unmarked legacy figure stays exactly as honest as it is today",
+        "Tim can mark a value as a guess without it feeling like a form to fill in"
+      ],
+      "testing_criteria": [
+        "full package suite green; a placeholder must not produce a confident derived figure anywhere in the honesty sweep"
+      ],
+      "status": "incomplete",
+      "blocked_reason": null,
+      "result": null,
+      "recommendation": "Likely a provenance marker alongside the value rather than a new field per figure — the PowerFigure/InvestmentFigure pattern of pairing a number with its wording already exists and is the natural home. Design first: this touches the honesty spine, and getting it wrong makes every figure look doubtful."
+    },
+    {
+      "id": "W-071",
+      "title": "Fleet sheet stacks a crank-hp headline over a wheel-hp baseline",
+      "why": "Found 2026-07-19 in the exported fleet sheet. For an unmeasured car the headline is 'N hp est' (crank) while stockBaselineValue directly beneath is always wheel-hp: the Baja reads '75 hp' over '63 whp', the Tundra '323 hp est' over '258 whp'. Two different units, stacked, with nothing saying so — a reader naturally reads it as 'down from 75 to 63'. Measured cars are fine (both figures are whp). This is structural, not a data problem: it persists regardless of whether the underlying numbers are real, and the Tundra's are.",
+      "depends_on": [],
+      "completion_criteria": [
+        "Crank and wheel figures are never presented as a comparable pair without their difference being explicit",
+        "Measured cards keep their current, correct behaviour",
+        "Covered by the cross-surface honesty sweep so it cannot regress"
+      ],
+      "testing_criteria": [
+        "full package suite green including a sweep case for an unmeasured car's card"
+      ],
+      "status": "incomplete",
+      "blocked_reason": null,
+      "result": null
+    },
+    {
+      "id": "W-072",
+      "title": "Nothing stops an acquisition cost being entered as build spend",
+      "why": "Found 2026-07-19: the Baja's $8,000 — what Tim paid for the car in 2010, before rebuilding it — sits in documentedTotalInvestment (build spend) rather than purchasePrice. The field's own doc comment says the three money facts are 'never conflated' (Constitution rule 4), and every downstream surface honours that: wording, totals, Steward rules. But nothing guards the point of entry, which is where the mistake is easiest to make. Consequence while it stands: the Baja's card reads 'INVESTMENT $8,000 documented' for money that was never build spend, and the fleet headline INVESTED $47,402 mixes one car's purchase price into a build-investment total (it should read $39,402). The app behaved correctly — totalInvested faithfully reported the field it was given. The design enforces the distinction everywhere downstream and nowhere at the moment it is created.",
+      "depends_on": [],
+      "completion_criteria": [
+        "Entering money makes the three facts (acquisition / build / service) obviously distinct at the point of entry",
+        "No silent migration of existing values — an owner confirms any reclassification of their own data",
+        "The fleet total states which of the three it is summing"
+      ],
+      "testing_criteria": [
+        "full package suite green; fleet totals must not include acquisition cost"
+      ],
+      "status": "incomplete",
+      "blocked_reason": null,
+      "result": null
+    },
+    {
       "id": "W-014",
       "title": "OBD hardware validation",
       "why": "Real-adapter integration, ISO-TP/multi-ECU headers, and live disconnect/reconnect are unverified against physical hardware (TD-004). Synthetic transcript replay is done.",
