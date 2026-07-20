@@ -483,9 +483,16 @@
       "testing_criteria": [
         "full package suite green; then a real two-device check with Tim — edit a spec on the Mac and a different group on the phone, sync, and confirm both survive"
       ],
-      "status": "in_progress",
+      "status": "complete",
       "blocked_reason": null,
-      "result": null,
+      "result": {
+        "tests": "500 -> 509, +9; zero warnings under -strict-concurrency=complete",
+        "commits": [
+          "db8d1de"
+        ],
+        "date": "2026-07-19",
+        "notes": "Two-device validation PASSED on real hardware against live CloudKit — the first time TD-001's concurrent-edit hole has been closed in practice rather than in tests. Method: phone in Airplane Mode edited the S2K's horsepower 240 -> 250 (power group, stamped 05:55:09Z by the phone's node); the Mac concurrently edited purchase price 18000 -> 19500 (money group, stamped 05:56:04Z by the Mac's node, verified against its UserDefaults nodeID). On reconnect the phone pulled the Mac's newer document, KEPT its own newer power group and ACCEPTED the Mac's money group, then pushed the combined result, which the Mac adopted. Final state carries both edits. The Mac's edit was 55 seconds later, so under whole-document last-writer-wins the phone's horsepower edit would have been lost outright. Also observed working: stamping fires only for the group actually edited (power and money stamped, nothing else), node ids are stable and distinct per device, parts stayed unstamped since none were touched, and the v2 schema round-tripped Mac <-> iPhone. A conflict snapshot written at 05:48:31Z was an unrelated earlier event — the Mac trying to push stale pre-edit state (hp 237, no price) and the guard correctly refusing to clobber newer cloud data. Honest notes: convergence took roughly 7 minutes and completed only once both apps were foregrounded, which is existing push scheduling rather than anything changed here, but it means an owner checking the second device immediately will see divergence that is not loss. Vector initially misread mid-convergence state as a test failure; 'one device disagrees' is expected during propagation."
+      },
       "field_findings": {
         "implemented": "SyncStamper diffs a save against the state it replaced and stamps only what changed. Wired into GarageStore.vehicles.didSet using oldValue, guarded so it never runs while loading or applying a remote document — restamping a received document would make this device the author of edits it merely received and win every race by syncing last. Re-entrancy is handled: the stamping write re-enters didSet, an isStamping flag makes the second pass a no-op, and the assignment is skipped entirely when nothing changed.",
         "identity": "SyncIdentity persists a stable per-install node id and the clock's last reading in UserDefaults. Both matter: a node id regenerated per launch makes the tiebreak meaningless, and a clock reset on launch restarts the counter at zero so an edit made just after opening could order BEHIND one made before closing — losing the owner's newest work.",
