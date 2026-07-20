@@ -25,7 +25,9 @@ struct GarageSpotlightView: View {
         // stays a fixed, correct shape instead of stretching into a thin full-width strip at
         // fullscreen. iPhone (compact) keeps full width. The card is styled at the capped width,
         // then centred with margins by the outer frame at the end of this chain.
-        .frame(maxWidth: horizontalSizeClass == .compact ? .infinity : 1000)
+        #if os(macOS)
+        .frame(maxWidth: 1040)
+        #endif
         .background(HUDTheme.panelBackground)
         .clipShape(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius))
         .overlay(RoundedRectangle(cornerRadius: HUDTheme.cornerRadius).strokeBorder(HUDTheme.hairline, lineWidth: 1))
@@ -93,7 +95,16 @@ struct GarageSpotlightView: View {
                 .padding(HUDTheme.space3)
             }
         }
+        #if os(macOS)
+        // Proportional, not fixed: a fixed short height over a wide desktop window crushed the car
+        // into a thin slice at fullscreen. A ~3.4:1 banner keeps the same framing at any width, and
+        // the card's width cap keeps it from ever getting taller than this implies.
+        .aspectRatio(3.4, contentMode: .fill)
+        .frame(maxHeight: 320)
+        .clipped()
+        #else
         .frame(height: horizontalSizeClass == .compact ? 218 : 290)
+        #endif
     }
 
     @ViewBuilder

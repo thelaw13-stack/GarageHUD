@@ -21,16 +21,16 @@ public struct HeroBandShape: ViewModifier {
     public init(compact: Bool) { self.compact = compact }
 
     public func body(content: Content) -> some View {
-        if compact {
-            content.frame(maxWidth: .infinity).frame(height: 176)
-        } else {
-            // A clear spacer carries the aspect ratio and sizes to the available (capped) width; the
-            // photo overlays it. The outer max-width:∞ centres the capped band within the window.
-            Color.clear
-                .aspectRatio(aspect, contentMode: .fit)
-                .overlay(content)
-                .frame(maxWidth: maxWidth)
-                .frame(maxWidth: .infinity, alignment: .center)
-        }
+        // Desktop is the case that degenerated at fullscreen; decide on the platform, not on
+        // horizontalSizeClass, which is unreliable (often nil) on macOS and let the band stretch.
+        #if os(macOS)
+        Color.clear
+            .aspectRatio(aspect, contentMode: .fit)
+            .overlay(content)
+            .frame(maxWidth: maxWidth)
+            .frame(maxWidth: .infinity, alignment: .center)
+        #else
+        content.frame(maxWidth: .infinity).frame(height: compact ? 176 : 230)
+        #endif
     }
 }
